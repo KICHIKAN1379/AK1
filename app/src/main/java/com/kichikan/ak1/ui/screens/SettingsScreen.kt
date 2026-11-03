@@ -33,6 +33,7 @@ import com.kichikan.ak1.ui.theme.ThemeState
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.audio.BackgroundMusic
 import com.kichikan.ak1.data.AppRepository
+import com.kichikan.ak1.ui.GrowthItemsManagerDialog
 import com.kichikan.ak1.data.AutoArchive
 import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
@@ -112,15 +113,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val quotes = remember { mutableStateListOf<String>().apply { addAll(DailyQuotes.list(context)) } }
     var profileOpen by remember { mutableStateOf(false) }
     var growthManagerOpen by remember { mutableStateOf(false) }
-    var growthStageName by remember { mutableStateOf("") }
-    val defaultGrowthStages = listOf("شروع مسیر", "خدمت‌گزار حلقه", "مسئولیت‌پذیری", "اعتمادسازی", "پیش‌قدم در خیر", "قله کمال")
-    val growthStages = remember { mutableStateListOf<String>().apply {
-        val raw = prefs.getString("growth_stages", null)
-        if (raw == null) addAll(defaultGrowthStages) else runCatching {
-            val arr = org.json.JSONArray(raw)
-            for (i in 0 until arr.length()) add(arr.getString(i))
-        }
-    } }
     var profileImageUri by remember { mutableStateOf(prefs.getString("ring_profile_image", null)) }
     val profileImagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -262,42 +254,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         }
         Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")
     }
-    if (growthManagerOpen) {
-        AlertDialog(
-            onDismissRequest = { growthManagerOpen = false },
-            title = { Text("طراحی مسیر صعود به قله کمال") },
-            text = {
-                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("مراحل را خودت تعریف کن؛ سپس در نقشه هر عضو، رسیدن او به هر مرحله را دستی ثبت می‌کنی.")
-                    OutlinedTextField(growthStageName, { growthStageName = it }, label = { Text("نام مقام یا مرحله جدید") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    Button(onClick = {
-                        val value = growthStageName.trim()
-                        if (value.isNotBlank() && value !in growthStages) {
-                            growthStages.add(value)
-                            prefs.edit().putString("growth_stages", org.json.JSONArray(growthStages).toString()).apply()
-                            growthStageName = ""
-                            changed()
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("افزودن مرحله به مسیر") }
-                    growthStages.toList().forEachIndexed { index, stage ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Surface(shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)) {
-                                Text("${index + 1}", Modifier.padding(horizontal = 12.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.primary)
-                            }
-                            Text(stage, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                            TextButton(onClick = {
-                                growthStages.remove(stage)
-                                prefs.edit().putString("growth_stages", org.json.JSONArray(growthStages).toString()).apply()
-                                changed()
-                            }) { Text("حذف") }
-                        }
-                    }
-                    if (growthStages.isEmpty()) Text("مسیر خالی است؛ مرحله‌های دلخواهت را اضافه کن.")
-                }
-            },
-            confirmButton = { TextButton(onClick = { growthManagerOpen = false }) { Text("تمام") } }
-        )
-    }
+    if (growthManagerOpen) GrowthItemsManagerDialog(prefs, { changed() }) { growthManagerOpen = false }
     if (profileOpen) {
         val preview = remember(profileImageUri) {
             profileImageUri?.let { raw ->

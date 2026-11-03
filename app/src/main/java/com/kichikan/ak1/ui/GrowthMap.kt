@@ -22,6 +22,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,49 +44,95 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.model.Member
+import com.kichikan.ak1.domain.calendar.JalaliCalendar
+import org.json.JSONArray
+import org.json.JSONObject
+import android.content.SharedPreferences
+import java.time.LocalDate
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.Color as UiColor
 import com.kichikan.ak1.ui.components.LevelProgress
 import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.LocalAk1Background
 import com.kichikan.ak1.ui.theme.Motion
 import com.kichikan.ak1.ui.theme.Neon
 
-private val DEFAULT_STAGES = listOf("شروع مسیر", "خدمت‌گزار حلقه", "مسئولیت‌پذیری", "اعتمادسازی", "پیش‌قدم در خیر", "قله کمال")
+/** Default character virtues (خودسازی). The mentor can add more; each member unlocks them with approval. */
+val DEFAULT_CHARACTER_ITEMS = listOf(
+    "صداقت", "زبان نیک", "صبر", "ادب و احترام", "اول سلام", "بخشنده", "خادم بی‌منت",
+    "نماز اول وقت", "نماز جماعت‌خوان", "مسئولیت‌پذیر", "عزت‌نفس", "اعتماد به نفس",
+    "پیش‌قدم در کار خیر", "متواضع", "با حیا"
+)
 
 /**
- * Reads the mentor-defined stages. An empty stored list still falls back to the defaults so the
- * map is never blank: a screen with no stages and no explanation used to look like a dead page.
+ * Storage for the growth map. Two branches:
+ *  - توانمندی‌ها (abilities): knowledge and skills; empty by default, the mentor adds them.
+ *  - خودسازی (character): the default virtues above; also extendable.
+ * Each member has their own log: item name → day (epoch) when the mentor approved it.
  */
-private fun readStages(prefs: android.content.SharedPreferences): List<String> {
-    val raw = runCatching { prefs.getString("growth_stages", null) }.getOrNull() ?: return DEFAULT_STAGES
-    return runCatching {
-        val arr = org.json.JSONArray(raw)
-        (0 until arr.length()).map { arr.getString(it) }
-    }.getOrDefault(DEFAULT_STAGES).ifEmpty { DEFAULT_STAGES }
+object GrowthStore {
+    private const val ABILITY_KEY = "growth_items_ability"
+    private const val CHARACTER_KEY = "growth_items_character"
+
+    private fun readList(prefs: SharedPreferences, key: String, default: List<String>): List<String> {
+        val raw = runCatching { prefs.getString(key, null) }.getOrNull() ?: return default
+        return runCatching { val arr = JSONArray(raw); (0 until arr.length()).map { arr.getString(it) } }.getOrDefault(default)
+    }
+
+    private fun writeList(prefs: SharedPreferences, key: String, list: List<String>) {
+        prefs.edit().putString(key, JSONArray(list).toString()).apply()
+    }
+
+    fun abilities(prefs: SharedPreferences): List<String> = readList(prefs, ABILITY_KEY, emptyList())
+    fun characters(prefs: SharedPreferences): List<String> = readList(prefs, CHARACTER_KEY, DEFAULT_CHARACTER_ITEMS)
+    fun saveAbilities(prefs: SharedPreferences, list: List<String>) = writeList(prefs, ABILITY_KEY, list)
+    fun saveCharacters(prefs: SharedPreferences, list: List<String>) = writeList(prefs, CHARACTER_KEY, list)
+
+    private fun logKey(memberId: String) = "growth_log_$memberId"
+
+    fun unlocked(prefs: SharedPreferences, memberId: String): Map<String, Long> = runCatching {
+        val obj = JSONObject(prefs.getString(logKey(memberId), "{}") ?: "{}")
+        obj.keys().asSequence().associateWith { obj.getLong(it) }
+    }.getOrDefault(emptyMap())
+
+    fun setUnlocked(prefs: SharedPreferences, memberId: String, name: String, on: Boolean) {
+        val map = unlocked(prefs, memberId).toMutableMap()
+        if (on) map.putIfAbsent(name, LocalDate.now().toEpochDay()) else map.remove(name)
+        val obj = JSONObject()
+        map.forEach { (k, v) -> obj.put(k, v) }
+        prefs.edit().putString(logKey(memberId), obj.toString()).apply()
+    }
 }
 
-private fun readReached(prefs: android.content.SharedPreferences, key: String): Set<String> =
-    runCatching { prefs.getStringSet(key, emptySet())?.toSet() }.getOrNull() ?: emptySet()
+private fun shamsi(epochDay: Long): String {
+    val j = JalaliCalendar.fromGregorian(LocalDate.ofEpochDay(epochDay))
+    return "%04d/%02d/%02d".format(j.year, j.month, j.day)
+}
 
 /**
- * Growth map ("نقشه کمال") as a full page inside the normal navigation, not a dialog.
- *
- * It used to be a Dialog opened from the member's action sheet, i.e. a second dialog window on
- * top of the one that was closing, which is fragile and (on some devices) never became visible.
- * As a page it always renders, keeps its scroll position and responds to the back button.
+ * Growth map ("نقشه کمال") as a full page. Two branches: توانمندی‌ها and خودسازی.
+ * Every item is unlocked manually by the mentor, one by one, and shows its unlock date.
  */
 @Composable
 fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, back: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
-    val stages = remember(member.id) { readStages(prefs) }
-    val reachedKey = "growth_reached_${member.id}"
-    var reached by remember(member.id) { mutableStateOf(readReached(prefs, reachedKey)) }
-    val count = stages.count { it in reached }
-    val progress = if (stages.isEmpty()) 0f else count.toFloat() / stages.size.toFloat()
+    var tick by remember { mutableStateOf(0) }
+    val abilities = remember(tick) { GrowthStore.abilities(prefs) }
+    val characters = remember(tick) { GrowthStore.characters(prefs) }
+    val unlocked = remember(tick, member.id) { GrowthStore.unlocked(prefs, member.id) }
+    val total = abilities.size + characters.size
+    val reached = (abilities + characters).count { it in unlocked }
+    val percent = if (total == 0) 0 else reached * 100 / total
     val animatedProgress by animateFloatAsState(
-        targetValue = progress,
+        targetValue = if (total == 0) 0f else reached.toFloat() / total,
         animationSpec = tween(700, easing = Motion.Decelerate),
-        label = "stage-progress"
+        label = "growth-progress"
     )
     val avatarPath = repo.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath
     val framePath = repo.shop.firstOrNull { it.id == member.frameItemId }?.imagePath
@@ -102,122 +149,115 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
                     MemberAvatar(avatarPath, framePath, 86.dp, member.name)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(member.name, style = MaterialTheme.typography.headlineSmall)
-                        Text(
-                            "نقشهٔ صعود • ${stages.size} مقام",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Neon.Cyan.copy(alpha = 0.14f),
-                                border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.30f))
-                            ) {
-                                Text(
-                                    "سطح ${member.economy.level}",
-                                    Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Neon.Cyan
-                                )
+                            Surface(shape = RoundedCornerShape(50), color = Neon.Cyan.copy(alpha = 0.14f), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.30f))) {
+                                Text("سطح ${member.economy.level}", Modifier.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = Neon.Cyan)
                             }
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Neon.Violet.copy(alpha = 0.14f),
-                                border = BorderStroke(1.dp, Neon.Violet.copy(alpha = 0.30f))
-                            ) {
-                                Text(
-                                    "${member.economy.xp} XP",
-                                    Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Neon.Violet
-                                )
+                            Surface(shape = RoundedCornerShape(50), color = Neon.Violet.copy(alpha = 0.14f), border = BorderStroke(1.dp, Neon.Violet.copy(alpha = 0.30f))) {
+                                Text("${member.economy.xp} XP", Modifier.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = Neon.Violet)
                             }
                         }
                     }
                 }
                 LevelProgress(xp = member.economy.xp, level = member.economy.level)
-            }
-        }
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Canvas(Modifier.fillMaxWidth().height(110.dp)) {
-                    val w = size.width
-                    val h = size.height
-                    val mountain = Path().apply {
-                        moveTo(0f, h); lineTo(w * 0.22f, h * 0.46f); lineTo(w * 0.36f, h * 0.67f)
-                        lineTo(w * 0.60f, h * 0.16f); lineTo(w * 0.78f, h * 0.53f); lineTo(w, h * 0.24f); lineTo(w, h); close()
-                    }
-                    drawPath(mountain, Brush.verticalGradient(listOf(Neon.Sky.copy(alpha = 0.55f), Neon.Indigo.copy(alpha = 0.35f))))
-                    val route = Path().apply {
-                        moveTo(w * 0.08f, h * 0.92f); lineTo(w * 0.22f, h * 0.62f); lineTo(w * 0.36f, h * 0.76f); lineTo(w * 0.60f, h * 0.30f)
-                    }
-                    drawPath(route, Neon.Cyan, style = Stroke(6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                    drawCircle(Neon.Gold, 8f, Offset(w * 0.60f, h * 0.28f))
-                }
-                Text("$count از ${stages.size} مقام ثبت شده", style = MaterialTheme.typography.titleMedium)
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = 0.10f))
-                ) {
+                Text("$reached از $total مورد باز شده • $percent٪", style = MaterialTheme.typography.titleMedium)
+                Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.10f))) {
                     Box(
-                        Modifier
-                            .fillMaxWidth(animatedProgress)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
+                        Modifier.fillMaxWidth(animatedProgress).fillMaxHeight().clip(RoundedCornerShape(50))
                             .background(Brush.horizontalGradient(listOf(Neon.Cyan, Neon.Sky, Neon.Violet)))
                     )
                 }
             }
         }
-        stages.forEachIndexed { index, stage ->
-            val isReached = stage in reached
-            val dotColor by animateColorAsState(
-                targetValue = if (isReached) Neon.Cyan else Color.Transparent,
-                animationSpec = tween(Motion.Medium),
-                label = "stage-dot-$index"
-            )
-            val edgeColor by animateColorAsState(
-                targetValue = if (isReached) Neon.Cyan else MaterialTheme.colorScheme.outline,
-                animationSpec = tween(Motion.Medium),
-                label = "stage-edge-$index"
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(
-                    shape = CircleShape,
-                    color = dotColor,
-                    border = BorderStroke(1.5.dp, edgeColor)
-                ) {
-                    Text(
-                        "${index + 1}", Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
-                        color = if (isReached) Neon.Navy else MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                }
-                Card(Modifier.weight(1f), accent = if (isReached) Neon.Cyan else null) {
-                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(stage, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            if (isReached) "مقام کسب‌شده" else "در انتظار صعود",
-                            color = if (isReached) Neon.Cyan else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        OutlinedButton(onClick = {
-                            reached = if (isReached) reached - stage else reached + stage
-                            prefs.edit().putStringSet(reachedKey, reached.toSet()).apply()
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (isReached) "لغو ثبت این مقام" else "ثبت رسیدن عضو به این مقام")
-                        }
-                    }
-                }
+
+        Text("توانمندی‌ها", style = MaterialTheme.typography.titleLarge)
+        if (abilities.isEmpty()) {
+            Text("هنوز توانمندی‌ای تعریف نشده است؛ از تنظیمات ← نقشه کمال، توانمندی‌های دانشی یا مهارتی را اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        abilities.forEach { name ->
+            GrowthItemRow(name, unlocked[name], Neon.Sky) {
+                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                tick++
+            }
+        }
+
+        Text("خودسازی", style = MaterialTheme.typography.titleLarge)
+        characters.forEach { name ->
+            GrowthItemRow(name, unlocked[name], Neon.Violet) {
+                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                tick++
             }
         }
         Text(
-            "ثبت مقام‌ها دستی است و فقط مربی آن را تغییر می‌دهد. مراحل را از تنظیمات ویرایش کن.",
+            "هر مورد را مربی دستی تأیید می‌کند. تاریخ تأیید کنار هر مورد نوشته می‌شود.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+@Composable
+private fun GrowthItemRow(name: String, unlockedDay: Long?, accent: UiColor, onToggle: () -> Unit) {
+    Card(Modifier.fillMaxWidth(), accent = if (unlockedDay != null) accent else null) {
+        Row(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (unlockedDay != null) "باز شده در ${shamsi(unlockedDay)}" else "قفل",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (unlockedDay != null) accent else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(onClick = onToggle) { Text(if (unlockedDay != null) "لغو" else "تأیید") }
+        }
+    }
+}
+
+/** Mentor's editor for both branches, opened from Settings → نقشه کمال. */
+@Composable
+fun GrowthItemsManagerDialog(prefs: SharedPreferences, changed: () -> Unit, close: () -> Unit) {
+    var abilities by remember { mutableStateOf(GrowthStore.abilities(prefs)) }
+    var characters by remember { mutableStateOf(GrowthStore.characters(prefs)) }
+    var target by remember { mutableStateOf(0) }
+    var name by remember { mutableStateOf("") }
+    val current = if (target == 0) abilities else characters
+    AlertDialog(
+        onDismissRequest = close,
+        title = { Text("طراحی نقشه‌ی کمال") },
+        text = {
+            Column(Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("توانمندی‌ها: دانش و مهارت‌هایی که هر عضو می‌تواند بیاموزد. خودسازی: صفاتی که با تأیید مربی باز می‌شوند.", style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = target == 0, onClick = { target = 0 }, label = { Text("توانمندی‌ها") })
+                    FilterChip(selected = target == 1, onClick = { target = 1 }, label = { Text("خودسازی") })
+                }
+                OutlinedTextField(name, { name = it }, label = { Text("نام مورد جدید") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Button(onClick = {
+                    val value = name.trim()
+                    if (value.isNotBlank() && value !in current) {
+                        if (target == 0) { abilities = abilities + value; GrowthStore.saveAbilities(prefs, abilities) }
+                        else { characters = characters + value; GrowthStore.saveCharacters(prefs, characters) }
+                        name = ""
+                        changed()
+                    }
+                }, modifier = Modifier.fillMaxWidth()) { Text("افزودن") }
+                if (current.isEmpty()) Text("این بخش خالی است.")
+                current.forEach { item ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(item, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        TextButton(onClick = {
+                            if (target == 0) { abilities = abilities - item; GrowthStore.saveAbilities(prefs, abilities) }
+                            else { characters = characters - item; GrowthStore.saveCharacters(prefs, characters) }
+                            changed()
+                        }) { Text("حذف") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = close) { Text("تمام") } }
+    )
 }
