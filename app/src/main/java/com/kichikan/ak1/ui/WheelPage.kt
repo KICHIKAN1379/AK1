@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalTime
 
 private val SEGMENT_COLORS = listOf(
-    Color(0xFF1EFCE5), Color(0xFF5BB5FF), Color(0xFFB197FF), Color(0xFFFEC856), Color(0xFFFF8A6B), Color(0xFF3CAEA3)
+    Neon.Cyan, Neon.Magenta, Neon.Lime, Neon.Gold, Neon.Violet, Neon.Orange
 )
 
 /** Spin recipe derived from the phone clock's seconds at the moment of the spin. */
@@ -177,7 +177,7 @@ fun SpinWheelPage(repo: AppRepository, padding: PaddingValues) {
                             lineTo(center.x, center.y - r * 0.80f)
                             close()
                         }
-                        drawPath(pointer, Color(0xFFFF5A4D))
+                        drawPath(pointer, Neon.Magenta)
                         drawPath(pointer, Color.White, style = Stroke(3f))
                     }
                 }
@@ -210,7 +210,7 @@ private fun PrizeDialog(prize: WheelItem, winner: String, onClose: () -> Unit) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Canvas(Modifier.matchParentSize()) {
                 if (progress.value <= 0f) return@Canvas
-                val palette = listOf(Neon.Cyan, Neon.Violet, Neon.Gold, Color(0xFFFF8A6B), Neon.Green, Neon.Sky)
+                val palette = Neon.Party
                 repeat(40) { i ->
                     val seed = i * 97 + 13
                     val x = ((seed * 37) % 100) / 100f * size.width

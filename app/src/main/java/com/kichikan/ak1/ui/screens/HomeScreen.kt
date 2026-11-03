@@ -87,12 +87,12 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.30f)),
-            accent = Neon.Cyan
+            border = BorderStroke(1.5.dp, Neon.EdgeBrush),
+            accent = Neon.Magenta
         ) {
             Box(
                 Modifier.fillMaxWidth().background(
-                    Brush.linearGradient(listOf(Color(0xFF06255A), Color(0xFF0A3C86), Color(0xFF062A63)))
+                    Neon.HeroBrush
                 )
             ) {
                 Column(
@@ -106,7 +106,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                         Box(contentAlignment = Alignment.Center) {
                             Box(
                                 Modifier.size(78.dp).background(
-                                    Brush.radialGradient(listOf(Neon.Cyan.copy(alpha = 0.35f), Color.Transparent)),
+                                    Brush.radialGradient(listOf(Neon.Magenta.copy(alpha = 0.55f), Neon.Cyan.copy(alpha = 0.20f), Color.Transparent)),
                                     CircleShape
                                 )
                             )
@@ -114,7 +114,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                                 modifier = Modifier.size(62.dp),
                                 shape = CircleShape,
                                 color = Neon.Navy,
-                                border = BorderStroke(2.dp, Neon.Cyan)
+                                border = BorderStroke(2.5.dp, Neon.EdgeBrush)
                             ) {
                                 if (ringPhoto != null) {
                                     Image(bitmap = ringPhoto, contentDescription = "تصویر پروفایل حلقه", modifier = Modifier.fillMaxSize())
@@ -139,11 +139,11 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                         Surface(
                             modifier = Modifier.size(58.dp),
                             shape = RoundedCornerShape(18.dp),
-                            color = Neon.Cyan.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.35f))
+                            color = Neon.Lime.copy(alpha = 0.14f),
+                            border = BorderStroke(1.5.dp, Neon.Lime.copy(alpha = 0.65f))
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("${jalali.day}", color = Neon.Cyan, style = MaterialTheme.typography.headlineMedium)
+                                Text("${jalali.day}", color = Neon.Lime, style = MaterialTheme.typography.headlineMedium)
                             }
                         }
                     }

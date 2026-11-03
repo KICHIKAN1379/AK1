@@ -6,13 +6,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
- * Theme presets. All three stay dark so the neon accent colours keep their contrast;
+ * Theme presets. All of them stay dark so the neon accent colours keep their contrast;
  * they differ in how deep the backdrop and the card surfaces are.
  */
 enum class ThemeMode(val label: String) {
-    NEON("نئون"),
-    AMOLED("مشکی خالص"),
-    MIDNIGHT("نیمه‌شب")
+    NEON("نئون گیمینگ"),
+    ARCADE("آرکید"),
+    MIDNIGHT("نیمه‌شب"),
+    AMOLED("مشکی خالص")
 }
 
 /**

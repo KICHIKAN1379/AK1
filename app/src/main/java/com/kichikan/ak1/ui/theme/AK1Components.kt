@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
-/** Style 2: neon-gradient button (cyan -> sky -> violet) with a soft glow. */
+/** Style 2: neon-gradient button (magenta -> violet -> cyan) with a dual neon glow and glossy top. */
 @Composable
 fun Button(
     onClick: () -> Unit,
@@ -43,7 +43,7 @@ fun Button(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit
 ) {
-    val glow = if (enabled) Modifier.shadow(10.dp, shape, ambientColor = Neon.Cyan.copy(alpha = 0.4f), spotColor = Neon.Cyan.copy(alpha = 0.6f)) else Modifier
+    val glow = if (enabled) Modifier.shadow(14.dp, shape, ambientColor = Neon.Magenta.copy(alpha = 0.55f), spotColor = Neon.Cyan.copy(alpha = 0.75f)) else Modifier
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -67,7 +67,16 @@ fun Button(
     ) {
         val fill = if (enabled) Neon.ButtonBrush else Brush.linearGradient(listOf(Color(0x1FFFFFFF), Color(0x1FFFFFFF)))
         Box(
-            Modifier.background(fill, shape).defaultMinSize(minHeight = 40.dp).padding(contentPadding),
+            Modifier
+                .background(fill, shape)
+                .then(
+                    if (enabled) Modifier.background(
+                        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent, Color.Transparent)),
+                        shape
+                    ) else Modifier
+                )
+                .defaultMinSize(minHeight = 42.dp)
+                .padding(contentPadding),
             contentAlignment = Alignment.Center
         ) {
             ProvideTextStyle(MaterialTheme.typography.labelLarge) {
@@ -79,15 +88,20 @@ fun Button(
 
 private fun glassFill(accent: Color?) = Brush.linearGradient(
     listOf(
-        (accent ?: Color.White).copy(alpha = if (accent != null) 0.24f else 0.15f),
-        Color.White.copy(alpha = 0.05f)
+        (accent ?: Neon.Violet).copy(alpha = if (accent != null) 0.26f else 0.16f),
+        Color.White.copy(alpha = 0.04f),
+        (accent ?: Neon.Cyan).copy(alpha = 0.08f)
     )
 )
 
 private fun glassEdge(accent: Color?) = BorderStroke(
     1.dp,
     Brush.linearGradient(
-        listOf(Color.White.copy(alpha = 0.55f), (accent ?: Neon.Cyan).copy(alpha = 0.30f), Color.White.copy(alpha = 0.08f))
+        listOf(
+            (accent ?: Neon.Cyan).copy(alpha = 0.75f),
+            Neon.Violet.copy(alpha = 0.30f),
+            (accent ?: Neon.Magenta).copy(alpha = 0.55f)
+        )
     )
 )
 

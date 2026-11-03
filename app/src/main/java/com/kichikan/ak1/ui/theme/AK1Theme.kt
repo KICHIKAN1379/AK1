@@ -26,60 +26,110 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * AK1 visual system, built from the "4 icon styles" sheet:
+ * AK1 visual system — "Neon Arcade" refresh (v1.20).
+ *
+ * Every screen reads its accents from [Neon], so the palette below re-skins the whole app:
+ *  - Electric cyan / hot magenta / electric violet are the core gaming trio.
+ *  - Lime, gold and orange are the "happy" reward colours (XP, coins, prizes).
+ *  - Backdrops are deep purple-black so the neon keeps its contrast.
+ *
+ * Usage map (unchanged):
  *  - Style 2 (neon gradient)  -> theme, background and buttons (this file + [Button]).
- *  - Style 1 (minimal vector) -> bottom-menu icons, now the hand-illustrated PNG set ([AppIcon]).
- *  - Style 3 (clay 3D)        -> service icons, now the hand-illustrated PNG set ([AppIcon]).
+ *  - Style 1 (minimal vector) -> bottom-menu icons ([AppIcon]).
+ *  - Style 3 (clay 3D)        -> service icons ([AppIcon]).
  *  - Style 4 (layered glass)  -> cards, panels and metric icons ([Card], [GlassIcon]).
  */
 object Neon {
-    val Navy = Color(0xFF021E43)
-    val Indigo = Color(0xFF012C71)
-    val Deep = Color(0xFF011D59)
-    val Cyan = Color(0xFF1EFCE5)
-    val Sky = Color(0xFF5BB5FF)
-    val Violet = Color(0xFFB197FF)
-    val Gold = Color(0xFFFEC856)
-    val Coral = Color(0xFFE0684F)
-    val Green = Color(0xFF3CAEA3)
-    val Ice = Color(0xFFE8F0FF)
+    /** Dark ink: text and fills drawn on top of bright neon surfaces. */
+    val Navy = Color(0xFF12062E)
+    val Indigo = Color(0xFF2A0F6B)
+    val Deep = Color(0xFF0A0420)
 
-    val ButtonBrush = Brush.horizontalGradient(listOf(Cyan, Sky, Violet))
-    val BackgroundBrush = Brush.verticalGradient(listOf(Navy, Indigo, Deep))
+    val Cyan = Color(0xFF00F0FF)
+    val Magenta = Color(0xFFFF2BD6)
+    val Violet = Color(0xFFA86BFF)
+    val Sky = Color(0xFF4DA3FF)
+    val Lime = Color(0xFFB6FF3B)
+    val Green = Color(0xFF2BFF9E)
+    val Gold = Color(0xFFFFD43B)
+    val Orange = Color(0xFFFF8A1F)
+    val Coral = Color(0xFFFF4D6D)
+    val Ice = Color(0xFFF3EEFF)
+
+    /** Primary action gradient: hot magenta -> electric violet -> cyan. */
+    val ButtonBrush = Brush.horizontalGradient(listOf(Magenta, Violet, Cyan))
+
+    /** Bright neon edge used on hero cards, the bottom bar and glass cards. */
+    val EdgeBrush = Brush.linearGradient(listOf(Cyan, Violet, Magenta))
+
+    /** Fill for the home hero card and other "headline" panels. */
+    val HeroBrush = Brush.linearGradient(
+        listOf(Color(0xFF3A0E7A), Color(0xFF1A0B4D), Color(0xFF07285E))
+    )
+
+    /** Fun multi-colour set for wheels, confetti and charts. */
+    val Party = listOf(Cyan, Magenta, Lime, Gold, Violet, Orange, Sky, Green)
+
+    val BackgroundBrush = Brush.verticalGradient(listOf(Color(0xFF0D0628), Color(0xFF1B0A45), Deep))
 }
 
 private val NeonScheme = darkColorScheme(
     primary = Neon.Cyan,
     onPrimary = Neon.Navy,
-    primaryContainer = Color(0xFF0B4A86),
-    onPrimaryContainer = Color(0xFFC9FFF8),
-    secondary = Neon.Violet,
-    onSecondary = Color(0xFF2A1A66),
-    secondaryContainer = Color(0xFF3A2D86),
-    onSecondaryContainer = Color(0xFFE6DEFF),
-    tertiary = Neon.Gold,
-    onTertiary = Color(0xFF3A2800),
-    tertiaryContainer = Color(0xFF5A4300),
-    onTertiaryContainer = Color(0xFFFFE9B0),
-    background = Neon.Navy,
+    primaryContainer = Color(0xFF00525C),
+    onPrimaryContainer = Color(0xFFC6FCFF),
+    secondary = Neon.Magenta,
+    onSecondary = Color(0xFF3D0033),
+    secondaryContainer = Color(0xFF6A0F5C),
+    onSecondaryContainer = Color(0xFFFFD6F5),
+    tertiary = Neon.Lime,
+    onTertiary = Color(0xFF1F3300),
+    tertiaryContainer = Color(0xFF3D5C00),
+    onTertiaryContainer = Color(0xFFE4FFB8),
+    background = Color(0xFF0D0628),
     onBackground = Neon.Ice,
-    surface = Color(0xFF0B2F73),
+    surface = Color(0xFF1A0D45),
     onSurface = Neon.Ice,
     // Translucent: cards painted with surfaceVariant read as glass over the gradient.
     surfaceVariant = Color(0x1FFFFFFF),
-    onSurfaceVariant = Color(0xFFA9BEE0),
+    onSurfaceVariant = Color(0xFFC2B5E8),
     surfaceTint = Neon.Cyan,
-    outline = Color(0xFF4D6FB0),
-    outlineVariant = Color(0xFF2A4A8A),
-    error = Color(0xFFFF8A80),
-    onError = Color(0xFF4A0A05),
-    errorContainer = Color(0xFF7A1F18),
-    onErrorContainer = Color(0xFFFFDAD6),
-    surfaceContainerLowest = Neon.Navy,
-    surfaceContainerLow = Color(0xFF082456),
-    surfaceContainer = Color(0xFF0A2B68),
-    surfaceContainerHigh = Color(0xFF0C3278),
-    surfaceContainerHighest = Color(0xFF123D8F)
+    outline = Color(0xFF6C4FB8),
+    outlineVariant = Color(0xFF3A2878),
+    error = Neon.Coral,
+    onError = Color(0xFF4A0010),
+    errorContainer = Color(0xFF7A1530),
+    onErrorContainer = Color(0xFFFFD9DF),
+    surfaceContainerLowest = Neon.Deep,
+    surfaceContainerLow = Color(0xFF140838),
+    surfaceContainer = Color(0xFF1A0D45),
+    surfaceContainerHigh = Color(0xFF221255),
+    surfaceContainerHighest = Color(0xFF2C1868)
+)
+
+/** Arcade: warm sunset neon — hot pink and gold over a deep plum backdrop. */
+private val ArcadeScheme = NeonScheme.copy(
+    primary = Neon.Magenta,
+    onPrimary = Color(0xFF3D0033),
+    primaryContainer = Color(0xFF6A0F5C),
+    onPrimaryContainer = Color(0xFFFFD6F5),
+    secondary = Neon.Gold,
+    onSecondary = Color(0xFF3A2800),
+    secondaryContainer = Color(0xFF5C4300),
+    onSecondaryContainer = Color(0xFFFFEFB0),
+    tertiary = Neon.Orange,
+    onTertiary = Color(0xFF3A1A00),
+    background = Color(0xFF1A0526),
+    surface = Color(0xFF2A0A3A),
+    onSurfaceVariant = Color(0xFFE2B8DA),
+    surfaceTint = Neon.Magenta,
+    outline = Color(0xFF9A4A8E),
+    outlineVariant = Color(0xFF4E1E50),
+    surfaceContainerLowest = Color(0xFF12031C),
+    surfaceContainerLow = Color(0xFF1E0730),
+    surfaceContainer = Color(0xFF2A0A3A),
+    surfaceContainerHigh = Color(0xFF350E48),
+    surfaceContainerHighest = Color(0xFF431459)
 )
 
 /**
@@ -90,7 +140,7 @@ private val AmoledScheme = NeonScheme.copy(
     background = Color.Black,
     surface = Color(0xFF070707),
     surfaceVariant = Color(0x14FFFFFF),
-    onSurfaceVariant = Color(0xFFADADAD),
+    onSurfaceVariant = Color(0xFFB4B4B4),
     outline = Color(0xFF3C3C3C),
     outlineVariant = Color(0xFF1F1F1F),
     surfaceContainerLowest = Color.Black,
@@ -100,27 +150,37 @@ private val AmoledScheme = NeonScheme.copy(
     surfaceContainerHighest = Color(0xFF171717)
 )
 
-/** Deep violet variant: same accents over an indigo-night backdrop. */
+/** Midnight: same accents over a calmer blue-night backdrop. */
 private val MidnightScheme = NeonScheme.copy(
-    background = Color(0xFF0A0518),
-    surface = Color(0xFF171030),
-    surfaceVariant = Color(0x1FFFFFFF),
-    outline = Color(0xFF5A4B8F),
-    outlineVariant = Color(0xFF2E2456),
-    surfaceContainerLowest = Color(0xFF07030F),
-    surfaceContainerLow = Color(0xFF0E0820),
-    surfaceContainer = Color(0xFF150E2C),
-    surfaceContainerHigh = Color(0xFF1D1438),
-    surfaceContainerHighest = Color(0xFF271B49)
+    background = Color(0xFF040B24),
+    surface = Color(0xFF0B1840),
+    outline = Color(0xFF3F5A9E),
+    outlineVariant = Color(0xFF1E2E60),
+    surfaceContainerLowest = Color(0xFF020616),
+    surfaceContainerLow = Color(0xFF07112F),
+    surfaceContainer = Color(0xFF0B1840),
+    surfaceContainerHigh = Color(0xFF10204F),
+    surfaceContainerHighest = Color(0xFF172B63)
 )
 
+private val ArcadeBackground = Brush.verticalGradient(listOf(Color(0xFF1A0526), Color(0xFF2E0A3E), Color(0xFF12031C)))
 private val AmoledBackground = Brush.verticalGradient(listOf(Color.Black, Color(0xFF050505), Color.Black))
-private val MidnightBackground = Brush.verticalGradient(listOf(Color(0xFF0A0518), Color(0xFF160B33), Color(0xFF07030F)))
+private val MidnightBackground = Brush.verticalGradient(listOf(Color(0xFF040B24), Color(0xFF0A1A4A), Color(0xFF020616)))
+
+/** The three drifting light sources and the retro grid colour of a [ThemeMode]. */
+private data class Aurora(val first: Color, val second: Color, val third: Color, val grid: Color)
+
+private fun auroraFor(mode: ThemeMode): Aurora? = when (mode) {
+    ThemeMode.NEON -> Aurora(Neon.Magenta, Neon.Cyan, Neon.Violet, Neon.Magenta)
+    ThemeMode.ARCADE -> Aurora(Neon.Orange, Neon.Magenta, Neon.Gold, Neon.Gold)
+    ThemeMode.MIDNIGHT -> Aurora(Neon.Sky, Neon.Violet, Neon.Cyan, Neon.Cyan)
+    ThemeMode.AMOLED -> null
+}
 
 /**
  * The backdrop brush of the current [ThemeMode]. Full-screen screens that paint their own
  * background (growth map, treasure) read this so they follow the selected theme instead of
- * hard-coding the navy gradient.
+ * hard-coding a gradient.
  */
 val LocalAk1Background = staticCompositionLocalOf { Neon.BackgroundBrush }
 
@@ -129,33 +189,45 @@ fun AK1Theme(content: @Composable () -> Unit) {
     val mode = ThemeState.mode
     val scheme = when (mode) {
         ThemeMode.NEON -> NeonScheme
+        ThemeMode.ARCADE -> ArcadeScheme
         ThemeMode.AMOLED -> AmoledScheme
         ThemeMode.MIDNIGHT -> MidnightScheme
     }
     val background = when (mode) {
         ThemeMode.NEON -> Neon.BackgroundBrush
+        ThemeMode.ARCADE -> ArcadeBackground
         ThemeMode.AMOLED -> AmoledBackground
         ThemeMode.MIDNIGHT -> MidnightBackground
     }
-    // Slow aurora drift behind every screen: the gradient never sits still, but the
-    // movement is gentle enough not to pull attention away from the content.
-    val aurora = rememberInfiniteTransition(label = "aurora")
-    val drift by aurora.animateFloat(
+    val aurora = auroraFor(mode)
+    // Slow aurora drift behind every screen plus a gently scrolling retro grid: the
+    // backdrop always feels alive, but never pulls attention away from the content.
+    val motion = rememberInfiniteTransition(label = "aurora")
+    val drift by motion.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(14000, easing = LinearEasing),
+            animation = tween(12000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "aurora-drift"
+    )
+    val scroll by motion.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "grid-scroll"
     )
     MaterialTheme(
         colorScheme = scheme,
         typography = AK1Typography,
         shapes = Shapes(
-            small = RoundedCornerShape(12.dp),
-            medium = RoundedCornerShape(18.dp),
-            large = RoundedCornerShape(24.dp)
+            small = RoundedCornerShape(14.dp),
+            medium = RoundedCornerShape(20.dp),
+            large = RoundedCornerShape(26.dp)
         )
     ) {
         Box(
@@ -163,30 +235,65 @@ fun AK1Theme(content: @Composable () -> Unit) {
                 .fillMaxSize()
                 .background(background)
                 .drawBehind {
-                    // AMOLED stays flat black; the other modes get drifting light sources.
-                    if (mode == ThemeMode.AMOLED) return@drawBehind
-                    // Drifting neon glows: three soft light sources whose centres move with
-                    // the aurora animation, so the background breathes behind the glass cards.
+                    // AMOLED stays flat black; the other modes get light sources and a grid.
+                    val glow = aurora ?: return@drawBehind
+                    val w = size.width
+                    val h = size.height
                     drawRect(
                         Brush.radialGradient(
-                            listOf(Neon.Cyan.copy(alpha = 0.20f), Color.Transparent),
-                            center = Offset(size.width * (0.94f - 0.10f * drift), size.height * (0.04f + 0.06f * drift)),
-                            radius = size.width * 0.95f
+                            listOf(glow.first.copy(alpha = 0.30f), Color.Transparent),
+                            center = Offset(w * (0.95f - 0.14f * drift), h * (0.03f + 0.08f * drift)),
+                            radius = w * 0.95f
                         )
                     )
                     drawRect(
                         Brush.radialGradient(
-                            listOf(Neon.Violet.copy(alpha = 0.24f), Color.Transparent),
-                            center = Offset(size.width * (0.06f + 0.10f * drift), size.height * (0.94f - 0.06f * drift)),
-                            radius = size.width * 1.05f
+                            listOf(glow.second.copy(alpha = 0.26f), Color.Transparent),
+                            center = Offset(w * (0.04f + 0.14f * drift), h * (0.88f - 0.08f * drift)),
+                            radius = w * 1.05f
                         )
                     )
                     drawRect(
                         Brush.radialGradient(
-                            listOf(Neon.Sky.copy(alpha = 0.12f), Color.Transparent),
-                            center = Offset(size.width * (0.35f + 0.30f * drift), size.height * 0.45f),
-                            radius = size.width * 0.65f
+                            listOf(glow.third.copy(alpha = 0.16f), Color.Transparent),
+                            center = Offset(w * (0.30f + 0.40f * drift), h * 0.45f),
+                            radius = w * 0.70f
                         )
+                    )
+                    // Retro "arcade floor" grid fading in towards the bottom of the screen.
+                    val horizon = h * 0.66f
+                    val depth = h - horizon
+                    val rows = 9
+                    for (i in 0 until rows) {
+                        val t = (i + scroll) / rows
+                        val y = horizon + depth * t * t
+                        drawLine(
+                            color = glow.grid.copy(alpha = 0.04f + 0.10f * t),
+                            start = Offset(0f, y),
+                            end = Offset(w, y),
+                            strokeWidth = 1f + 1.2f * t
+                        )
+                    }
+                    val columns = 12
+                    val vanishing = Offset(w / 2f, horizon)
+                    for (i in 0..columns) {
+                        val x = -w * 0.6f + (w * 2.2f) * i / columns
+                        drawLine(
+                            color = glow.grid.copy(alpha = 0.09f),
+                            start = vanishing,
+                            end = Offset(x, h),
+                            strokeWidth = 1.2f
+                        )
+                    }
+                    // Soft horizon glow line.
+                    drawRect(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, glow.grid.copy(alpha = 0.12f), Color.Transparent),
+                            startY = horizon - 40f,
+                            endY = horizon + 40f
+                        ),
+                        topLeft = Offset(0f, horizon - 40f),
+                        size = androidx.compose.ui.geometry.Size(w, 80f)
                     )
                 }
         ) {

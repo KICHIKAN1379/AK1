@@ -160,9 +160,9 @@ private fun WelcomeBackdrop() {
         drawRect(
             Brush.verticalGradient(
                 listOf(
-                    androidx.compose.ui.graphics.Color(0xFF02132B),
-                    Neon.Navy,
-                    androidx.compose.ui.graphics.Color(0xFF07395E)
+                    Neon.Deep,
+                    Neon.Indigo,
+                    androidx.compose.ui.graphics.Color(0xFF3A0E5C)
                 )
             )
         )

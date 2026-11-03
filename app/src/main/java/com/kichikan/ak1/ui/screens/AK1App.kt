@@ -153,18 +153,18 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 .shadow(
                     18.dp,
                     RoundedCornerShape(28.dp),
-                    ambientColor = Neon.Cyan.copy(alpha = 0.20f),
-                    spotColor = Neon.Violet.copy(alpha = 0.24f)
+                    ambientColor = Neon.Magenta.copy(alpha = 0.35f),
+                    spotColor = Neon.Cyan.copy(alpha = 0.45f)
                 ),
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
             border = BorderStroke(
-                1.dp,
+                1.5.dp,
                 Brush.linearGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.28f),
-                        Neon.Cyan.copy(alpha = 0.22f),
-                        Neon.Violet.copy(alpha = 0.18f)
+                        Neon.Cyan.copy(alpha = 0.70f),
+                        Neon.Violet.copy(alpha = 0.45f),
+                        Neon.Magenta.copy(alpha = 0.70f)
                     )
                 )
             )
@@ -184,7 +184,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                         label = "nav-tint-$label"
                     )
                     val pill by animateColorAsState(
-                        targetValue = if (selected) Neon.Cyan.copy(alpha = 0.13f) else Color.Transparent,
+                        targetValue = if (selected) Neon.Magenta.copy(alpha = 0.20f) else Color.Transparent,
                         animationSpec = tween(Motion.Medium, easing = Motion.Standard),
                         label = "nav-pill-$label"
                     )
