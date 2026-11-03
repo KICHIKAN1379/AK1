@@ -365,7 +365,7 @@ private fun SummaryCard(repo: AppRepository, onOpen: () -> Unit) {
         Triple("امتیاز قابل خرج", repo.members.sumOf { it.economy.spendablePoints }, "✦"),
         Triple("الماس اعضا", repo.members.sumOf { it.economy.diamonds }, "◆")
     )
-    Card(Modifier.fillMaxWidth(), onClick = onOpen) {
+    Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("خلاصه حلقه", style = MaterialTheme.typography.titleMedium)
