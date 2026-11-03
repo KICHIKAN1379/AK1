@@ -18,7 +18,7 @@ internal fun ServicesScreen(padding: PaddingValues, open: (Tab) -> Unit) {
         padding, "خدمات", "ابزارهای مدیریت حلقه در یک‌جا",
         listOf(
             HubEntry("تراشکاری", "مأموریت‌ها، جوایز، آواتار و قاب", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
-            HubEntry("جلسات", "فهرست جلسه‌ها و حضور و غیاب", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) },
+            HubEntry("حضور و غیاب", "تقویم هفتگی و ماهانه", Neon.Green, { AppIcon(R.drawable.icon_sessions_attendance, 62.dp) }) { open(Tab.SESSIONS_ATTENDANCE) },
             HubEntry("رقابت", "رتبه‌بندی اعضا و گروه‌ها", Neon.Violet, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
             HubEntry("فروشگاه", "آواتارها، قاب‌ها و جوایز", Neon.Gold, { AppIcon(R.drawable.icon_services_store, 62.dp) }) { open(Tab.STORE) },
             HubEntry("کتاب‌خوانی", "ثبت کتاب، سطح مطالعه و رتبه‌بندی", Neon.Green, { AppIcon(R.drawable.icon_services_reading, 62.dp) }) { open(Tab.READING) },
@@ -71,18 +71,6 @@ internal fun StoreHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> U
             HubEntry("قاب‌ها", "دریافت و فعال‌سازی قاب", Neon.Violet, { AppIcon(R.drawable.icon_store_frames, 62.dp) }) { open(Tab.STORE_FRAMES) },
             HubEntry("نشان‌ها", "نشان انتهای نام عضو", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 62.dp) }) { open(Tab.STORE_BADGES) },
             HubEntry("جوایز", "جوایز قابل دریافت", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 62.dp) }) { open(Tab.STORE_REWARDS) }
-        ),
-        back
-    )
-}
-
-@Composable
-internal fun SessionsHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> Unit) {
-    HubScreen(
-        padding, "جلسات", "جلسه‌ها و حضور و غیاب مستقل از هم‌اند",
-        listOf(
-            HubEntry("فهرست جلسات", "ثبت و مشاهده جلسه‌ها", Neon.Coral, { AppIcon(R.drawable.icon_sessions_list, 62.dp) }) { open(Tab.SESSIONS_LIST) },
-            HubEntry("حضور و غیاب", "تقویم هفتگی و ماهانه", Neon.Green, { AppIcon(R.drawable.icon_sessions_attendance, 62.dp) }) { open(Tab.SESSIONS_ATTENDANCE) }
         ),
         back
     )

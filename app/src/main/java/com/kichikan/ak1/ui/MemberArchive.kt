@@ -54,7 +54,7 @@ fun MemberArchivePage(repo: AppRepository, padding: PaddingValues, back: () -> U
     ) {
         PageHeader("بایگانی اعضا", back, "اعضای حذف‌شده، با تمام سابقه")
         Text(
-            "هر عضوی که حذف شود به اینجا می‌آید و اطلاعاتش (امتیاز، الماس، سابقه، حضور و جلسات) حفظ می‌شود. " +
+            "هر عضوی که حذف شود به اینجا می‌آید و اطلاعاتش (امتیاز، الماس، سابقه، حضور و غیاب) حفظ می‌شود. " +
                 "تا وقتی از همین‌جا برای همیشه حذفش نکنی، قابل بازگردانی است.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

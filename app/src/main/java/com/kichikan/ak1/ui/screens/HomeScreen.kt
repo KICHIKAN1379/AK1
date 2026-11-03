@@ -59,7 +59,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
         Triple("مدیریت اعضا", "home_members", "♙"),
         Triple("دستیار مربی", "home_assistant", "✦"),
         Triple("تراشکاری", "home_workshop", "⚒"),
-        Triple("جلسات", "home_sessions", "▦"),
+        Triple("حضور و غیاب", "home_sessions", "▦"),
         Triple("رقابت", "home_ranking", "🏆"),
         Triple("فروشگاه", "home_store", "🎁"),
         Triple("گردونه", "home_wheel", "◎")
@@ -70,7 +70,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
             "home_members" -> openMembers()
             "home_assistant" -> assistantOpen = true
             "home_workshop" -> open(Tab.WORKSHOP)
-            "home_sessions" -> open(Tab.SESSIONS)
+            "home_sessions" -> open(Tab.SESSIONS_ATTENDANCE)
             "home_ranking" -> open(Tab.RANKING)
             "home_store" -> open(Tab.STORE)
             "home_wheel" -> open(Tab.WHEEL)
@@ -207,7 +207,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                 }
             }
         }
-        Text("چیدمان میانبرها از بخش تنظیمات قابل تغییر است • نسخهٔ ۱.۱۶", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("نسخه سرگروه ابوتراب", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (action) EconomyDialog(repo, changed) { action = false }
     if (assistantOpen) MentorAssistantDialog(repo) { assistantOpen = false }
@@ -357,44 +357,28 @@ private fun shortcutAccent(key: String): Color = when (key) {
 @Composable
 private fun SummaryCard(repo: AppRepository) {
     val metrics = listOf(
-        Triple("اعضای حلقه", repo.members.size, "♙"),
-        Triple("XP اعضا", repo.members.sumOf { it.economy.xp }, "↗"),
-        Triple("امتیاز قابل خرج", repo.members.sumOf { it.economy.spendablePoints }, "✦"),
-        Triple("الماس اعضا", repo.members.sumOf { it.economy.diamonds }, "◆")
+        Triple("اعضا", repo.members.size, "♙"),
+        Triple("XP", repo.members.sumOf { it.economy.xp }, "↗"),
+        Triple("امتیاز", repo.members.sumOf { it.economy.spendablePoints }, "✦"),
+        Triple("الماس", repo.members.sumOf { it.economy.diamonds }, "◆")
     )
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("خلاصه حلقه", style = MaterialTheme.typography.titleMedium)
-                Text("نمای کلی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            metrics.chunked(2).forEach { rowItems ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    rowItems.forEach { (label, value, icon) ->
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                GlassIcon(
-                                    when (icon) { "♙" -> GlassKind.MEMBERS; "↗" -> GlassKind.XP; "✦" -> GlassKind.POINTS; else -> GlassKind.DIAMOND },
-                                    size = 34.dp,
-                                    tint = when (icon) { "♙" -> Neon.Violet; "↗" -> Neon.Green; "✦" -> Neon.Gold; else -> Neon.Cyan }
-                                )
-                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                                    AnimatedCounter(
-                                        value = value,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("خلاصه حلقه", style = MaterialTheme.typography.titleSmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                metrics.forEach { (label, value, icon) ->
+                    Column(
+                        Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        GlassIcon(
+                            when (icon) { "♙" -> GlassKind.MEMBERS; "↗" -> GlassKind.XP; "✦" -> GlassKind.POINTS; else -> GlassKind.DIAMOND },
+                            size = 44.dp,
+                            tint = when (icon) { "♙" -> Neon.Violet; "↗" -> Neon.Green; "✦" -> Neon.Gold; else -> Neon.Cyan }
+                        )
+                        AnimatedCounter(value = value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                 }
             }

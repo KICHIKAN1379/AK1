@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,26 +80,29 @@ fun HubScreen(
             Text(title, style = MaterialTheme.typography.headlineMedium)
             Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        entries.chunked(2).forEach { rowItems ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        entries.chunked(3).forEach { rowItems ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 rowItems.forEach { entry ->
-                    Card(
-                        onClick = entry.onClick,
-                        modifier = Modifier.weight(1f).heightIn(min = 176.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        accent = entry.accent
+                    // Phone-launcher style: icon with its label underneath, three per row.
+                    Column(
+                        Modifier.weight(1f)
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable(onClick = entry.onClick)
+                            .padding(vertical = 8.dp, horizontal = 2.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                            entry.icon()
-                            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Text(entry.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                                Text(entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("ورود به بخش  ←", style = MaterialTheme.typography.labelMedium, color = entry.accent)
-                        }
+                        entry.icon()
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            entry.title,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
                     }
                 }
-                if (rowItems.size == 1) Spacer(Modifier.weight(1f))
+                repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

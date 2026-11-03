@@ -42,7 +42,7 @@ class LocalStore(private val context: Context) {
                 .put("badge", it.badgeItemId ?: JSONObject.NULL)
                 .put("readingAwardedPoints", it.readingAwardedPoints)
                 .put("readingBooks", readingBooksJson(it.readingBooks))
-                .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL).put("privateNotes", it.privateNotes).put("responsibility", it.responsibility))
+                .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL).put("privateNotes", "").put("responsibility", it.responsibility))
         }
         root.put("members", ms)
         val archivedJson = JSONArray()
@@ -58,7 +58,7 @@ class LocalStore(private val context: Context) {
                 .put("readingAwardedPoints", it.readingAwardedPoints)
                 .put("readingBooks", readingBooksJson(it.readingBooks))
                 .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL)
-                .put("privateNotes", it.privateNotes).put("responsibility", it.responsibility)
+                .put("privateNotes", "").put("responsibility", it.responsibility)
                 .put("archivedAt", entry.archivedAtEpochMillis))
         }
         root.put("archivedMembers", archivedJson)
