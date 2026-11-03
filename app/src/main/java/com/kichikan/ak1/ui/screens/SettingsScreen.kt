@@ -34,6 +34,7 @@ import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.audio.BackgroundMusic
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.ui.GrowthItemsManagerDialog
+import com.kichikan.ak1.ui.FactoryResetDialog
 import com.kichikan.ak1.data.AutoArchive
 import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
@@ -113,6 +114,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val quotes = remember { mutableStateListOf<String>().apply { addAll(DailyQuotes.list(context)) } }
     var profileOpen by remember { mutableStateOf(false) }
     var growthManagerOpen by remember { mutableStateOf(false) }
+    var factoryOpen by remember { mutableStateOf(false) }
     var profileImageUri by remember { mutableStateOf(prefs.getString("ring_profile_image", null)) }
     val profileImagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -252,8 +254,10 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 Text(label)
             }
         }
+        OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
         Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")
     }
+    if (factoryOpen) FactoryResetDialog { factoryOpen = false }
     if (growthManagerOpen) GrowthItemsManagerDialog(prefs, { changed() }) { growthManagerOpen = false }
     if (profileOpen) {
         val preview = remember(profileImageUri) {
