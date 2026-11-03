@@ -28,6 +28,7 @@ import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.AvatarRender
+import com.kichikan.ak1.ui.RingReportDialog
 import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
 import com.kichikan.ak1.ui.theme.Motion
@@ -54,6 +55,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
     val now = remember(tick) { java.time.LocalDateTime.now() }
     val jalali = remember(tick) { JalaliCalendar.fromGregorian(now.toLocalDate()) }
     val dailyQuote = remember(tick) { DailyQuotes.today(context) }
+    var reportOpen by remember { mutableStateOf(false) }
     val shortcuts = listOf(
         Triple("شناسنامه", "home_identity", "◉"),
         Triple("مدیریت اعضا", "home_members", "♙"),
@@ -157,7 +159,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                 }
             }
         }
-        SummaryCard(repo)
+        SummaryCard(repo) { reportOpen = true }
         WeeklyActivityCard(repo)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text("دسترسی سریع", style = MaterialTheme.typography.titleLarge)
@@ -209,6 +211,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
         }
         Text("چیدمان میانبرها از بخش تنظیمات قابل تغییر است • نسخهٔ ۱.۱۶", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+    if (reportOpen) RingReportDialog(repo) { reportOpen = false }
     if (action) EconomyDialog(repo, changed) { action = false }
     if (assistantOpen) MentorAssistantDialog(repo) { assistantOpen = false }
 }
@@ -355,14 +358,14 @@ private fun shortcutAccent(key: String): Color = when (key) {
 }
 
 @Composable
-private fun SummaryCard(repo: AppRepository) {
+private fun SummaryCard(repo: AppRepository, onOpen: () -> Unit) {
     val metrics = listOf(
         Triple("اعضای حلقه", repo.members.size, "♙"),
         Triple("XP اعضا", repo.members.sumOf { it.economy.xp }, "↗"),
         Triple("امتیاز قابل خرج", repo.members.sumOf { it.economy.spendablePoints }, "✦"),
         Triple("الماس اعضا", repo.members.sumOf { it.economy.diamonds }, "◆")
     )
-    Card(Modifier.fillMaxWidth()) {
+    Card(Modifier.fillMaxWidth(), onClick = onOpen) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("خلاصه حلقه", style = MaterialTheme.typography.titleMedium)

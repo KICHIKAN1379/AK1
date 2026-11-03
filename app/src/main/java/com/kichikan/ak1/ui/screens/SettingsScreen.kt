@@ -35,6 +35,7 @@ import com.kichikan.ak1.audio.BackgroundMusic
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.ui.GrowthItemsManagerDialog
 import com.kichikan.ak1.ui.FactoryResetDialog
+import com.kichikan.ak1.ui.ReportExport
 import com.kichikan.ak1.data.AutoArchive
 import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
@@ -115,6 +116,13 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     var profileOpen by remember { mutableStateOf(false) }
     var growthManagerOpen by remember { mutableStateOf(false) }
     var factoryOpen by remember { mutableStateOf(false) }
+    val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val ok = runCatching { ReportExport.restoreZip(context, repo, uri) }.getOrDefault(false)
+            Toast.makeText(context, if (ok) "فایل کامل بازگردانی شد" else "فایل معتبر نیست", Toast.LENGTH_LONG).show()
+            if (ok) changed()
+        }
+    }
     var profileImageUri by remember { mutableStateOf(prefs.getString("ring_profile_image", null)) }
     val profileImagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -254,6 +262,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 Text(label)
             }
         }
+        OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
         OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
         Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")
     }
