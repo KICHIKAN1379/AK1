@@ -24,6 +24,7 @@ import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.PageHeader
 import com.kichikan.ak1.ui.shamsi
+import com.kichikan.ak1.ui.GroupPuzzleCard
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
@@ -53,6 +54,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
         PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در تراشکاری")
         WorkshopSummary(repo, if (section == 4) 0 else section)
         if(section==0||section==4){
+        if(section==0) repo.groups.forEach{ GroupPuzzleCard(it, changed) }
         OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text(if(section==4)"+ مأموریت مخفی" else "+ مأموریت")}
         repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
         }
