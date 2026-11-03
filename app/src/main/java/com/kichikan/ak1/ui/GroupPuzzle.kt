@@ -1,6 +1,10 @@
 package com.kichikan.ak1.ui
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -10,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -29,18 +32,22 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.domain.model.Group
 import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.Neon
+import java.io.File
 
 /**
- * Group puzzle: each group has its own 6-piece picture. Pieces are revealed by the mentor by hand.
- * When all six are revealed, the mentor can reset it by answering a simple sum or difference.
- * The picture is a placeholder gradient until the mentor's own image is added.
+ * Group puzzle: each group has its own 6-piece picture. The mentor reveals pieces by hand, can reset at
+ * any time, and can put their own picture behind the pieces. Without a picture a gradient is used.
  */
 object GroupPuzzle {
     const val PIECES = 6
@@ -53,13 +60,30 @@ object GroupPuzzle {
     fun setMask(context: Context, groupId: String, mask: Int) {
         context.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE).edit().putInt(key(groupId), mask).apply()
     }
+
+    private fun pictureFile(context: Context, groupId: String): File =
+        File(File(context.filesDir, "puzzle").apply { mkdirs() }, "$groupId.img")
+
+    /** Copies the chosen picture into the app's own folder, so it survives even if the original is removed. */
+    fun saveImage(context: Context, groupId: String, uri: Uri): Boolean = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            pictureFile(context, groupId).outputStream().use { input.copyTo(it) }
+        } ?: return false
+        true
+    }.getOrDefault(false)
+
+    fun loadPicture(context: Context, groupId: String): ImageBitmap? = runCatching {
+        BitmapFactory.decodeFile(pictureFile(context, groupId).path)?.asImageBitmap()
+    }.getOrNull()
 }
 
 @Composable
 fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
     val context = LocalContext.current
     var mask by remember(group.id) { mutableIntStateOf(GroupPuzzle.mask(context, group.id)) }
+    var pictureVersion by remember(group.id) { mutableIntStateOf(0) }
     var resetOpen by remember { mutableStateOf(false) }
+    val picture = remember(group.id, pictureVersion) { GroupPuzzle.loadPicture(context, group.id) }
     val revealedCount = Integer.bitCount(mask)
     val alphas = (0 until GroupPuzzle.PIECES).map { i ->
         animateFloatAsState(
@@ -67,6 +91,12 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
             animationSpec = tween(700),
             label = "piece-$i"
         ).value
+    }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null && GroupPuzzle.saveImage(context, group.id, uri)) {
+            pictureVersion++
+            changed()
+        }
     }
 
     fun reveal(i: Int) {
@@ -85,15 +115,16 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
                 val tw = size.width / 3f
                 val th = size.height / 2f
                 val pad = 6f
-                // One picture spread over the whole board; each revealed piece shows its own part of it.
-                val picture = Brush.linearGradient(
+                val gradient = Brush.linearGradient(
                     listOf(Neon.Violet, Neon.Cyan, Neon.Gold),
                     start = Offset.Zero,
                     end = Offset(size.width, size.height)
                 )
                 for (i in 0 until GroupPuzzle.PIECES) {
-                    val left = (i % 3) * tw + pad
-                    val top = (i / 3) * th + pad
+                    val col = i % 3
+                    val row = i / 3
+                    val left = col * tw + pad
+                    val top = row * th + pad
                     val w = tw - 2 * pad
                     val h = th - 2 * pad
                     drawRoundRect(
@@ -104,9 +135,21 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
                         style = Stroke(3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
                     )
                     val a = alphas[i]
-                    if (a > 0f) {
+                    if (a <= 0f) continue
+                    if (picture != null) {
+                        val sw = picture.width / 3
+                        val sh = picture.height / 2
+                        drawImage(
+                            image = picture,
+                            srcOffset = IntOffset(col * sw, row * sh),
+                            srcSize = IntSize(sw, sh),
+                            dstOffset = IntOffset(left.toInt(), top.toInt()),
+                            dstSize = IntSize(w.toInt(), h.toInt()),
+                            alpha = a
+                        )
+                    } else {
                         drawRoundRect(
-                            brush = picture,
+                            brush = gradient,
                             topLeft = Offset(left, top),
                             size = Size(w, h),
                             cornerRadius = CornerRadius(16f),
@@ -125,13 +168,12 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
                     ) { Text(if (done) "✓${i + 1}" else "${i + 1}") }
                 }
             }
-            Button(
-                onClick = { resetOpen = true },
-                enabled = mask == GroupPuzzle.FULL,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("ریست پازل") }
+            OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (picture == null) "انتخاب تصویر پازل" else "تغییر تصویر پازل")
+            }
+            Button(onClick = { resetOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("ریست پازل") }
             Text(
-                "هر تکه را مربی دستی باز می‌کند. ریست پس از کامل شدن پازل فعال می‌شود.",
+                "هر تکه را مربی دستی باز می‌کند. ریست در هر زمان ممکن است و با یک سؤال ساده تأیید می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -155,11 +197,10 @@ private fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
     val question = remember {
         val a = (2..20).random()
         val b = (1..a).random()
-        if ((0..1).random() == 0) Triple(a, b, a + b) else Triple(a, b, a - b)
+        if ((0..1).random() == 0) Triple(a, b, a + b) to "+" else Triple(a, b, a - b) to "−"
     }
-    val (a, b, answer) = question
-    val isSum = answer == a + b && (a + b) != (a - b)
-    val symbol = if (isSum) "+" else "−"
+    val (values, symbol) = question
+    val (a, b, answer) = values
     var typed by remember { mutableStateOf("") }
     var wrong by remember { mutableStateOf(false) }
     AlertDialog(
