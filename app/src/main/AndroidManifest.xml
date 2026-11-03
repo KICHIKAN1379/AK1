@@ -11,7 +11,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="سرگروه ابوتراب"
+        android:label="مربی ابوتراب"
         android:supportsRtl="true"
         android:theme="@style/Theme.AK1">
         <activity android:name=".MainActivity" android:exported="true">

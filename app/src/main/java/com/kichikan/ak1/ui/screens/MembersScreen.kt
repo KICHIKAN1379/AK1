@@ -570,15 +570,19 @@ private fun GroupScoreDialog(repo: AppRepository, group: Group, changed: () -> U
 }
 
 @Composable private fun MemberEditDialog(repo: AppRepository, member: Member, changed: () -> Unit, close: () -> Unit) {
-    var name by remember { mutableStateOf(member.name) }; var groupId by remember { mutableStateOf(member.groupId) }; var responsibility by remember { mutableStateOf(member.responsibility) }
+    var name by remember { mutableStateOf(member.name) }; var groupId by remember { mutableStateOf(member.groupId) }; var notes by remember { mutableStateOf(member.privateNotes) }; var responsibility by remember { mutableStateOf(member.responsibility) }
     AlertDialog(onDismissRequest = close, title = { Text("ویرایش عضو") }, text = { Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         OutlinedTextField(name, { name = it }, label = { Text("نام") }, singleLine = true); Text("گروه")
         Row(Modifier.horizontalScroll(rememberScrollState())) { FilterChip(groupId == null, { groupId = null }, label = { Text("بدون گروه") }); repo.groups.forEach { g -> FilterChip(groupId == g.id, { groupId = g.id }, label = { Text(g.name) }) } }
         OutlinedTextField(responsibility, { responsibility = it }, label = { Text("مسئولیت در حلقه (نمایش در اعضا و مسئولیت‌ها)") }, singleLine = true)
-    } }, confirmButton = { TextButton({ if (name.isNotBlank()) { repo.updateMember(member.copy(name = name.trim(), groupId = groupId, responsibility = responsibility.trim())); changed(); close() } }) { Text("ذخیره") } },
+        OutlinedTextField(notes, { notes = it }, label = { Text("توضیحات محرمانه تربیتی") })
+    } }, confirmButton = { TextButton({ if (name.isNotBlank()) { repo.updateMember(member.copy(name = name.trim(), groupId = groupId, privateNotes = notes, responsibility = responsibility.trim())); changed(); close() } }) { Text("ذخیره") } },
     dismissButton = { Row { TextButton({ repo.archiveMember(member.id); changed(); close() }) { Text("حذف (به بایگانی)") }; TextButton(close) { Text("لغو") } } })
 }
 
+@Composable private fun MemberNotesDialog(repo: AppRepository, member: Member, close: () -> Unit) {
+    AlertDialog(onDismissRequest = close, title = { Text("توضیحات ${member.name}") }, text = { Text(if (member.privateNotes.isBlank()) "برای این عضو توضیحی ثبت نشده است." else member.privateNotes) }, confirmButton = { TextButton(close) { Text("بستن") } })
+}
 
 @Composable
 private fun AddMemberDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {

@@ -45,9 +45,7 @@ object DailyQuotes {
     fun today(context: Context): String? {
         val quotes = list(context)
         if (quotes.isEmpty()) return null
-        // Random-looking but stable for a whole day: every day picks one sentence from the list.
-        val seed = LocalDate.now().toEpochDay() * 2654435761L
-        val index = java.util.Random(seed).nextInt(quotes.size)
+        val index = (LocalDate.now().toEpochDay() % quotes.size).toInt()
         return quotes[index]
     }
 }

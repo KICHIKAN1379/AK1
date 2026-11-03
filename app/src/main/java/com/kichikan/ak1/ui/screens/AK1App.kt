@@ -77,6 +77,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.READING -> ReadingScreen(repo, padding, { changed() }) { tab = Tab.SERVICES }
+                    Tab.SESSIONS -> SessionsHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0) { tab = Tab.WORKSHOP }
                     Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1) { tab = Tab.WORKSHOP }
                     Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2) { tab = Tab.WORKSHOP }
@@ -88,7 +89,8 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }) { tab = Tab.STORE }
                     Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.BADGE, { changed() }) { tab = Tab.STORE }
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
-                    Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }) { tab = Tab.SERVICES }
+                    Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
+                    Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
                     Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }) { tab = Tab.ARCHIVE }
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
                 }
@@ -127,7 +129,7 @@ private val Tab.depth: Int
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
-        Tab.SESSIONS_ATTENDANCE -> 2
+        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE -> 2
         else -> 1
     }
 

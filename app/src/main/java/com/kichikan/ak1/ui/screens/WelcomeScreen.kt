@@ -82,8 +82,9 @@ internal fun WelcomeScreen(repo: AppRepository, onReady: () -> Unit) {
                 )
                 Spacer(Modifier.height(44.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WelcomeChip("کاملاً آفلاین", Neon.Green, Modifier.weight(1f))
                     WelcomeChip("مدیریت اعضا", Neon.Cyan, Modifier.weight(1f))
-                    WelcomeChip("حضور و غیاب", Neon.Violet, Modifier.weight(1f))
+                    WelcomeChip("حضور و جلسات", Neon.Violet, Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(22.dp))
                 Button(
