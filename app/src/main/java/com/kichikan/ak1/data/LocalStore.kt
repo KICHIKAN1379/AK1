@@ -117,7 +117,7 @@ class LocalStore(private val context: Context) {
         val missionsJson = JSONArray()
         missions.forEach {
             missionsJson.put(JSONObject().put("id", it.id).put("title", it.title).put("description", it.description)
-                .put("type", it.type.name).put("xpReward", it.xpReward).put("pointsReward", it.pointsReward)
+                .put("type", it.type.name).put("xpReward", it.xpReward).put("pointsReward", it.pointsReward).put("hidden", it.hidden)
                 .put("diamondReward", it.diamondReward).put("active", it.active)
                 .put("startAt", it.startAt ?: JSONObject.NULL).put("endAt", it.endAt ?: JSONObject.NULL))
         }
@@ -389,7 +389,8 @@ class LocalStore(private val context: Context) {
                 o.optInt("xpReward"), o.optInt("pointsReward"), o.optInt("diamondReward"),
                 o.optBoolean("active", true),
                 if (o.isNull("startAt")) null else o.getLong("startAt"),
-                if (o.isNull("endAt")) null else o.getLong("endAt")
+                if (o.isNull("endAt")) null else o.getLong("endAt"),
+                o.optBoolean("hidden", false)
             )
         }
 

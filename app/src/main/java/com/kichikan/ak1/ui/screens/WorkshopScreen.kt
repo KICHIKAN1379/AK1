@@ -23,6 +23,7 @@ import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.PageHeader
+import com.kichikan.ak1.ui.shamsi
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
@@ -53,7 +54,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
         WorkshopSummary(repo, section)
         if(section==0){
         OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text("+ مأموریت")}
-        repo.missions.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text(m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
+        repo.missions.sortedBy{it.hidden}.forEach{m->if(m.hidden&&repo.missions.firstOrNull{it.hidden}?.id==m.id)Text("مأموریت‌های مخفی",style=MaterialTheme.typography.titleMedium,color=Neon.Violet);Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
         }
         if(section==1){
         Text("جوایز / فروشگاه",style=MaterialTheme.typography.titleLarge)
@@ -194,6 +195,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
     var pts by remember { mutableStateOf((item?.pointsReward ?: 0).toString()) }
     var dia by remember { mutableStateOf((item?.diamondReward ?: 0).toString()) }
     var group by remember { mutableStateOf(item?.type == MissionType.GROUP) }
+    var hidden by remember { mutableStateOf(item?.hidden ?: false) }
     var active by remember { mutableStateOf(item?.active ?: true) }
     var startAt by remember { mutableStateOf(item?.startAt) }
     var endAt by remember { mutableStateOf(item?.endAt) }
@@ -221,6 +223,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
                 OutlinedTextField(title,{title=it},label={Text("عنوان")},singleLine=true)
                 OutlinedTextField(desc,{desc=it},label={Text("توضیحات")})
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(group,{group=it}); Text("مأموریت گروهی") }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(hidden,{hidden=it}); Text("مأموریت مخفی (هر عضو فقط یک‌بار دریافت می‌کند)") }
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active,{active=it}); Text("مأموریت فعال است") }
                 OutlinedTextField(xp,{xp=it.filter(Char::isDigit)},label={Text("پاداش XP")},singleLine=true)
                 OutlinedTextField(pts,{pts=it.filter(Char::isDigit)},label={Text("پاداش امتیاز")},singleLine=true)
@@ -243,7 +246,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
                     require(title.isNotBlank()) { "عنوان مأموریت الزامی است" }
                     require((xp.toIntOrNull() ?: 0) >= 0 && (pts.toIntOrNull() ?: 0) >= 0 && (dia.toIntOrNull() ?: 0) >= 0) { "پاداش نمی‌تواند منفی باشد" }
                     require(startAt == null || endAt == null || startAt!! <= endAt!!) { "تاریخ شروع باید قبل از پایان باشد" }
-                    val mission = Mission(item?.id ?: "mission-${java.util.UUID.randomUUID()}", title.trim(), desc.trim(), if(group) MissionType.GROUP else MissionType.INDIVIDUAL, xp.toIntOrNull() ?: 0, pts.toIntOrNull() ?: 0, dia.toIntOrNull() ?: 0, active, startAt, endAt)
+                    val mission = Mission(item?.id ?: "mission-${java.util.UUID.randomUUID()}", title.trim(), desc.trim(), if(group) MissionType.GROUP else MissionType.INDIVIDUAL, xp.toIntOrNull() ?: 0, pts.toIntOrNull() ?: 0, dia.toIntOrNull() ?: 0, active, startAt, endAt, hidden)
                     if (item == null) repo.addMission(mission) else repo.updateMission(mission)
                     changed()
                     close()
@@ -377,8 +380,13 @@ private fun CompleteMissionDialog(repo: AppRepository, mission: Mission, changed
                 LazyColumn(Modifier.weight(1f, fill = false)) {
                     items(repo.members, key = { it.id }) { member ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(member.id in selected, { selected = if (it) selected + member.id else selected - member.id })
-                            Text(member.name)
+                            val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
+                            Checkbox(
+                                member.id in selected,
+                                { selected = if (it) selected + member.id else selected - member.id },
+                                enabled = receivedAt == null
+                            )
+                            Text(member.name + (receivedAt?.let { "  • دریافت: " + shamsi(it) } ?: ""))
                         }
                     }
                 }

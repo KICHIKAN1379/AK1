@@ -65,6 +65,7 @@ class AppRepository(context: Context) {
         }
         // PNGs dropped into assets/art/profiles become giftable avatars/frames (see ProfilePack).
         runCatching { syncProfilePack() }
+        runCatching { seedDefaultHiddenMissions() }
         // The fifteen-rank pack is copied out of the APK and registered as manual claims.
         runCatching { RankArt.ensure(appContext) }
         runCatching { syncRankPack() }
@@ -801,6 +802,32 @@ class AppRepository(context: Context) {
         persist()
     }
 
+    /** Members who already received this hidden mission. */
+    fun hiddenReceivedIds(missionId: String): Set<String> =
+        missionCompletions.filter { it.missionId == missionId }.flatMap { it.memberIds }.toSet()
+
+    /** Date (epoch millis) a member received a hidden mission, or null. */
+    fun hiddenReceivedAt(memberId: String, missionId: String): Long? =
+        missionCompletions.filter { it.missionId == missionId && memberId in it.memberIds }.maxOfOrNull { it.completedAt }
+
+    /** Default hidden missions, added once; the mentor can edit or delete them. They carry no points. */
+    private fun seedDefaultHiddenMissions() {
+        val prefs = appContext.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("hidden_missions_seeded", false)) return
+        val defaults = listOf(
+            "اولین کمک به تازه‌وارد" to "اولین بار به عضو جدید در کاری کمک کند.",
+            "سکوت بی‌یادآوری" to "در یک جلسه، بدون یادآوری مربی، سکوت را رعایت کند.",
+            "خلاصه برای دوست" to "یک کتاب را خلاصه کند و برای یکی از دوستانش توضیح دهد.",
+            "زودتر از همه" to "در یک هفته، سه بار قبل از شروع جلسه حاضر شود.",
+            "همدلی کوچک" to "کسی را که ناراحت است پیدا کند و یک کار کوچک برای او انجام دهد."
+        )
+        defaults.forEach { (title, desc) ->
+            missions += Mission("hidden-" + title.hashCode().toString(16), title, desc, MissionType.INDIVIDUAL, hidden = true, active = true)
+        }
+        prefs.edit().putBoolean("hidden_missions_seeded", true).apply()
+        persist()
+    }
+
     fun completeMission(
         mission: Mission,
         memberIds: List<String>,
@@ -810,8 +837,10 @@ class AppRepository(context: Context) {
             "این مأموریت در حال حاضر قابل ثبت نیست"
         }
 
-        val validIds = memberIds.distinct()
-        check(validIds.isNotEmpty()) { "حداقل یک عضو لازم است" }
+        // A hidden mission is received only once per member.
+        val alreadyReceived = if (mission.hidden) hiddenReceivedIds(mission.id) else emptySet()
+        val validIds = memberIds.distinct().filter { it !in alreadyReceived }
+        check(validIds.isNotEmpty()) { if (alreadyReceived.isNotEmpty()) "این مأموریت مخفی قبلاً برای این عضو ثبت شده است" else "حداقل یک عضو لازم است" }
         validIds.forEach { id ->
             check(members.any { it.id == id }) { "عضو نامعتبر است" }
         }

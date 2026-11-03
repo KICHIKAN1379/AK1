@@ -109,7 +109,7 @@ object GrowthStore {
     }
 }
 
-private fun shamsi(epochDay: Long): String {
+internal fun shamsi(epochDay: Long): String {
     val j = JalaliCalendar.fromGregorian(LocalDate.ofEpochDay(epochDay))
     return "%04d/%02d/%02d".format(j.year, j.month, j.day)
 }

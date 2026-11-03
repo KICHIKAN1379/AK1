@@ -12,7 +12,9 @@ data class Mission(
     val diamondReward: Int = 0,
     val active: Boolean = true,
     val startAt: Long? = null,
-    val endAt: Long? = null
+    val endAt: Long? = null,
+    /** Hidden missions: the mentor records them once per member and the date is shown on the member. */
+    val hidden: Boolean = false
 )
 
 data class MissionCompletion(
