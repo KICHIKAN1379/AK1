@@ -381,7 +381,7 @@ private fun CompleteMissionDialog(repo: AppRepository, mission: Mission, changed
                 Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده در مأموریت گروهی را انتخاب کن:" else "اعضای انجام‌دهنده را انتخاب کن:")
                 LazyColumn(Modifier.weight(1f, fill = false)) {
                     items(repo.members, key = { it.id }) { member ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().animateItem(), verticalAlignment = Alignment.CenterVertically) {
                             val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
                             Checkbox(
                                 member.id in selected,
