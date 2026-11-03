@@ -50,11 +50,11 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
     }
     val importAsset = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) try { val mime=context.contentResolver.getType(uri)?:"image/png"; require(mime.startsWith("image/")){"فقط فایل تصویری قابل ثبت است"}; val o=BitmapFactory.Options().also{it.inJustDecodeBounds=true}; context.contentResolver.openInputStream(uri)?.use{BitmapFactory.decodeStream(it,null,o)}; val frame=assetKind=="FRAME"; val size=if(frame)288 else 256; require(o.outWidth==size&&o.outHeight==size){"ابعاد ${if(frame)"قاب" else "آواتار"} باید ${size}×${size} باشد"}; val id="asset-"+System.currentTimeMillis(); val ext=when{mime.equals("image/jpeg",true)->".jpg";mime.equals("image/webp",true)->".webp";mime.equals("image/gif",true)->".gif";else->".png"}; val target=java.io.File(context.filesDir,"custom_assets/$id$ext");target.parentFile?.mkdirs();context.contentResolver.openInputStream(uri)?.use{input->target.outputStream().use{out->input.copyTo(out)}};val assetName=if(frame)"قاب سفارشی" else "آواتار سفارشی";repo.addAsset(CustomAsset(id,assetName,if(frame)AssetType.FRAME else AssetType.AVATAR,target.absolutePath,mime,size,size));repo.addShopItem(ShopItem(id=id,name=assetName,type=if(frame)ShopItemType.FRAME else ShopItemType.AVATAR,imagePath=target.absolutePath,currency=Currency.NONE,methods=setOf(AcquisitionMethod.MANUAL),description="دارایی سفارشی مربی؛ برای دریافت باید مربی آن را هدیه کند."));assetMessage="ثبت شد و به فهرست آواتار/قاب اضافه شد";changed()}catch(ex:Exception){assetMessage=ex.message} }
     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-        PageHeader(when (section) { 0 -> "مأموریت‌ها"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در تراشکاری")
-        WorkshopSummary(repo, section)
-        if(section==0){
-        OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text("+ مأموریت")}
-        repo.missions.sortedBy{it.hidden}.forEach{m->if(m.hidden&&repo.missions.firstOrNull{it.hidden}?.id==m.id)Text("مأموریت‌های مخفی",style=MaterialTheme.typography.titleMedium,color=Neon.Violet);Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
+        PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در تراشکاری")
+        WorkshopSummary(repo, if (section == 4) 0 else section)
+        if(section==0||section==4){
+        OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text(if(section==4)"+ مأموریت مخفی" else "+ مأموریت")}
+        repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
         }
         if(section==1){
         Text("جوایز / فروشگاه",style=MaterialTheme.typography.titleLarge)
@@ -134,7 +134,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
         Text("گردونه",style=MaterialTheme.typography.titleLarge);Text("حالت: ${repo.wheel.mode.name} • هزینه امتیاز ${repo.wheel.spinCostPoints} • هزینه الماس ${repo.wheel.spinCostDiamonds}");OutlinedButton({editWheelConfig=true},Modifier.fillMaxWidth()){Text("ویرایش تنظیمات گردونه")};OutlinedButton({addWheel=true},Modifier.fillMaxWidth()){Text("+ آیتم گردونه")};repo.wheel.items.forEach{item->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${item.title} • وزن ${item.weight}");Row{TextButton({editWheel=item}){Text("ویرایش")};TextButton({repo.deleteWheelItem(item.id);changed()}){Text("حذف")}}}}
         }
     }
-    if(editWheelConfig) WheelConfigDialog(repo,changed){editWheelConfig=false};if(addMission) MissionEditDialog(repo,null,changed){addMission=false};editMission?.let{MissionEditDialog(repo,it,changed){editMission=null}};completeMission?.let{CompleteMissionDialog(repo,it,changed){completeMission=null}};if(addWheel)WheelEditDialog(repo,null,changed){addWheel=false};editWheel?.let{WheelEditDialog(repo,it,changed){editWheel=null}};if(addShop)AddShopItemDialog(repo,changed,shopCategory){addShop=false};editShop?.let{ShopItemEditDialog(repo,it,changed){editShop=null}}
+    if(editWheelConfig) WheelConfigDialog(repo,changed){editWheelConfig=false};if(addMission) MissionEditDialog(repo,null,changed,hiddenDefault=section==4){addMission=false};editMission?.let{MissionEditDialog(repo,it,changed){editMission=null}};completeMission?.let{CompleteMissionDialog(repo,it,changed){completeMission=null}};if(addWheel)WheelEditDialog(repo,null,changed){addWheel=false};editWheel?.let{WheelEditDialog(repo,it,changed){editWheel=null}};if(addShop)AddShopItemDialog(repo,changed,shopCategory){addShop=false};editShop?.let{ShopItemEditDialog(repo,it,changed){editShop=null}}
 }
 
 @Composable
@@ -187,7 +187,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
     }
 }
 
-@Composable private fun MissionEditDialog(repo: AppRepository, item: Mission?, changed: () -> Unit, close: () -> Unit) {
+@Composable private fun MissionEditDialog(repo: AppRepository, item: Mission?, changed: () -> Unit, hiddenDefault: Boolean = false, close: () -> Unit) {
     val context = LocalContext.current
     var title by remember { mutableStateOf(item?.title ?: "") }
     var desc by remember { mutableStateOf(item?.description ?: "") }
@@ -195,7 +195,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
     var pts by remember { mutableStateOf((item?.pointsReward ?: 0).toString()) }
     var dia by remember { mutableStateOf((item?.diamondReward ?: 0).toString()) }
     var group by remember { mutableStateOf(item?.type == MissionType.GROUP) }
-    var hidden by remember { mutableStateOf(item?.hidden ?: false) }
+    var hidden by remember { mutableStateOf(item?.hidden ?: hiddenDefault) }
     var active by remember { mutableStateOf(item?.active ?: true) }
     var startAt by remember { mutableStateOf(item?.startAt) }
     var endAt by remember { mutableStateOf(item?.endAt) }

@@ -79,6 +79,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.READING -> ReadingScreen(repo, padding, { changed() }) { tab = Tab.SERVICES }
                     Tab.SESSIONS -> SessionsHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0) { tab = Tab.WORKSHOP }
+                    Tab.WORKSHOP_HIDDEN_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 4) { tab = Tab.WORKSHOP }
                     Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1) { tab = Tab.WORKSHOP }
                     Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2) { tab = Tab.WORKSHOP }
                     Tab.WORKSHOP_WHEEL -> WorkshopScreen(repo, padding, { changed() }, 3) { tab = Tab.WORKSHOP }
@@ -126,7 +127,7 @@ private val Tab.depth: Int
     get() = when (this) {
         Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.SETTINGS -> 0
         Tab.GROWTH, Tab.ARCHIVE -> 1
-        Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL,
+        Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
         Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE -> 2

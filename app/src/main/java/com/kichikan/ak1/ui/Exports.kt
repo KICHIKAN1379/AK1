@@ -193,7 +193,7 @@ object Exports {
         canvas.drawBitmap(bitmap, left, top, null)
         if (framePath.isNullOrBlank()) {
             canvas.drawCircle(
-                left + (size * 0.015f), top + (size * 0.015f), (size * 0.485f),
+                left + size / 2f, top + size / 2f, size / 2f - 1.5f,
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.STROKE
                     strokeWidth = 3f

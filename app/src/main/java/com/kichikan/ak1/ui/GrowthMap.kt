@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -76,7 +78,8 @@ val DEFAULT_CHARACTER_ITEMS = listOf(
  * Each member has their own log: item name → day (epoch) when the mentor approved it.
  */
 object GrowthStore {
-    private const val ABILITY_KEY = "growth_items_ability"
+    private const val KNOWLEDGE_KEY = "growth_items_knowledge"
+    private const val SKILL_KEY = "growth_items_skill"
     private const val CHARACTER_KEY = "growth_items_character"
 
     private fun readList(prefs: SharedPreferences, key: String, default: List<String>): List<String> {
@@ -88,9 +91,11 @@ object GrowthStore {
         prefs.edit().putString(key, JSONArray(list).toString()).apply()
     }
 
-    fun abilities(prefs: SharedPreferences): List<String> = readList(prefs, ABILITY_KEY, emptyList())
+    fun knowledge(prefs: SharedPreferences): List<String> = readList(prefs, KNOWLEDGE_KEY, emptyList())
+    fun skills(prefs: SharedPreferences): List<String> = readList(prefs, SKILL_KEY, emptyList())
     fun characters(prefs: SharedPreferences): List<String> = readList(prefs, CHARACTER_KEY, DEFAULT_CHARACTER_ITEMS)
-    fun saveAbilities(prefs: SharedPreferences, list: List<String>) = writeList(prefs, ABILITY_KEY, list)
+    fun saveKnowledge(prefs: SharedPreferences, list: List<String>) = writeList(prefs, KNOWLEDGE_KEY, list)
+    fun saveSkills(prefs: SharedPreferences, list: List<String>) = writeList(prefs, SKILL_KEY, list)
     fun saveCharacters(prefs: SharedPreferences, list: List<String>) = writeList(prefs, CHARACTER_KEY, list)
 
     private fun logKey(memberId: String) = "growth_log_$memberId"
@@ -123,11 +128,12 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var tick by remember { mutableStateOf(0) }
-    val abilities = remember(tick) { GrowthStore.abilities(prefs) }
+    val knowledge = remember(tick) { GrowthStore.knowledge(prefs) }
+    val skills = remember(tick) { GrowthStore.skills(prefs) }
     val characters = remember(tick) { GrowthStore.characters(prefs) }
     val unlocked = remember(tick, member.id) { GrowthStore.unlocked(prefs, member.id) }
-    val total = abilities.size + characters.size
-    val reached = (abilities + characters).count { it in unlocked }
+    val total = knowledge.size + skills.size + characters.size
+    val reached = (knowledge + skills + characters).count { it in unlocked }
     val percent = if (total == 0) 0 else reached * 100 / total
     val animatedProgress by animateFloatAsState(
         targetValue = if (total == 0) 0f else reached.toFloat() / total,
@@ -171,10 +177,17 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
         }
 
         Text("توانمندی‌ها", style = MaterialTheme.typography.titleLarge)
-        if (abilities.isEmpty()) {
-            Text("هنوز توانمندی‌ای تعریف نشده است؛ از تنظیمات ← نقشه کمال، توانمندی‌های دانشی یا مهارتی را اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("دانش", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
+        if (knowledge.isEmpty()) Text("هنوز دانشی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        knowledge.forEach { name ->
+            GrowthItemRow(name, unlocked[name], Neon.Sky) {
+                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                tick++
+            }
         }
-        abilities.forEach { name ->
+        Text("مهارت", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
+        if (skills.isEmpty()) Text("هنوز مهارتی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        skills.forEach { name ->
             GrowthItemRow(name, unlocked[name], Neon.Sky) {
                 GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
                 tick++
@@ -217,43 +230,48 @@ private fun GrowthItemRow(name: String, unlockedDay: Long?, accent: UiColor, onT
     }
 }
 
-/** Mentor's editor for both branches, opened from Settings → نقشه کمال. */
+/** Mentor's editor for the three lists (دانش، مهارت، خودسازی), opened from Settings → نقشه کمال. */
 @Composable
 fun GrowthItemsManagerDialog(prefs: SharedPreferences, changed: () -> Unit, close: () -> Unit) {
-    var abilities by remember { mutableStateOf(GrowthStore.abilities(prefs)) }
-    var characters by remember { mutableStateOf(GrowthStore.characters(prefs)) }
+    val lists = remember {
+        mutableStateListOf<List<String>>(GrowthStore.knowledge(prefs), GrowthStore.skills(prefs), GrowthStore.characters(prefs))
+    }
     var target by remember { mutableStateOf(0) }
     var name by remember { mutableStateOf("") }
-    val current = if (target == 0) abilities else characters
+    fun save(index: Int, list: List<String>) {
+        when (index) {
+            0 -> GrowthStore.saveKnowledge(prefs, list)
+            1 -> GrowthStore.saveSkills(prefs, list)
+            else -> GrowthStore.saveCharacters(prefs, list)
+        }
+        lists[index] = list
+        changed()
+    }
+    val current = lists[target]
     AlertDialog(
         onDismissRequest = close,
         title = { Text("طراحی نقشه‌ی کمال") },
         text = {
             Column(Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("توانمندی‌ها: دانش و مهارت‌هایی که هر عضو می‌تواند بیاموزد. خودسازی: صفاتی که با تأیید مربی باز می‌شوند.", style = MaterialTheme.typography.bodySmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = target == 0, onClick = { target = 0 }, label = { Text("توانمندی‌ها") })
-                    FilterChip(selected = target == 1, onClick = { target = 1 }, label = { Text("خودسازی") })
+                Text("دانش و مهارت: توانمندی‌هایی که هر عضو می‌تواند بیاموزد. خودسازی: صفاتی که با تأیید مربی باز می‌شوند.", style = MaterialTheme.typography.bodySmall)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = target == 0, onClick = { target = 0 }, label = { Text("دانش") })
+                    FilterChip(selected = target == 1, onClick = { target = 1 }, label = { Text("مهارت") })
+                    FilterChip(selected = target == 2, onClick = { target = 2 }, label = { Text("خودسازی") })
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("نام مورد جدید") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Button(onClick = {
                     val value = name.trim()
                     if (value.isNotBlank() && value !in current) {
-                        if (target == 0) { abilities = abilities + value; GrowthStore.saveAbilities(prefs, abilities) }
-                        else { characters = characters + value; GrowthStore.saveCharacters(prefs, characters) }
+                        save(target, current + value)
                         name = ""
-                        changed()
                     }
                 }, modifier = Modifier.fillMaxWidth()) { Text("افزودن") }
                 if (current.isEmpty()) Text("این بخش خالی است.")
                 current.forEach { item ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        TextButton(onClick = {
-                            if (target == 0) { abilities = abilities - item; GrowthStore.saveAbilities(prefs, abilities) }
-                            else { characters = characters - item; GrowthStore.saveCharacters(prefs, characters) }
-                            changed()
-                        }) { Text("حذف") }
+                        TextButton(onClick = { save(target, current - item) }) { Text("حذف") }
                     }
                 }
             }
