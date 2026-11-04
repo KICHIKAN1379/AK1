@@ -177,12 +177,27 @@ object ReportExport {
         return arr.toString()
     }
 
-    /** Restores a ZIP made by [build]. Returns false when the file is not an AK1 archive. */
+    /** Only the visual data: custom avatars, frames, item pictures, puzzle pictures and the background. */
+    fun visualZip(context: Context): ByteArray {
+        val bos = ByteArrayOutputStream()
+        ZipOutputStream(bos).use { zip ->
+            fun put(name: String, bytes: ByteArray) {
+                zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
+            }
+            File(context.filesDir, "custom_assets").listFiles()?.forEach { put("custom_assets/${it.name}", it.readBytes()) }
+            File(context.filesDir, "puzzle").listFiles()?.forEach { put("puzzle/${it.name}", it.readBytes()) }
+            File(File(context.filesDir, "background"), "custom.jpg").takeIf { it.exists() }?.let { put("background/custom.jpg", it.readBytes()) }
+        }
+        return bos.toByteArray()
+    }
+
+    /** Restores a ZIP made by [build] or [visualZip]. Returns false when nothing in it is recognised. */
     fun restoreZip(context: Context, repo: AppRepository, uri: Uri): Boolean {
         var backup: String? = null
         var settings: String? = null
         val puzzle = mutableMapOf<String, ByteArray>()
         val assets = mutableMapOf<String, ByteArray>()
+        var background: ByteArray? = null
         val opened = context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
                 var e = zip.nextEntry
@@ -192,6 +207,7 @@ object ReportExport {
                         e.name == "settings.json" -> settings = zip.readBytes().toString(Charsets.UTF_8)
                         e.name.startsWith("puzzle/") -> puzzle[File(e.name).name] = zip.readBytes()
                         e.name.startsWith("custom_assets/") -> assets[File(e.name).name] = zip.readBytes()
+                        e.name == "background/custom.jpg" -> background = zip.readBytes()
                     }
                     zip.closeEntry()
                     e = zip.nextEntry
@@ -199,15 +215,20 @@ object ReportExport {
             }
             true
         } ?: false
-        val data = backup ?: return false
         if (!opened) return false
+        val data = backup
+        if (data == null && assets.isEmpty() && puzzle.isEmpty() && background == null) return false
+        background?.let { bytes ->
+            File(context.filesDir, "background").apply { mkdirs() }.let { File(it, "custom.jpg").writeBytes(bytes) }
+            com.kichikan.ak1.ui.theme.AppBackground.reload()
+        }
         // Pictures come back into this phone's folder; the saved paths are rewritten to match.
         val assetDir = File(context.filesDir, "custom_assets").apply { mkdirs() }
         assets.forEach { (name, bytes) -> File(assetDir, name).writeBytes(bytes) }
-        val fixed = Regex("""[^"]*/custom_assets/([^"/]+)""").replace(data) { m ->
-            File(assetDir, m.groupValues[1]).absolutePath
+        if (data != null) {
+            val fixed = Regex("""[^"]*/custom_assets/([^"/]+)""").replace(data) { m -> File(assetDir, m.groupValues[1]).absolutePath }
+            repo.importBackup(fixed)
         }
-        repo.importBackup(fixed)
         settings?.let { restoreSettings(context, it) }
         val dir = File(context.filesDir, "puzzle").apply { mkdirs() }
         puzzle.forEach { (name, bytes) -> File(dir, name).writeBytes(bytes) }

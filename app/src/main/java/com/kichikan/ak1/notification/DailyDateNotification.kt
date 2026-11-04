@@ -70,12 +70,10 @@ object DailyDateNotification {
         val season = JalaliSeason.forMonth(date.month)
         // Status bar renders alpha only, so it gets the white day digits; the expanded
         // notification shows the filled, season-coloured badge as its large icon.
-        val smallIcon = IconCompat.createWithBitmap(NotificationBadge.dayIcon(date.day, season, 72, filled = false))
-        val largeIcon = NotificationBadge.dayIcon(date.day, season, 192, filled = true)
+        // The small icon is the square tile for today's day number (ic_day_1..ic_day_31).
+        val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(smallIcon)
-            .setLargeIcon(largeIcon)
-            .setColor(season.frame)
+            .setSmallIcon(if (dayRes != 0) IconCompat.createWithResource(context, dayRes) else IconCompat.createWithResource(context, R.mipmap.ic_launcher))
             .setSubText(season.label)
             .setContentTitle("امروز • ${date.day} ${JalaliCalendar.MONTH_NAMES[date.month - 1]} ${date.year}")
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")

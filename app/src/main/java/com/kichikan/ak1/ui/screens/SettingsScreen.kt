@@ -122,6 +122,15 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, if (ok) "پس‌زمینه تغییر کرد" else "این تصویر خوانده نشد", Toast.LENGTH_SHORT).show()
         }
     }
+    var visualBytes by remember { mutableStateOf<ByteArray?>(null) }
+    val visualExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        val bytes = visualBytes
+        if (uri != null && bytes != null) {
+            val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
+            Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+        }
+        visualBytes = null
+    }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val ok = runCatching { ReportExport.restoreZip(context, repo, uri) }.getOrDefault(false)
@@ -229,7 +238,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         }
         Text("ابزارها", style = MaterialTheme.typography.titleMedium)
         val tools = listOf(
-            SettingsTool(R.drawable.icon_settings_backup, "خروجی کامل") { export.launch("AK1-backup.json") },
+            SettingsTool(R.drawable.icon_settings_backup, "خروجی اطلاعات") { export.launch("AK1-backup.json") },
             SettingsTool(R.drawable.icon_settings_restore, "ورود پشتیبان") { import.launch(arrayOf("application/json", "text/plain")) },
             SettingsTool(R.drawable.icon_settings_edit_profile, "ویرایش پروفایل") { profileOpen = true },
             SettingsTool(R.drawable.icon_settings_growth_map, "نقشه کمال") { growthManagerOpen = true },
@@ -273,6 +282,10 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             com.kichikan.ak1.ui.theme.AppBackground.reset(context)
             Toast.makeText(context, "پس‌زمینه‌ی پیش‌فرض برگشت", Toast.LENGTH_SHORT).show()
         }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به پس‌زمینه‌ی پیش‌فرض") }
+        OutlinedButton(onClick = {
+            visualBytes = com.kichikan.ak1.ui.ReportExport.visualZip(context)
+            visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+        }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
         OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
         OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
         Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")

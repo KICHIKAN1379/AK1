@@ -48,6 +48,11 @@ object AppBackground {
         true
     }.getOrDefault(false)
 
+    /** Called after a restore wrote a new picture to the same file. */
+    fun reload() {
+        version++
+    }
+
     fun reset(context: Context) {
         File(File(context.filesDir, DIR), FILE).delete()
         version++
