@@ -324,7 +324,7 @@ fun AK1Theme(content: @Composable () -> Unit) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(Color(0x77000000), Color(0x44000000), Color(0x99000000))))
+                        .background(Brush.verticalGradient(listOf(Color(0xC9000618), Color(0xB8000824), Color(0xD9000618))))
                 )
             }
             CompositionLocalProvider(
