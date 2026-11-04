@@ -12,7 +12,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.runtime.key
+import androidx.compose.foundation.layout.PaddingValues
+import com.kichikan.ak1.data.AppRepository
+import com.kichikan.ak1.ui.theme.LocalAk1Background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -82,7 +90,6 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
     val context = LocalContext.current
     var mask by remember(group.id) { mutableIntStateOf(GroupPuzzle.mask(context, group.id)) }
     var pictureVersion by remember(group.id) { mutableIntStateOf(0) }
-    var resetOpen by remember { mutableStateOf(false) }
     val picture = remember(group.id, pictureVersion) { GroupPuzzle.loadPicture(context, group.id) }
     val revealedCount = Integer.bitCount(mask)
     val alphas = (0 until GroupPuzzle.PIECES).map { i ->
@@ -171,7 +178,6 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
             OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
                 Text(if (picture == null) "انتخاب تصویر پازل" else "تغییر تصویر پازل")
             }
-            Button(onClick = { resetOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("ریست پازل") }
             Text(
                 "هر تکه را مربی دستی باز می‌کند. ریست در هر زمان ممکن است و با یک سؤال ساده تأیید می‌شود.",
                 style = MaterialTheme.typography.bodySmall,
@@ -179,20 +185,10 @@ fun GroupPuzzleCard(group: Group, changed: () -> Unit) {
             )
         }
     }
-
-    if (resetOpen) ResetPuzzleDialog(
-        onConfirm = {
-            mask = 0
-            GroupPuzzle.setMask(context, group.id, 0)
-            resetOpen = false
-            changed()
-        },
-        close = { resetOpen = false }
-    )
 }
 
 @Composable
-private fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
+internal fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
     // A simple sum or difference; the mentor must answer it correctly to reset.
     val question = remember {
         val a = (2..20).random()
@@ -226,5 +222,34 @@ private fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
             }) { Text("تأیید") }
         },
         dismissButton = { TextButton(onClick = close) { Text("لغو") } }
+    )
+}
+
+/** The puzzle page: every group's puzzle, and one reset that clears all of them. */
+@Composable
+fun GroupPuzzlePage(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, back: () -> Unit) {
+    val context = LocalContext.current
+    var resetOpen by remember { mutableStateOf(false) }
+    var version by remember { mutableIntStateOf(0) }
+    Column(
+        Modifier.fillMaxSize().padding(padding).background(LocalAk1Background.current)
+            .verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        PageHeader("پازل گروهی", back, "تکه‌ها را مربی دستی باز می‌کند")
+        if (repo.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.", style = MaterialTheme.typography.bodyMedium)
+        key(version) {
+            repo.groups.forEach { GroupPuzzleCard(it) { changed() } }
+        }
+        Button(onClick = { resetOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("ریست پازل همه‌ی گروه‌ها") }
+    }
+    if (resetOpen) ResetPuzzleDialog(
+        onConfirm = {
+            repo.groups.forEach { GroupPuzzle.setMask(context, it.id, 0) }
+            resetOpen = false
+            version++
+            changed()
+        },
+        close = { resetOpen = false }
     )
 }

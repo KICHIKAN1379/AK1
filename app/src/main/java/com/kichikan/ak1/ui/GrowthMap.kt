@@ -17,7 +17,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
@@ -132,8 +134,9 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
     val skills = remember(tick) { GrowthStore.skills(prefs) }
     val characters = remember(tick) { GrowthStore.characters(prefs) }
     val unlocked = remember(tick, member.id) { GrowthStore.unlocked(prefs, member.id) }
-    val total = knowledge.size + skills.size + characters.size
-    val reached = (knowledge + skills + characters).count { it in unlocked }
+    // The percentage counts only خودسازی (character virtues). توانمندی‌ها are shown separately.
+    val total = characters.size
+    val reached = characters.count { it in unlocked }
     val percent = if (total == 0) 0 else reached * 100 / total
     val animatedProgress by animateFloatAsState(
         targetValue = if (total == 0) 0f else reached.toFloat() / total,
@@ -166,7 +169,7 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
                     }
                 }
                 LevelProgress(xp = member.economy.xp, level = member.economy.level)
-                Text("$reached از $total مورد باز شده • $percent٪", style = MaterialTheme.typography.titleMedium)
+                Text("خودسازی: $reached از $total باز شده • $percent٪", style = MaterialTheme.typography.titleMedium)
                 Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.10f))) {
                     Box(
                         Modifier.fillMaxWidth(animatedProgress).fillMaxHeight().clip(RoundedCornerShape(50))
@@ -176,29 +179,46 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
             }
         }
 
-        Text("توانمندی‌ها", style = MaterialTheme.typography.titleLarge)
-        Text("دانش", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
-        if (knowledge.isEmpty()) Text("هنوز دانشی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        knowledge.forEach { name ->
-            GrowthItemRow(name, unlocked[name], Neon.Sky) {
-                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
-                tick++
+        var abilitiesOpen by remember { mutableStateOf(false) }
+        var charactersOpen by remember { mutableStateOf(false) }
+
+        ExpandableSection(
+            title = "توانمندی‌ها",
+            summary = "${knowledge.size + skills.size} مورد • جدا از درصد خودسازی",
+            accent = Neon.Sky,
+            open = abilitiesOpen,
+            onToggle = { abilitiesOpen = !abilitiesOpen }
+        ) {
+            Text("دانش", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
+            if (knowledge.isEmpty()) Text("هنوز دانشی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            knowledge.forEach { name ->
+                GrowthItemRow(name, unlocked[name], Neon.Sky) {
+                    GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                    tick++
+                }
             }
-        }
-        Text("مهارت", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
-        if (skills.isEmpty()) Text("هنوز مهارتی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        skills.forEach { name ->
-            GrowthItemRow(name, unlocked[name], Neon.Sky) {
-                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
-                tick++
+            Text("مهارت", style = MaterialTheme.typography.titleMedium, color = Neon.Sky)
+            if (skills.isEmpty()) Text("هنوز مهارتی تعریف نشده است؛ از تنظیمات ← نقشه کمال اضافه کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            skills.forEach { name ->
+                GrowthItemRow(name, unlocked[name], Neon.Sky) {
+                    GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                    tick++
+                }
             }
         }
 
-        Text("خودسازی", style = MaterialTheme.typography.titleLarge)
-        characters.forEach { name ->
-            GrowthItemRow(name, unlocked[name], Neon.Violet) {
-                GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
-                tick++
+        ExpandableSection(
+            title = "خودسازی",
+            summary = "$reached از $total باز شده • $percent٪",
+            accent = Neon.Violet,
+            open = charactersOpen,
+            onToggle = { charactersOpen = !charactersOpen }
+        ) {
+            characters.forEach { name ->
+                GrowthItemRow(name, unlocked[name], Neon.Violet) {
+                    GrowthStore.setUnlocked(prefs, member.id, name, unlocked[name] == null)
+                    tick++
+                }
             }
         }
         Text(
@@ -206,6 +226,32 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/** A tappable section header; its rows appear only after the header is opened. */
+@Composable
+private fun ExpandableSection(
+    title: String,
+    summary: String,
+    accent: UiColor,
+    open: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(onClick = onToggle, modifier = Modifier.fillMaxWidth(), accent = accent) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleLarge, color = accent)
+                    Text(summary, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(if (open) "▲" else "▼", color = accent)
+            }
+            AnimatedVisibility(visible = open) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+            }
+        }
     }
 }
 

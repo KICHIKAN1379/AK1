@@ -51,6 +51,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     var actionMember by remember { mutableStateOf<Member?>(null) }
     var selected by remember { mutableStateOf<Member?>(null) }
     var editing by remember { mutableStateOf<Member?>(null) }
+    var reportMemberId by remember { mutableStateOf<String?>(null) }
     var groupEditing by remember { mutableStateOf<Group?>(null) }
     var scoreGroup by remember { mutableStateOf<Group?>(null) }
     var profileGroup by remember { mutableStateOf<Group?>(null) }
@@ -280,6 +281,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
         }
     }
     if (add) AddMemberDialog(repo, changed) { add = false }
+    reportMemberId?.let { id -> com.kichikan.ak1.ui.RingReportDialog(repo, id) { reportMemberId = null } }
     if (addGroup) GroupDialog(repo, null, changed) { addGroup = false }
     groupEditing?.let { GroupDialog(repo, it, changed) { groupEditing = null } }
     scoreGroup?.let { GroupScoreDialog(repo, it, changed) { scoreGroup = null } }
@@ -371,6 +373,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                     TextButton({ actionMember = null; editing = m }) { Text("ویرایش") }
                     TextButton({ actionMember = null; selected = m }) { Text("گنجینه") }
                     TextButton({ actionMember = null; openGrowth(m) }) { Text("نقشه کمال") }
+                    TextButton({ actionMember = null; reportMemberId = m.id }) { Text("کارنامه") }
                 }
             },
             dismissButton = { TextButton({ actionMember = null }) { Text("بستن") } }

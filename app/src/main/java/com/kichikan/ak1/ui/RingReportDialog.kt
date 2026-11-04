@@ -30,7 +30,7 @@ import java.time.LocalDate
 
 /** Choose monthly or yearly report and a Jalali month or year, then save the image or the full ZIP. */
 @Composable
-fun RingReportDialog(repo: AppRepository, close: () -> Unit) {
+fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () -> Unit) {
     val context = LocalContext.current
     val today = JalaliCalendar.fromGregorian(LocalDate.now())
     var kind by remember { mutableStateOf(RingReport.Kind.MONTHLY) }
@@ -61,7 +61,7 @@ fun RingReportDialog(repo: AppRepository, close: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = close,
-        title = { Text("کارنامه‌ی حلقه") },
+        title = { Text(if (memberId == null) "کارنامه‌ی حلقه" else "کارنامه‌ی عضو") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("نوع کارنامه", style = MaterialTheme.typography.titleSmall)
@@ -88,13 +88,23 @@ fun RingReportDialog(repo: AppRepository, close: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val preview = ReportExport.result(context, repo, kind, year, month, memberId)
+                Text(preview.title, style = MaterialTheme.typography.titleSmall)
+                preview.metrics.forEach { metric ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(metric.label, style = MaterialTheme.typography.bodyMedium)
+                        val now = if (metric.isPercent) "%.0f٪".format(metric.value) else "%.0f".format(metric.value)
+                        val before = if (metric.isPercent) "%.0f٪".format(metric.previous) else "%.0f".format(metric.previous)
+                        Text("$now  (قبل: $before)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Button(onClick = {
-                    val (jpeg, _) = ReportExport.build(context, repo, kind, year, month)
+                    val (jpeg, _) = ReportExport.build(context, repo, kind, year, month, memberId)
                     pendingJpeg = jpeg
                     jpegSaver.launch("کارنامه-$year-$month.jpg")
                 }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره‌ی تصویر JPEG") }
                 Button(onClick = {
-                    val (_, zip) = ReportExport.build(context, repo, kind, year, month)
+                    val (_, zip) = ReportExport.build(context, repo, kind, year, month, memberId)
                     pendingZip = zip
                     zipSaver.launch("AK1-کارنامه-$year-$month.zip")
                 }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره‌ی فایل کامل ZIP") }

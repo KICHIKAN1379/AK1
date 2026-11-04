@@ -27,17 +27,24 @@ import java.util.zip.ZipOutputStream
 object ReportExport {
     private const val PREFS = "ak1_settings"
 
-    fun build(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int): Pair<ByteArray, ByteArray> {
+    /** The numbers of one report; [memberId] limits them to one member, null means the whole ring. */
+    fun result(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): RingReport.Result {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val itemsPerMember = GrowthStore.knowledge(prefs).size + GrowthStore.skills(prefs).size + GrowthStore.characters(prefs).size
         val zone = ZoneId.systemDefault()
-        val growthMillis = repo.members.flatMap { m ->
+        val members = repo.members.filter { memberId == null || it.id == memberId }
+        val growthMillis = members.flatMap { m ->
             GrowthStore.unlocked(prefs, m.id).values.map { day -> LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant().toEpochMilli() }
         }
-        val result = RingReport.compute(kind, year, month, repo.members, repo.history, growthMillis, itemsPerMember)
+        val history = repo.history.filter { memberId == null || it.memberId == memberId }
+        return RingReport.compute(kind, year, month, members, history, growthMillis, itemsPerMember)
+    }
+
+    fun build(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): Pair<ByteArray, ByteArray> {
+        val result = result(context, repo, kind, year, month, memberId)
         val cur = RingReport.range(kind, year, month)
         val prizes = repo.history
-            .filter { it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= cur.start && it.createdAtEpochMillis < cur.end }
+            .filter { (memberId == null || it.memberId == memberId) && it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= cur.start && it.createdAtEpochMillis < cur.end }
             .map { it.title }
         val jpeg = renderJpeg(result, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
         return jpeg to buildZip(context, repo, jpeg)
@@ -146,6 +153,8 @@ object ReportExport {
             put("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
             put("settings.json", settingsJson(context).toByteArray(Charsets.UTF_8))
             File(context.filesDir, "puzzle").listFiles()?.forEach { put("puzzle/${it.name}", it.readBytes()) }
+            // Visual data: custom avatars, frames, badges and item pictures.
+            File(context.filesDir, "custom_assets").listFiles()?.forEach { put("custom_assets/${it.name}", it.readBytes()) }
         }
         return bos.toByteArray()
     }
@@ -173,6 +182,7 @@ object ReportExport {
         var backup: String? = null
         var settings: String? = null
         val puzzle = mutableMapOf<String, ByteArray>()
+        val assets = mutableMapOf<String, ByteArray>()
         val opened = context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
                 var e = zip.nextEntry
@@ -181,6 +191,7 @@ object ReportExport {
                         e.name == "backup.json" -> backup = zip.readBytes().toString(Charsets.UTF_8)
                         e.name == "settings.json" -> settings = zip.readBytes().toString(Charsets.UTF_8)
                         e.name.startsWith("puzzle/") -> puzzle[File(e.name).name] = zip.readBytes()
+                        e.name.startsWith("custom_assets/") -> assets[File(e.name).name] = zip.readBytes()
                     }
                     zip.closeEntry()
                     e = zip.nextEntry
@@ -190,7 +201,13 @@ object ReportExport {
         } ?: false
         val data = backup ?: return false
         if (!opened) return false
-        repo.importBackup(data)
+        // Pictures come back into this phone's folder; the saved paths are rewritten to match.
+        val assetDir = File(context.filesDir, "custom_assets").apply { mkdirs() }
+        assets.forEach { (name, bytes) -> File(assetDir, name).writeBytes(bytes) }
+        val fixed = Regex("""[^"]*/custom_assets/([^"/]+)""").replace(data) { m ->
+            File(assetDir, m.groupValues[1]).absolutePath
+        }
+        repo.importBackup(fixed)
         settings?.let { restoreSettings(context, it) }
         val dir = File(context.filesDir, "puzzle").apply { mkdirs() }
         puzzle.forEach { (name, bytes) -> File(dir, name).writeBytes(bytes) }
