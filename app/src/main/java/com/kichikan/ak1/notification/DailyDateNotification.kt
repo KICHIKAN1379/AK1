@@ -68,9 +68,8 @@ object DailyDateNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val season = JalaliSeason.forMonth(date.month)
-        // Status bar renders alpha only, so it gets the white day digits; the expanded
-        // notification shows the filled, season-coloured badge as its large icon.
-        // The small icon is the square tile for today's day number (ic_day_1..ic_day_31).
+        // Android masks the small status icon to alpha, so use transparent white day digits there.
+        // The expanded notification uses the matching full-colour day tile (ic_day_1..ic_day_31).
         val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(IconCompat.createWithBitmap(NotificationBadge.dayIcon(date.day, season, 96, filled = false)))
