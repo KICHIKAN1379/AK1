@@ -68,12 +68,12 @@ object DailyDateNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val season = JalaliSeason.forMonth(date.month)
-        // Android masks the small status icon to alpha, so use transparent white day digits there.
-        // The expanded notification uses the matching full-colour day tile (ic_day_1..ic_day_31).
+        // Use the date artwork as the notification's actual small icon resource.
+        // Do not set a large icon: that was creating a second date tile on the left,
+        // while Android kept showing the app's diamond as its notification identity.
         val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(IconCompat.createWithBitmap(NotificationBadge.dayIcon(date.day, season, 96, filled = false)))
-            .setLargeIcon(if (dayRes != 0) android.graphics.BitmapFactory.decodeResource(context.resources, dayRes) else NotificationBadge.dayIcon(date.day, season, 192, filled = true))
+            .setSmallIcon(if (dayRes != 0) dayRes else R.mipmap.ic_launcher)
             .setSubText(season.label)
             .setContentTitle("امروز • ${date.day} ${JalaliCalendar.MONTH_NAMES[date.month - 1]} ${date.year}")
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")
