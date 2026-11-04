@@ -3,6 +3,8 @@ package com.kichikan.ak1.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.kichikan.ak1.domain.model.*
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -122,14 +124,27 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, if (ok) "پس‌زمینه تغییر کرد" else "این تصویر خوانده نشد", Toast.LENGTH_SHORT).show()
         }
     }
-    var visualBytes by remember { mutableStateOf<ByteArray?>(null) }
+    val exportScope = rememberCoroutineScope()
+    var visualZipFile by remember { mutableStateOf<java.io.File?>(null) }
     val visualExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val bytes = visualBytes
-        if (uri != null && bytes != null) {
-            val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
-            Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+        val file = visualZipFile
+        visualZipFile = null
+        if (uri != null && file != null) {
+            exportScope.launch {
+                val ok = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching {
+                        val output = context.contentResolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("امکان نوشتن در فایل انتخاب‌شده وجود ندارد")
+                        output.use { stream -> file.inputStream().buffered().use { it.copyTo(stream) } }
+                        true
+                    }.getOrDefault(false)
+                }
+                file.delete()
+                Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            file?.delete()
         }
-        visualBytes = null
     }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -283,8 +298,13 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, "پس‌زمینه‌ی پیش‌فرض برگشت", Toast.LENGTH_SHORT).show()
         }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به پس‌زمینه‌ی پیش‌فرض") }
         OutlinedButton(onClick = {
-            visualBytes = com.kichikan.ak1.ui.ReportExport.visualZip(context)
-            visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+            exportScope.launch {
+                val file = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.kichikan.ak1.ui.ReportExport.visualZipFile(context)
+                }
+                visualZipFile = file
+                visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+            }
         }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
         OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
         OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
