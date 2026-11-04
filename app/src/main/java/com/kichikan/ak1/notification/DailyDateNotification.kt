@@ -51,16 +51,16 @@ object DailyDateNotification {
     }
 
     fun show(context: Context) {
+        // Clear the stale notification from earlier builds first, even when we cannot post a new one.
+        NotificationManagerCompat.from(context).cancel(OLD_NOTIFICATION_ID)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).deleteNotificationChannel(OLD_CHANNEL_ID)
+        }
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         createChannel(context)
-        // Remove the stale notification and channel from earlier builds (they kept the old diamond icon).
-        NotificationManagerCompat.from(context).cancel(OLD_NOTIFICATION_ID)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).deleteNotificationChannel(OLD_CHANNEL_ID)
-        }
         val now = java.time.ZonedDateTime.now(ZoneId.systemDefault())
         val date = JalaliCalendar.fromGregorian(now.toLocalDate())
         val openApp = PendingIntent.getActivity(
