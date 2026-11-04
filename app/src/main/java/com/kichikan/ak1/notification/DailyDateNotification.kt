@@ -16,7 +16,6 @@ import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.kichikan.ak1.MainActivity
 import com.kichikan.ak1.R
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
