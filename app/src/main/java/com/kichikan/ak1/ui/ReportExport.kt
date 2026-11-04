@@ -17,6 +17,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.zip.ZipEntry
@@ -177,18 +178,26 @@ object ReportExport {
         return arr.toString()
     }
 
-    /** Only the visual data: custom avatars, frames, item pictures, puzzle pictures and the background. */
-    fun visualZip(context: Context): ByteArray {
-        val bos = ByteArrayOutputStream()
-        ZipOutputStream(bos).use { zip ->
-            fun put(name: String, bytes: ByteArray) {
-                zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
+    /**
+     * Streams visual assets directly to a temporary ZIP instead of building a potentially huge
+     * ByteArray in memory. This avoids UI freezes and out-of-memory crashes on phones with many
+     * custom images.
+     */
+    fun visualZipFile(context: Context): File {
+        val output = File(context.cacheDir, "AK1-visual-${System.currentTimeMillis()}.zip")
+        ZipOutputStream(FileOutputStream(output).buffered()).use { zip ->
+            fun putFile(prefix: String, file: File) {
+                if (!file.isFile) return
+                zip.putNextEntry(ZipEntry("$prefix/${file.name}"))
+                file.inputStream().buffered().use { input -> input.copyTo(zip) }
+                zip.closeEntry()
             }
-            File(context.filesDir, "custom_assets").listFiles()?.forEach { put("custom_assets/${it.name}", it.readBytes()) }
-            File(context.filesDir, "puzzle").listFiles()?.forEach { put("puzzle/${it.name}", it.readBytes()) }
-            File(File(context.filesDir, "background"), "custom.jpg").takeIf { it.exists() }?.let { put("background/custom.jpg", it.readBytes()) }
+            File(context.filesDir, "custom_assets").listFiles()?.forEach { putFile("custom_assets", it) }
+            File(context.filesDir, "puzzle").listFiles()?.forEach { putFile("puzzle", it) }
+            File(File(context.filesDir, "background"), "custom.jpg")
+                .takeIf { it.isFile }?.let { putFile("background", it) }
         }
-        return bos.toByteArray()
+        return output
     }
 
     /** Restores a ZIP made by [build] or [visualZip]. Returns false when nothing in it is recognised. */
