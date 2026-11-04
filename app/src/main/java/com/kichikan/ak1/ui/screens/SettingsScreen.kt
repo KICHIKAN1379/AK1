@@ -300,10 +300,14 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         OutlinedButton(onClick = {
             exportScope.launch {
                 val file = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    com.kichikan.ak1.ui.ReportExport.visualZipFile(context)
+                    runCatching { com.kichikan.ak1.ui.ReportExport.visualZipFile(context) }.getOrNull()
                 }
-                visualZipFile = file
-                visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+                if (file == null) {
+                    Toast.makeText(context, "ساخت فایل ZIP انجام نشد", Toast.LENGTH_LONG).show()
+                } else {
+                    visualZipFile = file
+                    visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+                }
             }
         }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
         OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
