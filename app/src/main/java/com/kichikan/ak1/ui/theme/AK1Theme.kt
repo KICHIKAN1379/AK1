@@ -14,7 +14,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -184,6 +188,16 @@ private fun auroraFor(mode: ThemeMode): Aurora? = when (mode) {
  */
 val LocalAk1Background = staticCompositionLocalOf { Neon.BackgroundBrush }
 
+/** Button fill of the current [ThemeMode]; buttons read it, the background does not. */
+val LocalButtonBrush = staticCompositionLocalOf { Neon.ButtonBrush }
+
+private fun buttonBrushFor(mode: ThemeMode): Brush = when (mode) {
+    ThemeMode.NEON -> Neon.ButtonBrush
+    ThemeMode.ARCADE -> Brush.horizontalGradient(listOf(Neon.Orange, Neon.Magenta, Neon.Gold))
+    ThemeMode.MIDNIGHT -> Brush.horizontalGradient(listOf(Neon.Sky, Neon.Violet, Neon.Cyan))
+    ThemeMode.AMOLED -> Brush.horizontalGradient(listOf(Color(0xFFF2F2F2), Color(0xFFBDBDBD)))
+}
+
 @Composable
 fun AK1Theme(content: @Composable () -> Unit) {
     val mode = ThemeState.mode
@@ -221,6 +235,8 @@ fun AK1Theme(content: @Composable () -> Unit) {
         ),
         label = "grid-scroll"
     )
+    val context = LocalContext.current
+    val image = remember(AppBackground.version) { AppBackground.image(context) }
     MaterialTheme(
         colorScheme = scheme,
         typography = AK1Typography,
@@ -233,10 +249,11 @@ fun AK1Theme(content: @Composable () -> Unit) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(background)
+                .background(if (image == null) background else Brush.verticalGradient(listOf(Color.Black, Color.Black)))
                 .drawBehind {
                     // AMOLED stays flat black; the other modes get light sources and a grid.
-                    val glow = aurora ?: return@drawBehind
+                    // A custom or bundled background image replaces the animated backdrop.
+                    val glow = (if (image == null) aurora else null) ?: return@drawBehind
                     val w = size.width
                     val h = size.height
                     drawRect(
@@ -297,9 +314,23 @@ fun AK1Theme(content: @Composable () -> Unit) {
                     )
                 }
         ) {
+            if (image != null) {
+                Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(listOf(Color(0x77000000), Color(0x44000000), Color(0x99000000))))
+                )
+            }
             CompositionLocalProvider(
                 LocalContentColor provides scheme.onBackground,
-                LocalAk1Background provides background
+                LocalAk1Background provides background,
+                LocalButtonBrush provides buttonBrushFor(mode)
             ) {
                 content()
             }

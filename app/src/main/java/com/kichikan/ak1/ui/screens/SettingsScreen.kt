@@ -116,6 +116,12 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     var profileOpen by remember { mutableStateOf(false) }
     var growthManagerOpen by remember { mutableStateOf(false) }
     var factoryOpen by remember { mutableStateOf(false) }
+    val backgroundPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val ok = com.kichikan.ak1.ui.theme.AppBackground.save(context, uri)
+            Toast.makeText(context, if (ok) "پس‌زمینه تغییر کرد" else "این تصویر خوانده نشد", Toast.LENGTH_SHORT).show()
+        }
+    }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val ok = runCatching { ReportExport.restoreZip(context, repo, uri) }.getOrDefault(false)
@@ -262,6 +268,11 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 Text(label)
             }
         }
+        OutlinedButton(onClick = { backgroundPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Text("تغییر پس‌زمینه‌ی برنامه") }
+        OutlinedButton(onClick = {
+            com.kichikan.ak1.ui.theme.AppBackground.reset(context)
+            Toast.makeText(context, "پس‌زمینه‌ی پیش‌فرض برگشت", Toast.LENGTH_SHORT).show()
+        }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به پس‌زمینه‌ی پیش‌فرض") }
         OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
         OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
         Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")

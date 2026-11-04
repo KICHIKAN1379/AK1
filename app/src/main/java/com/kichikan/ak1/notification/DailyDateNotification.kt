@@ -25,8 +25,10 @@ import java.time.ZoneId
 import java.time.LocalTime
 
 object DailyDateNotification {
-    private const val CHANNEL_ID = "ak1_daily_date"
-    private const val NOTIFICATION_ID = 6101
+    private const val CHANNEL_ID = "ak1_daily_date_v2"
+    private const val OLD_CHANNEL_ID = "ak1_daily_date"
+    private const val NOTIFICATION_ID = 6201
+    private const val OLD_NOTIFICATION_ID = 6101
     private const val REQUEST_CODE = 6101
     private const val ACTION_UPDATE = "com.kichikan.ak1.UPDATE_DAILY_DATE"
 
@@ -54,6 +56,11 @@ object DailyDateNotification {
         ) return
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         createChannel(context)
+        // Remove the stale notification and channel from earlier builds (they kept the old diamond icon).
+        NotificationManagerCompat.from(context).cancel(OLD_NOTIFICATION_ID)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).deleteNotificationChannel(OLD_CHANNEL_ID)
+        }
         val now = java.time.ZonedDateTime.now(ZoneId.systemDefault())
         val date = JalaliCalendar.fromGregorian(now.toLocalDate())
         val openApp = PendingIntent.getActivity(

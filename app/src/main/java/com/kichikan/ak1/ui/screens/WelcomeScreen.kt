@@ -17,6 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
@@ -44,7 +52,6 @@ internal fun WelcomeScreen(repo: AppRepository, onReady: () -> Unit) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        WelcomeBackdrop()
         Column(
             Modifier
                 .fillMaxSize()
@@ -57,16 +64,7 @@ internal fun WelcomeScreen(repo: AppRepository, onReady: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             if (step == 0) {
-                Surface(
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.06f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.55f)),
-                    modifier = Modifier.size(112.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("K1", style = MaterialTheme.typography.headlineLarge, color = Neon.Cyan)
-                    }
-                }
+                WelcomeLogo()
                 Spacer(Modifier.height(28.dp))
                 Text(
                     "خوش آمدید",
@@ -75,23 +73,25 @@ internal fun WelcomeScreen(repo: AppRepository, onReady: () -> Unit) {
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "مجموعه فرهنگی ابوتراب علیه السلام",
+                    "مجموعه فرهنگی تربیتی ابوتراب علیه السلام تقدیم می‌کند",
                     style = MaterialTheme.typography.titleMedium,
                     color = Neon.Gold,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(Modifier.height(44.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WelcomeChip("کاملاً آفلاین", Neon.Green, Modifier.weight(1f))
-                    WelcomeChip("مدیریت اعضا", Neon.Cyan, Modifier.weight(1f))
-                    WelcomeChip("حضور و جلسات", Neon.Violet, Modifier.weight(1f))
+                    WelcomeChip("کاملاً آفلاین", Neon.Green, Icons.Filled.WorkspacePremium, Modifier.weight(1f))
+                    WelcomeChip("مدیریت اعضا", Neon.Cyan, Icons.Filled.Groups, Modifier.weight(1f))
+                    WelcomeChip("حضور و جلسات", Neon.Violet, Icons.Filled.Star, Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(22.dp))
                 Button(
                     onClick = { step = 1 },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier.fillMaxWidth().height(58.dp)
                 ) {
-                    Text("ورود", style = MaterialTheme.typography.titleLarge)
+                    Text("ورود", style = MaterialTheme.typography.titleLarge, color = Neon.Navy)
+                    Spacer(Modifier.width(10.dp))
+                    Icon(Icons.Filled.Login, contentDescription = null, tint = Neon.Navy)
                 }
             } else {
                 Text("مشخصات حلقه", style = MaterialTheme.typography.headlineSmall, color = androidx.compose.ui.graphics.Color.White)
@@ -135,65 +135,38 @@ internal fun WelcomeScreen(repo: AppRepository, onReady: () -> Unit) {
 }
 
 @Composable
-private fun WelcomeChip(text: String, accent: Color, modifier: Modifier = Modifier) {
+private fun WelcomeChip(text: String, accent: Color, icon: ImageVector, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = accent.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
+        shape = RoundedCornerShape(50),
+        color = accent.copy(alpha = 0.14f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
     ) {
-        Text(
-            text,
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 7.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = accent,
-            textAlign = TextAlign.Center,
-            maxLines = 2
-        )
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(text, style = MaterialTheme.typography.labelSmall, color = accent, textAlign = TextAlign.Center, maxLines = 1)
+        }
     }
 }
 
-/** Soft night-sky background for the welcome step, drawn with the app palette. */
+/** Gold-ringed K1 badge drawn in code, matching the artwork's emblem. */
 @Composable
-private fun WelcomeBackdrop() {
-    Canvas(Modifier.fillMaxSize()) {
-        drawRect(
-            Brush.verticalGradient(
-                listOf(
-                    Neon.Deep,
-                    Neon.Indigo,
-                    androidx.compose.ui.graphics.Color(0xFF3A0E5C)
-                )
-            )
-        )
-        val upperGlow = Offset(size.width * 0.82f, size.height * 0.14f)
-        drawCircle(
-            Brush.radialGradient(
-                listOf(Neon.Cyan.copy(alpha = 0.26f), androidx.compose.ui.graphics.Color.Transparent),
-                center = upperGlow,
-                radius = size.width * 0.85f
-            ),
-            radius = size.width * 0.85f,
-            center = upperGlow
-        )
-        val lowerGlow = Offset(size.width * 0.12f, size.height * 0.88f)
-        drawCircle(
-            Brush.radialGradient(
-                listOf(Neon.Violet.copy(alpha = 0.22f), androidx.compose.ui.graphics.Color.Transparent),
-                center = lowerGlow,
-                radius = size.width * 0.75f
-            ),
-            radius = size.width * 0.75f,
-            center = lowerGlow
-        )
-        val arcCenter = Offset(size.width / 2f, size.height * 0.30f)
-        for (index in 1..4) {
+private fun WelcomeLogo() {
+    Box(Modifier.size(132.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val gold = androidx.compose.ui.graphics.Color(0xFFF5C84B)
             drawCircle(
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.055f),
-                radius = size.width * (0.30f + index * 0.19f),
-                center = arcCenter,
-                style = Stroke(1.2f)
+                Brush.radialGradient(listOf(androidx.compose.ui.graphics.Color(0xFF2B3F8F), androidx.compose.ui.graphics.Color(0xFF0C1438))),
+                radius = size.minDimension * 0.40f
             )
+            drawCircle(gold, radius = size.minDimension * 0.40f, style = Stroke(width = 5.dp.toPx()))
+            drawCircle(gold.copy(alpha = 0.35f), radius = size.minDimension * 0.48f, style = Stroke(width = 1.5.dp.toPx()))
         }
+        Text("K1", style = MaterialTheme.typography.displaySmall, color = androidx.compose.ui.graphics.Color(0xFFF5C84B))
     }
 }

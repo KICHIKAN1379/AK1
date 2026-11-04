@@ -39,8 +39,8 @@ fun Button(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(16.dp),
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    shape: Shape = RoundedCornerShape(50),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
     content: @Composable RowScope.() -> Unit
 ) {
     val glow = if (enabled) Modifier.shadow(14.dp, shape, ambientColor = Neon.Magenta.copy(alpha = 0.55f), spotColor = Neon.Cyan.copy(alpha = 0.75f)) else Modifier
@@ -65,7 +65,7 @@ fun Button(
         contentColor = if (enabled) Neon.Navy else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         interactionSource = interaction
     ) {
-        val fill = if (enabled) Neon.ButtonBrush else Brush.linearGradient(listOf(Color(0x1FFFFFFF), Color(0x1FFFFFFF)))
+        val fill = if (enabled) LocalButtonBrush.current else Brush.linearGradient(listOf(Color(0x1FFFFFFF), Color(0x1FFFFFFF)))
         Box(
             Modifier
                 .background(fill, shape)
