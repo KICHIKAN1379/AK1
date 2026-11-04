@@ -70,7 +70,7 @@ fun Button(
         Box(
             Modifier
                 .background(if (enabled) MatteFill else Color.Transparent, shape)
-                .then(if (enabled) Modifier.background(fill, shape).alpha(0.82f) else Modifier.background(fill, shape))
+                .then(if (enabled) Modifier.background(fill, shape).alpha(0.94f) else Modifier.background(fill, shape))
                 .then(
                     if (enabled) Modifier.background(
                         Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent, Color.Transparent)),
@@ -89,7 +89,7 @@ fun Button(
 }
 
 /** Frosted layer: a dark, mostly opaque veil so the background behind cards and buttons reads softly. */
-private val MatteFill: Color = Color(0xD00A0622)
+private val MatteFill: Color = Color(0xEB0A0622)
 
 private fun glassFill(accent: Color?) = Brush.linearGradient(
     listOf(
