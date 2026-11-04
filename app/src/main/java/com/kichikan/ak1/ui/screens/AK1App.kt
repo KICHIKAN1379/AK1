@@ -31,6 +31,7 @@ import com.kichikan.ak1.R
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.model.*
 import com.kichikan.ak1.ui.GrowthMapPage
+import com.kichikan.ak1.ui.GroupPuzzlePage
 import com.kichikan.ak1.ui.MemberArchivePage
 import com.kichikan.ak1.ui.SpinWheelPage
 import com.kichikan.ak1.ui.theme.AppIcon
@@ -81,9 +82,9 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0, { tab = Tab.WORKSHOP }) { tab = if (it == 4) Tab.WORKSHOP_HIDDEN_MISSIONS else Tab.WORKSHOP_MISSIONS }
                     Tab.WORKSHOP_HIDDEN_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 4, { tab = Tab.WORKSHOP_MISSIONS }) { tab = Tab.WORKSHOP_MISSIONS }
                     Tab.WORKSHOP_PUZZLE -> GroupPuzzlePage(repo, padding, { changed() }) { tab = Tab.WORKSHOP }
-                    Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1) { tab = Tab.WORKSHOP }
-                    Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2) { tab = Tab.WORKSHOP }
-                    Tab.WORKSHOP_WHEEL -> WorkshopScreen(repo, padding, { changed() }, 3) { tab = Tab.WORKSHOP }
+                    Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1, { tab = Tab.WORKSHOP })
+                    Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2, { tab = Tab.WORKSHOP })
+                    Tab.WORKSHOP_WHEEL -> WorkshopScreen(repo, padding, { changed() }, 3, { tab = Tab.WORKSHOP })
                     Tab.WHEEL -> SpinWheelPage(repo, padding)
                     Tab.RANK_MEMBERS -> RankingScreen(repo, padding, false) { tab = Tab.RANKING }
                     Tab.RANK_GROUPS -> RankingScreen(repo, padding, true) { tab = Tab.RANKING }
