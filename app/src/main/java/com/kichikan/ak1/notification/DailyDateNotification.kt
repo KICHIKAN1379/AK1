@@ -73,7 +73,8 @@ object DailyDateNotification {
         // The small icon is the square tile for today's day number (ic_day_1..ic_day_31).
         val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(if (dayRes != 0) IconCompat.createWithResource(context, dayRes) else IconCompat.createWithResource(context, R.mipmap.ic_launcher))
+            .setSmallIcon(IconCompat.createWithBitmap(NotificationBadge.dayIcon(date.day, season, 96, filled = false)))
+            .setLargeIcon(if (dayRes != 0) android.graphics.BitmapFactory.decodeResource(context.resources, dayRes) else NotificationBadge.dayIcon(date.day, season, 192, filled = true))
             .setSubText(season.label)
             .setContentTitle("امروز • ${date.day} ${JalaliCalendar.MONTH_NAMES[date.month - 1]} ${date.year}")
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")
