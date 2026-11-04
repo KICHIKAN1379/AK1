@@ -329,7 +329,7 @@ fun AK1Theme(content: @Composable () -> Unit) {
             }
             CompositionLocalProvider(
                 LocalContentColor provides scheme.onBackground,
-                LocalAk1Background provides background,
+                LocalAk1Background provides (if (image == null) background else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))),
                 LocalButtonBrush provides buttonBrushFor(mode)
             ) {
                 content()
