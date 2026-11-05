@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import com.kichikan.ak1.domain.calendar.JalaliCalendar
 import com.kichikan.ak1.domain.model.AttendanceStatus
 import com.kichikan.ak1.domain.model.HistoryEvent
 import com.kichikan.ak1.ui.AvatarRender
+import com.kichikan.ak1.ui.RingReportDialog
 import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Card as AkCard
 import com.kichikan.ak1.ui.theme.GlassIcon
@@ -54,6 +56,8 @@ internal fun HomeDashboardScreen(
     open: (Tab) -> Unit
 ) {
     val context = LocalContext.current
+    val assistantOpen = remember { mutableStateOf(false) }
+    val reportOpen = remember { mutableStateOf(false) }
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val photoUri = remember { prefs.getString("ring_profile_image", null) }
     val ringPhoto = remember(photoUri) {
@@ -101,7 +105,7 @@ internal fun HomeDashboardScreen(
             quote = quote
         )
 
-        AkCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), accent = Neon.Cyan) {
+        AkCard(onClick = { reportOpen.value = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), accent = Neon.Cyan) {
             Box(
                 Modifier.fillMaxWidth()
                     .background(Brush.linearGradient(listOf(Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C))))
@@ -170,7 +174,7 @@ internal fun HomeDashboardScreen(
             insightCount = assistantReport.insights.size,
             highPriorityCount = assistantReport.highPriorityCount,
             hasAttentionItems = assistantReport.hasAttentionItems,
-            onClick = openMembers
+            onClick = { assistantOpen.value = true }
         )
         RecentActivitySection(recentEvents)
         QuickLaunchStrip(
@@ -180,6 +184,8 @@ internal fun HomeDashboardScreen(
         )
         Spacer(Modifier.height(8.dp))
     }
+    if (assistantOpen.value) MentorAssistantDialog(repo) { assistantOpen.value = false }
+    if (reportOpen.value) RingReportDialog(repo) { reportOpen.value = false }
 }
 
 @Composable
