@@ -227,6 +227,8 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var weekOffset by remember { mutableIntStateOf(0) }
     var monthOffset by remember { mutableIntStateOf(0) }
+    var memberSearch by remember { mutableStateOf("") }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
     val zone = java.time.ZoneId.systemDefault()
     val today = java.time.LocalDate.now(zone).plusWeeks(weekOffset.toLong())
     val saturday = today.minusDays(((today.dayOfWeek.value + 1) % 7).toLong())
@@ -256,6 +258,24 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     }
     var closedDates by remember { mutableStateOf(prefs.getStringSet("closed_class_dates", emptySet()) ?: emptySet()) }
     val days = scheduledDays.filterNot { it.toString() in closedDates }
+    val visibleMembers = repo.members.filter { member ->
+        (selectedGroupId == null || member.groupId == selectedGroupId) &&
+            (memberSearch.isBlank() || member.name.contains(memberSearch, ignoreCase = true))
+    }
+    val weekRecords = visibleMembers.flatMap { member ->
+        days.mapNotNull { day ->
+            repo.attendance.firstOrNull {
+                it.memberId == member.id && it.sessionId == null &&
+                    java.time.Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
+            }?.status
+        }
+    }
+    val presentTotal = weekRecords.count { it == AttendanceStatus.PRESENT || it == AttendanceStatus.LATE }
+    val absentTotal = weekRecords.count { it == AttendanceStatus.ABSENT }
+    val excusedTotal = weekRecords.count { it == AttendanceStatus.EXCUSED }
+    val markedTotal = weekRecords.count { it != AttendanceStatus.UNMARKED }
+    val totalSlots = visibleMembers.size * days.size
+    val attendanceRate = if (totalSlots == 0) 0 else presentTotal * 100 / totalSlots
     val jalaliWeek = JalaliCalendar.fromGregorian(saturday)
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) runCatching {
@@ -271,6 +291,38 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
             Text("هفته ${jalaliWeek.day} ${JalaliCalendar.MONTH_NAMES[jalaliWeek.month - 1]} ${jalaliWeek.year}")
             TextButton(onClick = { weekOffset++ }) { Text("هفته بعد ›") }
         }
+        Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+            Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    SessionStat("میزان حضور", "$attendanceRate٪", Neon.Green, Modifier.weight(1f))
+                    SessionStat("حاضر / تأخیر", "$presentTotal", Neon.Cyan, Modifier.weight(1f))
+                    SessionStat("غیبت", "$absentTotal", Neon.Coral, Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("موجه: $excusedTotal", style = MaterialTheme.typography.labelSmall, color = Neon.Gold)
+                    Text("ثبت وضعیت: $markedTotal از $totalSlots", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        OutlinedTextField(
+            value = memberSearch,
+            onValueChange = { memberSearch = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("جست‌وجوی نام عضو") },
+            leadingIcon = { Text("⌕", style = MaterialTheme.typography.titleLarge) }
+        )
+        if (repo.groups.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = selectedGroupId == null, onClick = { selectedGroupId = null }, label = { Text("همه گروه‌ها") })
+                repo.groups.forEach { group ->
+                    FilterChip(selected = selectedGroupId == group.id, onClick = { selectedGroupId = group.id }, label = { Text(group.name) })
+                }
+            }
+        }
+        Text("${visibleMembers.size} عضو در این نما", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("وضعیت حضور هر روز", style = MaterialTheme.typography.titleSmall)
@@ -297,7 +349,7 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
         if (scheduledDays.isEmpty()) Text("برای این هفته روز کلاسی تنظیم نشده است؛ روزها را در تنظیمات مشخص کن.")
         else if (days.isEmpty()) Text("تمام روزهای برنامه‌ریزی‌شده این هفته تعطیل شده‌اند.")
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(repo.members, key = { it.id }) { member ->
+            items(visibleMembers, key = { it.id }) { member ->
                 val statuses = days.map { day ->
                     day to repo.attendance.firstOrNull {
                         it.memberId == member.id && it.sessionId == null &&
