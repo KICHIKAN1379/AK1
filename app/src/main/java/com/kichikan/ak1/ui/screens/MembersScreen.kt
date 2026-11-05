@@ -42,6 +42,10 @@ import com.kichikan.ak1.ui.TreasureDialog
 import com.kichikan.ak1.ui.components.LevelProgress
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
+import com.kichikan.ak1.domain.service.RankSystem
+import com.kichikan.ak1.ui.GrowthStore
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, openGrowth: (Member) -> Unit) {
@@ -49,6 +53,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     var add by remember { mutableStateOf(false) }
     var addGroup by remember { mutableStateOf(false) }
     var actionMember by remember { mutableStateOf<Member?>(null) }
+    var profileMember by remember { mutableStateOf<Member?>(null) }
     var selected by remember { mutableStateOf<Member?>(null) }
     var editing by remember { mutableStateOf<Member?>(null) }
     var reportMemberId by remember { mutableStateOf<String?>(null) }
@@ -179,7 +184,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                                 RankedAvatar(avatarPath, framePath, m.economy.level, 84.dp, m.name)
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                        TextButton(onClick = { actionMember = m }, contentPadding = PaddingValues(0.dp)) {
+                                        TextButton(onClick = { profileMember = m }, contentPadding = PaddingValues(0.dp)) {
                                             Text(m.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
                                         }
                                         RankBadge(badgePath, 22.dp)
@@ -407,6 +412,13 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                 }
             }
         )
+    }
+    profileMember?.let { m ->
+        MemberProfileDialog(repo, m, close = { profileMember = null },
+            onEdit = { profileMember = null; editing = m },
+            onGrowth = { profileMember = null; openGrowth(m) },
+            onReport = { profileMember = null; reportMemberId = m.id },
+            onTreasury = { profileMember = null; selected = m })
     }
     actionMember?.let { m ->
         AlertDialog(
@@ -697,4 +709,174 @@ private fun AddMemberDialog(repo: AppRepository, changed: () -> Unit, close: () 
         },
         dismissButton = { TextButton(close) { Text("انصراف") } }
     )
+}
+
+@Composable
+private fun MemberProfileDialog(
+    repo: AppRepository,
+    member: Member,
+    close: () -> Unit,
+    onEdit: () -> Unit,
+    onGrowth: () -> Unit,
+    onReport: () -> Unit,
+    onTreasury: () -> Unit
+) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
+    val avatarPath = repo.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath
+    val framePath = repo.shop.firstOrNull { it.id == member.frameItemId }?.imagePath
+    val badgePath = repo.shop.firstOrNull { it.id == member.badgeItemId }?.imagePath
+    val group = repo.groups.firstOrNull { it.id == member.groupId }
+    val attendance = repo.attendance.filter { it.memberId == member.id }
+    val markedAttendance = attendance.filter { it.status != AttendanceStatus.UNMARKED }
+    val presentCount = markedAttendance.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
+    val attendancePercent = if (markedAttendance.isEmpty()) 0 else presentCount * 100 / markedAttendance.size
+    val sessions = repo.sessions.filter { it.memberId == member.id }.sortedByDescending { it.startsAt }
+    val history = repo.history.filter { it.memberId == member.id }.sortedByDescending { it.createdAtEpochMillis }
+    val virtues = remember(member.id) { GrowthStore.characters(prefs) }
+    val knowledge = remember(member.id) { GrowthStore.knowledge(prefs) }
+    val skills = remember(member.id) { GrowthStore.skills(prefs) }
+    val unlocked = remember(member.id) { GrowthStore.unlocked(prefs, member.id) }
+    val virtueCount = virtues.count { it in unlocked }
+    val virtuePercent = if (virtues.isEmpty()) 0 else virtueCount * 100 / virtues.size
+    val rank = RankSystem.forLevel(member.economy.level)
+    val birth = member.birthDate?.let { JalaliCalendar.parse(it) }?.let { JalaliCalendar.format(it) }
+
+    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background, shape = RoundedCornerShape(0.dp)) {
+            Column(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = close) { Text("بازگشت") }
+                    Text("پرونده عضو", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = onEdit) { Text("ویرایش") }
+                }
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    RankCardSurface(level = member.economy.level, modifier = Modifier.fillMaxWidth(), cardAvatarPath = avatarPath) {
+                        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                RankedAvatar(avatarPath, framePath, member.economy.level, 104.dp, member.name)
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(member.name, style = MaterialTheme.typography.headlineSmall)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        RankTierChip(member.economy.level)
+                                        RankBadge(badgePath, 24.dp)
+                                    }
+                                    Text(rank.name, style = MaterialTheme.typography.titleMedium, color = Neon.Gold)
+                                    group?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    member.responsibility.takeIf { it.isNotBlank() }?.let {
+                                        Text(it, style = MaterialTheme.typography.labelMedium, color = Neon.Cyan)
+                                    }
+                                }
+                            }
+                            LevelProgress(xp = member.economy.xp, level = member.economy.level)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                MiniStat("سطح", member.economy.level.toString(), Neon.Cyan, Modifier.weight(1f))
+                                MiniStat("XP", member.economy.xp.toString(), Neon.Violet, Modifier.weight(1f))
+                                MiniStat("امتیاز", member.economy.spendablePoints.toString(), Neon.Gold, Modifier.weight(1f))
+                                MiniStat("الماس", member.economy.diamonds.toString(), Neon.Green, Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text("هویت و عضویت", style = MaterialTheme.typography.titleMedium)
+                            ProfileInfoRow("گروه", group?.name ?: "بدون گروه")
+                            ProfileInfoRow("مسئولیت", member.responsibility.ifBlank { "ثبت نشده" })
+                            ProfileInfoRow("تاریخ تولد", birth ?: "ثبت نشده")
+                            ProfileInfoRow("شناسه عضو", member.id.take(12))
+                        }
+                    }
+
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Green) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("عملکرد و حضور", style = MaterialTheme.typography.titleMedium)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MiniStat("حضور مؤثر", "$attendancePercent٪", Neon.Green, Modifier.weight(1f))
+                                MiniStat("ثبت حضور", markedAttendance.size.toString(), Neon.Cyan, Modifier.weight(1f))
+                                MiniStat("جلسات", sessions.size.toString(), Neon.Violet, Modifier.weight(1f))
+                            }
+                            Text("حاضر یا با تأخیر: $presentCount از ${markedAttendance.size} ثبت",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (sessions.isNotEmpty()) {
+                                Text("آخرین جلسات", style = MaterialTheme.typography.titleSmall)
+                                sessions.take(4).forEach { session ->
+                                    ProfileInfoRow(session.title.ifBlank { "جلسه بدون عنوان" }, JalaliCalendar.formatDateTime(session.startsAt))
+                                }
+                            }
+                        }
+                    }
+
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("نقشه کمال", style = MaterialTheme.typography.titleMedium)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MiniStat("خودسازی", "$virtuePercent٪", Neon.Violet, Modifier.weight(1f))
+                                MiniStat("ویژگی‌ها", "$virtueCount/${virtues.size}", Neon.Cyan, Modifier.weight(1f))
+                                MiniStat("دانش و مهارت", (knowledge.size + skills.size).toString(), Neon.Gold, Modifier.weight(1f))
+                            }
+                            Text("تأییدشده‌ها: ${unlocked.size} مورد", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Button(onClick = onGrowth, modifier = Modifier.fillMaxWidth()) { Text("مشاهده نقشه کمال") }
+                        }
+                    }
+
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Gold) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text("رویدادهای اخیر", style = MaterialTheme.typography.titleMedium)
+                            if (history.isEmpty()) {
+                                Text("هنوز رویدادی برای این عضو ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            } else {
+                                history.take(8).forEachIndexed { index, event ->
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically) {
+                                            Text(event.title, style = MaterialTheme.typography.bodyMedium)
+                                            event.amount?.let {
+                                                Text(if (it > 0) "+$it" else it.toString(),
+                                                    color = if (it >= 0) Neon.Green else MaterialTheme.colorScheme.error,
+                                                    style = MaterialTheme.typography.labelMedium)
+                                            }
+                                        }
+                                        Text(listOfNotNull(event.reason?.takeIf { it.isNotBlank() },
+                                            JalaliCalendar.formatDateTime(event.createdAtEpochMillis)).joinToString(" • "),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (index < minOf(history.size, 8) - 1) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                }
+                            }
+                            OutlinedButton(onClick = onReport, modifier = Modifier.fillMaxWidth()) { Text("مشاهده کارنامه کامل") }
+                        }
+                    }
+
+                    if (member.privateNotes.isNotBlank()) {
+                        Card(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+                            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("یادداشت محرمانه مربی", style = MaterialTheme.typography.titleSmall)
+                                Text(member.privateNotes, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onTreasury, modifier = Modifier.weight(1f)) { Text("گنجینه عضو") }
+                        Button(onClick = onEdit, modifier = Modifier.weight(1f)) { Text("ویرایش پرونده") }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileInfoRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
 }
