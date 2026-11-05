@@ -34,7 +34,6 @@ import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
 import com.kichikan.ak1.domain.model.AttendanceStatus
 import com.kichikan.ak1.domain.model.HistoryEvent
-import com.kichikan.ak1.domain.model.Tab
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Card as AkCard
