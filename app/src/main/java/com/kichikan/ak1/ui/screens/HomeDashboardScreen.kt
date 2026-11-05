@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -298,11 +299,26 @@ private fun WeeklyPulseCard(repo: AppRepository) {
                         animationSpec = tween(Motion.Medium), label = "pulse-bar-$index")
                     Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                            Box(Modifier.fillMaxWidth().fillMaxHeight(fraction.coerceAtLeast(0.035f))
-                                .clip(RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp))
-                                .background(if (day == today) Brush.verticalGradient(listOf(Neon.Cyan, Neon.Green))
-                                else Brush.verticalGradient(listOf(Neon.Violet.copy(alpha = 0.8f), Neon.Cyan.copy(alpha = 0.42f))))
+                        Box(
+                            Modifier.weight(1f).fillMaxWidth(),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            val barBrush = if (day == today) {
+                                Brush.verticalGradient(listOf(Neon.Cyan, Neon.Green))
+                            } else {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Neon.Violet.copy(alpha = 0.8f),
+                                        Neon.Cyan.copy(alpha = 0.42f)
+                                    )
+                                )
+                            }
+                            Box(
+                                Modifier.fillMaxWidth()
+                                    .fillMaxHeight(fraction.coerceAtLeast(0.035f))
+                                    .clip(RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp))
+                                    .background(barBrush)
+                            )
                         }
                         Text(listOf("ی", "د", "س", "چ", "پ", "ج", "ش")[day.dayOfWeek.value % 7],
                             color = if (day == today) Neon.Green else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
