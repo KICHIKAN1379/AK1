@@ -58,7 +58,7 @@ internal fun AK1App(repo: AppRepository) {
         ) { targetTab ->
             key(refresh) {
                 when (targetTab) {
-                    Tab.HOME -> HomeScreen(repo, padding, { tab = Tab.MEMBERS }, { changed() }) { tab = it }
+                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
