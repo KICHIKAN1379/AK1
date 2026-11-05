@@ -57,6 +57,8 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     var profileGroup by remember { mutableStateOf<Group?>(null) }
     var exportMember by remember { mutableStateOf<Member?>(null) }
     var query by remember { mutableStateOf("") }
+    var sortMode by remember { mutableStateOf("level") }
+    var groupFilter by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/jpeg")) { uri ->
         val m = exportMember
@@ -93,10 +95,19 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
         }
         if (page == 0) {
             val needle = query.trim()
-            val filteredMembers = repo.members.filter {
-                needle.isBlank() || it.name.contains(needle, ignoreCase = true) ||
-                    it.responsibility.contains(needle, ignoreCase = true)
-            }
+            val filteredMembers = repo.members
+                .filter { member ->
+                    (needle.isBlank() || member.name.contains(needle, ignoreCase = true) ||
+                        member.responsibility.contains(needle, ignoreCase = true)) &&
+                        (groupFilter == null || member.groupId == groupFilter)
+                }
+                .let { members ->
+                    when (sortMode) {
+                        "xp" -> members.sortedWith(compareByDescending<Member> { it.economy.xp }.thenBy { it.name })
+                        "name" -> members.sortedBy { it.name.lowercase() }
+                        else -> members.sortedWith(compareByDescending<Member> { it.economy.level }.thenByDescending { it.economy.xp }.thenBy { it.name })
+                    }
+                }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -105,20 +116,54 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                 label = { Text("جست‌وجوی عضو") },
                 placeholder = { Text("نام یا مسئولیت") }
             )
+            Text("فیلتر گروه", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                FilterChip(selected = groupFilter == null, onClick = { groupFilter = null }, label = { Text("همه گروه‌ها") })
+                repo.groups.forEach { group ->
+                    FilterChip(
+                        selected = groupFilter == group.id,
+                        onClick = { groupFilter = if (groupFilter == group.id) null else group.id },
+                        label = { Text(group.name) }
+                    )
+                }
+            }
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "${filteredMembers.size} از ${repo.members.size} عضو",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Button({ add = true }) { Text("+ عضو") }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "${filteredMembers.size} از ${repo.members.size} عضو",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text("مرتب‌سازی بر اساس", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Button({ add = true }) { Text("+ عضو جدید") }
+            }
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                FilterChip(selected = sortMode == "level", onClick = { sortMode = "level" }, label = { Text("رتبه و سطح") })
+                FilterChip(selected = sortMode == "xp", onClick = { sortMode = "xp" }, label = { Text("بیشترین XP") })
+                FilterChip(selected = sortMode == "name", onClick = { sortMode = "name" }, label = { Text("نام") })
             }
             if (filteredMembers.isEmpty()) {
-                Text("عضوی با این مشخصات پیدا نشد.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Card(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(if (repo.members.isEmpty()) "هنوز عضوی ثبت نشده است" else "عضوی با این فیلتر پیدا نشد", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (repo.members.isEmpty()) "اولین عضو حلقه را اضافه کن تا مسیر رشد و رتبه‌بندی شکل بگیرد." else "فیلتر گروه یا عبارت جست‌وجو را تغییر بده.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (repo.members.isEmpty()) Button({ add = true }) { Text("ثبت اولین عضو") }
+                    }
+                }
             } else LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(filteredMembers, key = { it.id }) { m ->
                     val avatarPath = repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath
