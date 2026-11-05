@@ -230,7 +230,8 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     var memberSearch by remember { mutableStateOf("") }
     var selectedGroupId by remember { mutableStateOf<String?>(null) }
     val zone = java.time.ZoneId.systemDefault()
-    val today = java.time.LocalDate.now(zone).plusWeeks(weekOffset.toLong())
+    val currentDate = java.time.LocalDate.now(zone)
+    val today = currentDate.plusWeeks(weekOffset.toLong())
     val saturday = today.minusDays(((today.dayOfWeek.value + 1) % 7).toLong())
     val activeDays = remember {
         mutableStateListOf<Int>().apply {
@@ -349,7 +350,25 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
         if (scheduledDays.isEmpty()) Text("برای این هفته روز کلاسی تنظیم نشده است؛ روزها را در تنظیمات مشخص کن.")
         else if (days.isEmpty()) Text("تمام روزهای برنامه‌ریزی‌شده این هفته تعطیل شده‌اند.")
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (visibleMembers.isEmpty()) {
+                item {
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Sky) {
+                        Text(
+                            if (repo.members.isEmpty()) "هنوز عضوی برای ثبت حضور وجود ندارد."
+                            else "عضوی با این نام یا گروه پیدا نشد.",
+                            Modifier.padding(18.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
             items(visibleMembers, key = { it.id }) { member ->
+                val todayRecord = repo.attendance.firstOrNull {
+                    it.memberId == member.id && it.sessionId == null &&
+                        java.time.Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == currentDate
+                }
+                val canQuickMarkToday = currentDate in days &&
+                    (todayRecord == null || todayRecord.status == AttendanceStatus.UNMARKED)
                 val statuses = days.map { day ->
                     day to repo.attendance.firstOrNull {
                         it.memberId == member.id && it.sessionId == null &&
@@ -390,6 +409,13 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
                                     style = MaterialTheme.typography.labelMedium,
                                     color = cardAccent
                                 )
+                            }
+                            if (canQuickMarkToday) {
+                                TextButton(onClick = {
+                                    val epoch = currentDate.atStartOfDay(zone).toInstant().toEpochMilli()
+                                    repo.recordWeeklyAttendance(member.id, epoch, AttendanceStatus.PRESENT)
+                                    changed()
+                                }) { Text("ثبت حضور امروز", color = Neon.Green, style = MaterialTheme.typography.labelSmall) }
                             }
                         }
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
