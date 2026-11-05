@@ -233,7 +233,7 @@ private fun HeroChip(text: String, accent: Color) {
 }
 
 @Composable
-private fun MentorAssistantDialog(repo: AppRepository, close: () -> Unit) {
+internal fun MentorAssistantDialog(repo: AppRepository, close: () -> Unit) {
     val report = remember(repo.members.size, repo.history.size, repo.attendance.size, repo.missionCompletions.size) {
         com.kichikan.ak1.domain.assistant.MentorAssistantAnalyzer.analyze(
             members = repo.members.toList(),
