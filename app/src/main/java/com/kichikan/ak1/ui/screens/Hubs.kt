@@ -78,12 +78,17 @@ internal fun StoreHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> U
 }
 
 @Composable
-internal fun SessionsHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> Unit) {
+internal fun SessionsHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit, back: () -> Unit) {
+    val now = System.currentTimeMillis()
+    val upcoming = repo.sessions.count { it.startsAt > now }
+    val completed = repo.sessions.size - upcoming
+    val marked = repo.attendance.count { it.status != AttendanceStatus.UNMARKED }
     HubScreen(
-        padding, "جلسات", "جلسه‌ها و حضور و غیاب مستقل از هم‌اند",
+        padding, "مرکز مدیریت جلسات",
+        "${repo.sessions.size} جلسه ثبت‌شده  •  $upcoming پیش‌رو  •  $completed برگزارشده  •  $marked وضعیت حضور ثبت‌شده",
         listOf(
-            HubEntry("فهرست جلسات", "ثبت و مشاهده جلسه‌ها", Neon.Coral, { AppIcon(R.drawable.icon_sessions_list, 62.dp) }) { open(Tab.SESSIONS_LIST) },
-            HubEntry("حضور و غیاب", "تقویم هفتگی و ماهانه", Neon.Green, { AppIcon(R.drawable.icon_sessions_attendance, 62.dp) }) { open(Tab.SESSIONS_ATTENDANCE) }
+            HubEntry("فهرست جلسات", "جست‌وجو، فیلتر و مدیریت برنامه‌ها", Neon.Coral, { AppIcon(R.drawable.icon_sessions_list, 62.dp) }) { open(Tab.SESSIONS_LIST) },
+            HubEntry("حضور و غیاب", "تقویم هفتگی، ماهانه و گزارش عملکرد اعضا", Neon.Green, { AppIcon(R.drawable.icon_sessions_attendance, 62.dp) }) { open(Tab.SESSIONS_ATTENDANCE) }
         ),
         back
     )
