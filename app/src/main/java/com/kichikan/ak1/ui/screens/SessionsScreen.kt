@@ -35,75 +35,135 @@ internal fun SessionsScreen(padding: PaddingValues, repo: AppRepository, changed
     var add by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Session?>(null) }
     var detail by remember { mutableStateOf<Session?>(null) }
-    Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    var search by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf("همه") }
+    val now = System.currentTimeMillis()
+    val sessions = repo.sessions.sortedWith(
+        compareBy<Session> { it.startsAt <= now }.thenBy { if (it.startsAt > now) it.startsAt else -it.startsAt }
+    )
+    val upcoming = repo.sessions.count { it.startsAt > now }
+    val completed = repo.sessions.size - upcoming
+    val visibleSessions = sessions.filter { session ->
+        val matchesFilter = when (filter) {
+            "پیش‌رو" -> session.startsAt > now
+            "برگزارشده" -> session.startsAt <= now
+            else -> true
+        }
+        val memberName = repo.members.firstOrNull { it.id == session.memberId }?.name.orEmpty()
+        matchesFilter && (search.isBlank() ||
+            session.title.contains(search, ignoreCase = true) ||
+            session.topic.contains(search, ignoreCase = true) ||
+            memberName.contains(search, ignoreCase = true) ||
+            session.location.orEmpty().contains(search, ignoreCase = true))
+    }
+
+    Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PageHeader(if (attendance) "حضور و غیاب" else "فهرست جلسات", back,
-            if (attendance) "تقویم هفتگی و ماهانه" else "برای دیدن جزئیات، روی جلسه بزن")
-        if (attendance) AttendanceCalendarScreen(repo, changed)
-        else {
-            val sessions = repo.sessions.sortedByDescending { it.startsAt }
-            val now = System.currentTimeMillis()
-            val upcoming = sessions.count { it.startsAt > now }
+            if (attendance) "تقویم هفتگی و ماهانه" else "برنامه‌ریزی و پیگیری فعالیت‌های حلقه")
+
+        if (attendance) {
+            AttendanceCalendarScreen(repo, changed)
+        } else {
             Card(Modifier.fillMaxWidth(), accent = Neon.Coral) {
-                Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    SessionStat("جلسات", "${sessions.size}", Neon.Coral, Modifier.weight(1f))
-                    SessionStat("پیش رو", "$upcoming", Neon.Cyan, Modifier.weight(1f))
-                    SessionStat("اعضا", "${repo.members.size}", Neon.Violet, Modifier.weight(1f))
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SessionStat("کل جلسات", "${repo.sessions.size}", Neon.Coral, Modifier.weight(1f))
+                        SessionStat("پیش‌رو", "$upcoming", Neon.Cyan, Modifier.weight(1f))
+                        SessionStat("برگزارشده", "$completed", Neon.Violet, Modifier.weight(1f))
+                    }
+                    val attendanceRows = repo.attendance.filter { it.sessionId != null }
+                    val marked = attendanceRows.count { it.status != AttendanceStatus.UNMARKED }
+                    val present = attendanceRows.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
+                    Text(
+                        if (attendanceRows.isEmpty()) "هنوز گزارشی برای حضور در جلسه‌های مشخص ثبت نشده است."
+                        else "ثبت حضور جلسه‌ها: $present حاضر یا با تأخیر از $marked ثبت وضعیت",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("${sessions.size} جلسه ثبت‌شده", style = MaterialTheme.typography.labelLarge)
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("جست‌وجوی جلسه، عضو یا مکان") },
+                    leadingIcon = { Text("⌕", style = MaterialTheme.typography.titleLarge) }
+                )
                 Button(onClick = { add = true }, enabled = repo.members.isNotEmpty()) { Text("+ جلسه") }
             }
-            if (sessions.isEmpty()) Text("هنوز جلسه‌ای ثبت نشده است.")
-            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(sessions, key = { it.id }) { session ->
-                    val zone = java.time.ZoneId.systemDefault()
-                    val moment = java.time.Instant.ofEpochMilli(session.startsAt).atZone(zone)
-                    val j = JalaliCalendar.fromGregorian(moment.toLocalDate())
-                    val isUpcoming = session.startsAt > now
-                    val accent = if (isUpcoming) Neon.Cyan else Neon.Coral
-                    Card(onClick = { detail = session }, modifier = Modifier.fillMaxWidth().animateItem(), accent = accent) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(18.dp),
-                                color = accent.copy(alpha = 0.13f),
-                                border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
-                            ) {
-                                Column(
-                                    Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("همه", "پیش‌رو", "برگزارشده").forEach { option ->
+                    FilterChip(selected = filter == option, onClick = { filter = option }, label = { Text(option) })
+                }
+                Spacer(Modifier.weight(1f))
+                Text("${visibleSessions.size} مورد", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (visibleSessions.isEmpty()) {
+                Card(Modifier.fillMaxWidth(), accent = Neon.Sky) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(if (repo.sessions.isEmpty()) "هنوز جلسه‌ای ثبت نشده" else "جلسه‌ای با این مشخصات پیدا نشد",
+                            style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (repo.sessions.isEmpty()) "اولین جلسه حلقه را ثبت کن تا برنامه اینجا شکل بگیرد."
+                            else "عبارت جست‌وجو یا فیلتر انتخاب‌شده را تغییر بده.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    items(visibleSessions, key = { it.id }) { session ->
+                        val zone = java.time.ZoneId.systemDefault()
+                        val moment = java.time.Instant.ofEpochMilli(session.startsAt).atZone(zone)
+                        val j = JalaliCalendar.fromGregorian(moment.toLocalDate())
+                        val isUpcoming = session.startsAt > now
+                        val accent = if (isUpcoming) Neon.Cyan else Neon.Violet
+                        val memberName = repo.members.firstOrNull { it.id == session.memberId }?.name ?: "عضو حذف‌شده"
+                        val sessionAttendance = repo.attendance.filter { it.sessionId == session.id }
+                        val presentCount = sessionAttendance.count {
+                            it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE
+                        }
+                        Card(onClick = { detail = session }, modifier = Modifier.fillMaxWidth().animateItem(), accent = accent) {
+                            Row(Modifier.fillMaxWidth().padding(13.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = accent.copy(alpha = 0.13f),
+                                    border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
                                 ) {
-                                    Text("${j.day}", style = MaterialTheme.typography.headlineSmall, color = accent)
+                                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("${j.day}", style = MaterialTheme.typography.headlineSmall, color = accent)
+                                        Text(JalaliCalendar.MONTH_NAMES[j.month - 1], style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(session.title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                                    Text(memberName, style = MaterialTheme.typography.labelLarge, color = Neon.Cyan)
                                     Text(
-                                        JalaliCalendar.MONTH_NAMES[j.month - 1],
-                                        style = MaterialTheme.typography.labelSmall,
+                                        "%02d:%02d".format(moment.hour, moment.minute) +
+                                            if (isUpcoming) "  •  پیش‌رو" else "  •  برگزارشده",
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    session.location?.takeIf { it.isNotBlank() }?.let {
+                                        Text("مکان: $it", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (sessionAttendance.isNotEmpty()) {
+                                        Text("حضور ثبت‌شده: $presentCount از ${sessionAttendance.size}",
+                                            style = MaterialTheme.typography.labelSmall, color = Neon.Green)
+                                    }
                                 }
-                            }
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                // Only the essentials here: topic, member, date and time. The rest lives in the detail view.
-                                Text(session.title, style = MaterialTheme.typography.titleLarge, maxLines = 2)
-                                Text(
-                                    repo.members.firstOrNull { it.id == session.memberId }?.name ?: "عضو حذف‌شده",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = Neon.Cyan
-                                )
-                                Text(
-                                    "%02d:%02d".format(moment.hour, moment.minute) + if (isUpcoming) " • پیش رو" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                session.location?.takeIf { it.isNotBlank() }?.let {
-                                    Text("مکان: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                Text("‹", style = MaterialTheme.typography.headlineSmall, color = accent)
                             }
                         }
                     }
@@ -123,9 +183,14 @@ internal fun SessionsScreen(padding: PaddingValues, repo: AppRepository, changed
                     Text("زمان: " + JalaliCalendar.formatDateTime(session.startsAt))
                     session.location?.takeIf { it.isNotBlank() }?.let { Text("مکان: $it") }
                     Text(if (session.topic.isBlank()) "توضیحاتی ثبت نشده است." else "توضیحات:\n" + session.topic)
+                    val records = repo.attendance.filter { it.sessionId == session.id }
+                    if (records.isNotEmpty()) {
+                        val present = records.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
+                        Text("گزارش حضور: $present از ${records.size} نفر حاضر یا با تأخیر")
+                    }
                 }
             },
-            confirmButton = { TextButton({ val s0 = session; detail = null; editing = s0 }) { Text("ویرایش") } },
+            confirmButton = { TextButton({ val selected = session; detail = null; editing = selected }) { Text("ویرایش") } },
             dismissButton = {
                 Row {
                     TextButton({ repo.deleteSession(session.id); detail = null; changed() }) { Text("حذف") }
