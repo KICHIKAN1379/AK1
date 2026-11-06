@@ -74,7 +74,7 @@ internal fun AK1App(repo: AppRepository) {
                         }
                     }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
-                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding) { tab = Tab.SERVICES }
+                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }) { tab = Tab.WORKSHOP_MISSIONS }
                     Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SERVICES }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.SERVICES }
