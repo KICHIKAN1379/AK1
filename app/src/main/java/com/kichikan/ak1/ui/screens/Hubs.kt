@@ -23,7 +23,8 @@ internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (
     HubScreen(
         padding, "مرکز خدمات حلقه", serviceSummary,
         listOf(
-            HubEntry("تراشکاری", "$activeMissions مأموریت فعال  •  $completedMissions انجام‌شده", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
+            HubEntry("مرکز مأموریت‌ها و دستاوردها", "$activeMissions مأموریت فعال  •  $completedMissions ثبت انجام", Neon.Magenta, { AppIcon(R.drawable.icon_workshop_missions, 62.dp) }) { open(Tab.MISSION_ACHIEVEMENTS) },
+            HubEntry("تراشکاری", "$activeMissions مأموریت فعال  •  مدیریت مأموریت‌ها و پاداش‌ها", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
             HubEntry("جلسات", "$upcomingSessions جلسه پیش‌رو  •  $markedAttendance وضعیت حضور ثبت‌شده", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) },
             HubEntry("رقابت", "رتبه‌بندی زنده اعضا و گروه‌ها", Neon.Violet, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
             HubEntry("فروشگاه", "مدیریت آواتار، قاب، نشان و جوایز", Neon.Gold, { AppIcon(R.drawable.icon_services_store, 62.dp) }) { open(Tab.STORE) },
