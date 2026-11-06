@@ -71,11 +71,11 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
             Text("نشان‌های مسیر رشد", style = MaterialTheme.typography.titleLarge)
             Text("دستاوردها بر اساس داده‌های واقعی اعضا و نردبان رتبه AK1 محاسبه می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             val achievements = listOf(
-                Triple("آغاز مسیر", "رسیدن به سطح ۱", repo.members.count { it.economy.level >= 1 }, Neon.Cyan),
-                Triple("جنگجوی پرتلاش", "رسیدن به سطح ۵", repo.members.count { it.economy.level >= 5 }, Neon.Green),
-                Triple("قهرمان حلقه", "رسیدن به سطح ۷", repo.members.count { it.economy.level >= 7 }, Neon.Gold),
-                Triple("اسطوره", "رسیدن به سطح ۱۴", repo.members.count { it.economy.level >= 14 }, Neon.Violet),
-                Triple("پیشگام مأموریت", "ثبت حداقل یک مأموریت", repo.members.count { member -> repo.history.any { it.memberId == member.id && it.type == HistoryType.MISSION_COMPLETED } }, Neon.Magenta)
+                AchievementRow("آغاز مسیر", "رسیدن به سطح ۱", repo.members.count { it.economy.level >= 1 }, Neon.Cyan),
+                AchievementRow("جنگجوی پرتلاش", "رسیدن به سطح ۵", repo.members.count { it.economy.level >= 5 }, Neon.Green),
+                AchievementRow("قهرمان حلقه", "رسیدن به سطح ۷", repo.members.count { it.economy.level >= 7 }, Neon.Gold),
+                AchievementRow("اسطوره", "رسیدن به سطح ۱۴", repo.members.count { it.economy.level >= 14 }, Neon.Violet),
+                AchievementRow("پیشگام مأموریت", "ثبت حداقل یک مأموریت", repo.members.count { member -> repo.history.any { it.memberId == member.id && it.type == HistoryType.MISSION_COMPLETED } }, Neon.Magenta)
             )
             achievements.forEach { (title, description, count, tint) ->
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), border = BorderStroke(1.dp, tint.copy(alpha = .30f))) {
@@ -106,6 +106,9 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         }
     }
 }
+
+@Composable
+private data class AchievementRow(val title: String, val description: String, val count: Int, val tint: Color)
 
 @Composable
 private fun Metric(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
