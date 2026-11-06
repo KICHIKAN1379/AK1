@@ -14,6 +14,7 @@ import com.kichikan.ak1.domain.service.RankArt
 import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.domain.service.ShopService
 import com.kichikan.ak1.domain.service.WheelService
+import com.kichikan.ak1.notification.MissionNotifications
 import java.time.Instant
 import java.time.ZoneId
 
