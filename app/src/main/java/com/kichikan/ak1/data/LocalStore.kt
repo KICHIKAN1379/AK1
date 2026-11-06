@@ -23,9 +23,11 @@ class LocalStore(private val context: Context) {
         attendance: List<Attendance>,
         assets: List<CustomAsset>,
         groups: List<Group>,
-        archived: List<ArchivedMember> = emptyList()
+        archived: List<ArchivedMember> = emptyList(),
+        missionRequests: List<MissionRequest> = emptyList(),
+        missionNotices: List<MissionNotice> = emptyList()
     ) {
-        val root = JSONObject().put("schemaVersion", 8)
+        val root = JSONObject().put("schemaVersion", 9)
         ring?.let {
             root.put("ringId", it.ringId).put("ringName", it.ringName)
                 .put("ringUsername", it.ringUsername).put("passwordRequired", it.passwordRequired)
@@ -131,6 +133,22 @@ class LocalStore(private val context: Context) {
         }
         root.put("missionCompletions", completionsJson)
 
+        val requestsJson = JSONArray()
+        missionRequests.forEach {
+            requestsJson.put(JSONObject().put("id", it.id).put("missionId", it.missionId)
+                .put("memberId", it.memberId).put("message", it.message).put("requestedAt", it.requestedAt)
+                .put("status", it.status.name).put("reviewedAt", it.reviewedAt ?: JSONObject.NULL)
+                .put("mentorNote", it.mentorNote ?: JSONObject.NULL))
+        }
+        root.put("missionRequests", requestsJson)
+        val noticesJson = JSONArray()
+        missionNotices.forEach {
+            noticesJson.put(JSONObject().put("id", it.id).put("title", it.title)
+                .put("message", it.message).put("createdAt", it.createdAt)
+                .put("requestId", it.requestId ?: JSONObject.NULL).put("read", it.read))
+        }
+        root.put("missionNotices", noticesJson)
+
         val sessionsJson = JSONArray()
         sessions.forEach {
             sessionsJson.put(JSONObject().put("id", it.id).put("title", it.title)
@@ -228,7 +246,7 @@ class LocalStore(private val context: Context) {
             throw IllegalArgumentException("ساختار فایل پشتیبان معتبر نیست", e)
         }
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..8) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..9) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         // Validate the entire backup before accepting it. If parsing any nested record fails,
         // restore the previous saved data instead of leaving the app with a broken backup.
@@ -407,6 +425,31 @@ class LocalStore(private val context: Context) {
             )
         }
 
+
+        val missionRequests = mutableListOf<MissionRequest>()
+        val requestsJson = root.optJSONArray("missionRequests") ?: JSONArray()
+        for (i in 0 until requestsJson.length()) {
+            val o = requestsJson.getJSONObject(i)
+            missionRequests += MissionRequest(
+                o.getString("id"), o.getString("missionId"), o.getString("memberId"),
+                o.optString("message", ""), o.optLong("requestedAt", 0L),
+                runCatching { MissionRequestStatus.valueOf(o.optString("status", MissionRequestStatus.PENDING.name)) }.getOrDefault(MissionRequestStatus.PENDING),
+                if (o.isNull("reviewedAt")) null else o.optLong("reviewedAt"),
+                o.optString("mentorNote").takeIf { it.isNotBlank() && it != "null" }
+            )
+        }
+        val missionNotices = mutableListOf<MissionNotice>()
+        val noticesJson = root.optJSONArray("missionNotices") ?: JSONArray()
+        for (i in 0 until noticesJson.length()) {
+            val o = noticesJson.getJSONObject(i)
+            missionNotices += MissionNotice(
+                o.getString("id"), o.getString("title"), o.getString("message"),
+                o.optLong("createdAt", 0L),
+                o.optString("requestId").takeIf { it.isNotBlank() && it != "null" },
+                o.optBoolean("read", false)
+            )
+        }
+
         val sessions = mutableListOf<Session>()
         val sessionsJson = root.optJSONArray("sessions") ?: JSONArray()
         for (i in 0 until sessionsJson.length()) {
@@ -443,7 +486,7 @@ class LocalStore(private val context: Context) {
             )
         }
 
-        return LoadedState(ring, members, history, shop, wheel, missions, completions, sessions, attendance, assets, groups, archived)
+        return LoadedState(ring, members, history, shop, wheel, missions, completions, sessions, attendance, assets, groups, archived, missionRequests, missionNotices)
     }
 }
 
@@ -459,5 +502,7 @@ data class LoadedState(
     val attendance: List<Attendance> = emptyList(),
     val assets: List<CustomAsset> = emptyList(),
     val groups: List<Group> = emptyList(),
-    val archived: List<ArchivedMember> = emptyList()
+    val archived: List<ArchivedMember> = emptyList(),
+    val missionRequests: List<MissionRequest> = emptyList(),
+    val missionNotices: List<MissionNotice> = emptyList()
 )
