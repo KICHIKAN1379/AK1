@@ -121,3 +121,31 @@ class DailyDateNotificationBootReceiver : BroadcastReceiver() {
         }
     }
 }
+
+
+/** Independent local notification channel for mission requests and mentor decisions. */
+object MissionNotifications {
+    private const val CHANNEL_ID = "ak1_mission_updates"
+    fun post(context: Context, title: String, message: String, notificationId: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            manager.createNotificationChannel(android.app.NotificationChannel(
+                CHANNEL_ID, "درخواست‌ها و مأموریت‌ها", android.app.NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = "درخواست انجام مأموریت و نتیجه بررسی مربی" })
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
+        if (!androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val openApp = android.app.PendingIntent.getActivity(
+            context, 7301, android.content.Intent(context, MainActivity::class.java),
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher).setContentTitle(title).setContentText(message)
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
+            .setContentIntent(openApp).setAutoCancel(true)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT).build()
+        androidx.core.app.NotificationManagerCompat.from(context).notify(notificationId, notification)
+    }
+}
