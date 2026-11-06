@@ -242,7 +242,8 @@ private fun MissionWorkflowPanel(repo: AppRepository) {
     }
 
     Text("دفتر اعلان‌ها", style = MaterialTheme.typography.titleLarge)
-    val notices = repo.missionNotices.take(8)
+    var noticesRevision by remember { mutableIntStateOf(0) }
+    val notices = remember(noticesRevision) { repo.missionNotices.take(8).toList() }
     if (notices.isEmpty()) {
         Text("هنوز اعلانی ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
     } else {
@@ -254,7 +255,10 @@ private fun MissionWorkflowPanel(repo: AppRepository) {
             )
             HorizontalDivider()
         }
-        TextButton(onClick = { repo.markMissionNoticesRead() }) {
+        TextButton(onClick = {
+            repo.markMissionNoticesRead()
+            noticesRevision++
+        }) {
             Text("خواندن همه اعلان‌ها")
         }
     }
