@@ -74,6 +74,7 @@ internal fun AK1App(repo: AppRepository) {
                         }
                     }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
+                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding) { tab = Tab.SERVICES }
                     Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SERVICES }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.SERVICES }
@@ -128,7 +129,7 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 private val Tab.depth: Int
     get() = when (this) {
         Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE -> 1
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
