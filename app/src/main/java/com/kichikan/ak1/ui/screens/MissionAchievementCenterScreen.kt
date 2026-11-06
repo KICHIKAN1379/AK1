@@ -69,6 +69,7 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                     }
                 }
             }
+            MissionWorkflowPanel(repo)
         } else if (selected == 1) {
             Text("نشان‌های مسیر رشد", style = MaterialTheme.typography.titleLarge)
             Text("دستاوردها بر اساس داده‌های واقعی اعضا و نردبان رتبه AK1 محاسبه می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
@@ -155,6 +156,106 @@ private fun EmptyState(title: String, detail: String) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+
+@Composable
+private fun MissionWorkflowPanel(repo: AppRepository) {
+    var memberMenu by remember { mutableStateOf(false) }
+    var missionMenu by remember { mutableStateOf(false) }
+    var selectedMemberId by remember { mutableStateOf(repo.members.firstOrNull()?.id.orEmpty()) }
+    var selectedMissionId by remember { mutableStateOf(repo.missions.firstOrNull { it.active && !it.hidden && it.type.name == "INDIVIDUAL" }?.id.orEmpty()) }
+    var feedback by remember { mutableStateOf<String?>(null) }
+    val requestable = repo.missions.filter { it.active && !it.hidden && it.type.name == "INDIVIDUAL" }
+    val pending = repo.missionRequests.filter { it.status == com.kichikan.ak1.domain.model.MissionRequestStatus.PENDING }
+        .sortedBy { it.requestedAt }
+
+    Text("درخواست انجام مأموریت", style = MaterialTheme.typography.titleLarge)
+    Text("عضو مأموریت را انتخاب می‌کند؛ پاداش فقط پس از تأیید مربی ثبت می‌شود.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    if (repo.members.isEmpty() || requestable.isEmpty()) {
+        EmptyState("امکان ثبت درخواست وجود ندارد", "برای این بخش دست‌کم یک عضو و یک مأموریت فردی فعال لازم است.")
+    } else {
+        Box {
+            OutlinedButton(onClick = { memberMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("عضو: ${repo.members.firstOrNull { it.id == selectedMemberId }?.name ?: "انتخاب عضو"}")
+            }
+            DropdownMenu(expanded = memberMenu, onDismissRequest = { memberMenu = false }) {
+                repo.members.forEach { member ->
+                    DropdownMenuItem(text = { Text(member.name) }, onClick = {
+                        selectedMemberId = member.id
+                        memberMenu = false
+                    })
+                }
+            }
+        }
+        Box {
+            OutlinedButton(onClick = { missionMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("مأموریت: ${requestable.firstOrNull { it.id == selectedMissionId }?.title ?: "انتخاب مأموریت"}")
+            }
+            DropdownMenu(expanded = missionMenu, onDismissRequest = { missionMenu = false }) {
+                requestable.forEach { mission ->
+                    DropdownMenuItem(text = { Text(mission.title) }, onClick = {
+                        selectedMissionId = mission.id
+                        missionMenu = false
+                    })
+                }
+            }
+        }
+        Button(onClick = {
+            runCatching { repo.requestMission(selectedMemberId, selectedMissionId) }
+                .onSuccess { feedback = "درخواست ثبت شد و برای بررسی مربی در صف قرار گرفت." }
+                .onFailure { feedback = it.message ?: "ثبت درخواست انجام نشد." }
+        }, modifier = Modifier.fillMaxWidth(), enabled = selectedMemberId.isNotBlank() && selectedMissionId.isNotBlank()) {
+            Text("ارسال درخواست انجام")
+        }
+    }
+    feedback?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
+
+    Text("صف بررسی مربی • ${pending.size}", style = MaterialTheme.typography.titleLarge)
+    if (pending.isEmpty()) {
+        Text("درخواست در انتظاری وجود ندارد.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    }
+    pending.forEach { request ->
+        val mission = repo.missions.firstOrNull { it.id == request.missionId }
+        val member = repo.members.firstOrNull { it.id == request.memberId }
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(mission?.title ?: "مأموریت حذف‌شده", style = MaterialTheme.typography.titleMedium)
+                Text("درخواست‌دهنده: ${member?.name ?: "عضو حذف‌شده"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (request.message.isNotBlank()) Text(request.message)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        runCatching { repo.reviewMissionRequest(request.id, true) }
+                            .onSuccess { feedback = "درخواست تأیید شد و پاداش ثبت شد." }
+                            .onFailure { feedback = it.message ?: "تأیید انجام نشد." }
+                    }, modifier = Modifier.weight(1f)) { Text("تأیید و ثبت پاداش") }
+                    OutlinedButton(onClick = {
+                        runCatching { repo.reviewMissionRequest(request.id, false) }
+                            .onSuccess { feedback = "درخواست رد شد؛ پاداشی ثبت نشد." }
+                            .onFailure { feedback = it.message ?: "رد درخواست انجام نشد." }
+                    }, modifier = Modifier.weight(1f)) { Text("رد درخواست") }
+                }
+            }
+        }
+    }
+
+    Text("دفتر اعلان‌ها", style = MaterialTheme.typography.titleLarge)
+    val notices = repo.missionNotices.take(8)
+    if (notices.isEmpty()) {
+        Text("هنوز اعلانی ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    } else {
+        notices.forEach { notice ->
+            ListItem(
+                headlineContent = { Text(notice.title) },
+                supportingContent = { Text(notice.message) },
+                trailingContent = { if (!notice.read) Text("جدید", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall) }
+            )
+            HorizontalDivider()
+        }
+        TextButton(onClick = { repo.markMissionNoticesRead() }, modifier = Modifier.align(Alignment.End)) {
+            Text("خواندن همه اعلان‌ها")
         }
     }
 }
