@@ -740,6 +740,16 @@ private fun MemberProfileDialog(
     val virtueCount = virtues.count { it in unlocked }
     val virtuePercent = if (virtues.isEmpty()) 0 else virtueCount * 100 / virtues.size
     val rank = RankSystem.forLevel(member.economy.level)
+    val nextRank = RankSystem.next(rank)
+    val rankProgress = RankSystem.progress(member.economy.level, rank)
+    val remainingLevels = nextRank?.let { (it.minLevel - member.economy.level).coerceAtLeast(0) } ?: 0
+    val memberCompletions = repo.missionCompletions
+        .filter { member.id in it.memberIds }
+        .sortedByDescending { it.completedAt }
+    val completedMissionCount = memberCompletions.size
+    val latestMissions = memberCompletions.take(3).mapNotNull { completion ->
+        repo.missions.firstOrNull { it.id == completion.missionId }?.let { it.title to completion.completedAt }
+    }
     val birth = member.birthDate?.let { JalaliCalendar.parse(it) }?.let { JalaliCalendar.format(it) }
 
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -777,6 +787,45 @@ private fun MemberProfileDialog(
                                 MiniStat("XP", member.economy.xp.toString(), Neon.Violet, Modifier.weight(1f))
                                 MiniStat("امتیاز", member.economy.spendablePoints.toString(), Neon.Gold, Modifier.weight(1f))
                                 MiniStat("الماس", member.economy.diamonds.toString(), Neon.Green, Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+                    Card(Modifier.fillMaxWidth(), accent = Neon.Gold) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("مسیر ارتقا", style = MaterialTheme.typography.titleMedium)
+                                Text("مرحله ${rank.index} از ${RankSystem.tiers.size}", style = MaterialTheme.typography.labelSmall, color = Neon.Gold)
+                            }
+                            if (nextRank != null) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text("رتبه فعلی: ${rank.name}", style = MaterialTheme.typography.labelMedium)
+                                        Text("مقصد بعدی: ${nextRank.name}", style = MaterialTheme.typography.titleLarge, color = Neon.Gold)
+                                    }
+                                    Surface(shape = RoundedCornerShape(14.dp), color = Neon.Gold.copy(alpha = 0.13f)) {
+                                        Text("$remainingLevels سطح تا ارتقا", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                            style = MaterialTheme.typography.labelMedium, color = Neon.Gold)
+                                    }
+                                }
+                                LinearProgressIndicator(
+                                    progress = { rankProgress },
+                                    modifier = Modifier.fillMaxWidth().height(7.dp),
+                                    color = Neon.Gold,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            } else {
+                                Text("بالاترین رتبه مسیر را به دست آورده است.", color = Neon.Gold, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MiniStat("مأموریت کامل", completedMissionCount.toString(), Neon.Green, Modifier.weight(1f))
+                                MiniStat("رویداد ثبت‌شده", history.size.toString(), Neon.Cyan, Modifier.weight(1f))
+                            }
+                            if (latestMissions.isNotEmpty()) {
+                                Text("آخرین مأموریت‌ها", style = MaterialTheme.typography.titleSmall)
+                                latestMissions.forEach { (title, completedAt) ->
+                                    ProfileInfoRow(title, JalaliCalendar.formatDateTime(completedAt))
+                                }
                             }
                         }
                     }
