@@ -13,14 +13,20 @@ import com.kichikan.ak1.ui.HubScreen
 import com.kichikan.ak1.data.AppRepository
 
 @Composable
-internal fun ServicesScreen(padding: PaddingValues, open: (Tab) -> Unit) {
+internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit) {
+    val now = System.currentTimeMillis()
+    val upcomingSessions = repo.sessions.count { it.startsAt > now }
+    val activeMissions = repo.missions.count { it.active && !it.hidden }
+    val markedAttendance = repo.attendance.count { it.status != AttendanceStatus.UNMARKED }
+    val completedMissions = repo.missionCompletions.size
+    val serviceSummary = "${repo.members.size} عضو  •  ${repo.groups.size} گروه  •  ${repo.sessions.size} جلسه  •  $activeMissions مأموریت فعال"
     HubScreen(
-        padding, "خدمات", "ابزارهای مدیریت حلقه در یک‌جا",
+        padding, "مرکز خدمات حلقه", serviceSummary,
         listOf(
-            HubEntry("تراشکاری", "مأموریت‌ها، جوایز، آواتار و قاب", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
-            HubEntry("جلسات", "فهرست جلسه‌ها و حضور و غیاب", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) },
-            HubEntry("رقابت", "رتبه‌بندی اعضا و گروه‌ها", Neon.Violet, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
-            HubEntry("فروشگاه", "آواتارها، قاب‌ها و جوایز", Neon.Gold, { AppIcon(R.drawable.icon_services_store, 62.dp) }) { open(Tab.STORE) },
+            HubEntry("تراشکاری", "$activeMissions مأموریت فعال  •  $completedMissions انجام‌شده", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
+            HubEntry("جلسات", "$upcomingSessions جلسه پیش‌رو  •  $markedAttendance وضعیت حضور ثبت‌شده", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) },
+            HubEntry("رقابت", "رتبه‌بندی زنده اعضا و گروه‌ها", Neon.Violet, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
+            HubEntry("فروشگاه", "مدیریت آواتار، قاب، نشان و جوایز", Neon.Gold, { AppIcon(R.drawable.icon_services_store, 62.dp) }) { open(Tab.STORE) },
             HubEntry("کتاب‌خوانی", "ثبت کتاب، سطح مطالعه و رتبه‌بندی", Neon.Green, { AppIcon(R.drawable.icon_services_reading, 62.dp) }) { open(Tab.READING) },
             HubEntry("گردونه", "گردونه‌ی شانس و جایزه", Neon.Sky, { AppIcon(R.drawable.icon_services_wheel, 62.dp) }) { open(Tab.WHEEL) }
         )
