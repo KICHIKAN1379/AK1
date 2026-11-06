@@ -107,7 +107,6 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
     }
 }
 
-@Composable
 private data class AchievementRow(val title: String, val description: String, val count: Int, val tint: Color)
 
 @Composable
