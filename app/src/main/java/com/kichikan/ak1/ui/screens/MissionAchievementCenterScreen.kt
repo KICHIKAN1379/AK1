@@ -19,7 +19,7 @@ import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.ui.theme.Neon
 
 @Composable
-internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
+internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit) {
     var selected by remember { mutableIntStateOf(0) }
     val missions = repo.missions.filter { it.active && !it.hidden }
     val completedCount = repo.history.count { it.type == HistoryType.MISSION_COMPLETED }
@@ -44,10 +44,12 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected == 0, { selected = 0 }, label = { Text("مأموریت‌ها") })
             FilterChip(selected == 1, { selected = 1 }, label = { Text("دستاوردها") })
+            FilterChip(selected == 2, { selected = 2 }, label = { Text("گزارش") })
         }
         if (selected == 0) {
             Text("عملیات در جریان", style = MaterialTheme.typography.titleLarge)
             if (missions.isEmpty()) EmptyState("فعلاً مأموریت فعالی تعریف نشده است.", "مربی می‌تواند از بخش تراشکاری مأموریت تازه بسازد.")
+            Button(onClick = manageMissions, modifier = Modifier.fillMaxWidth()) { Text("ورود به کارگاه مدیریت مأموریت‌ها  ↗") }
             missions.forEach { mission ->
                 val participantCount = repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = .22f))) {
@@ -67,7 +69,7 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                     }
                 }
             }
-        } else {
+        } else if (selected == 1) {
             Text("نشان‌های مسیر رشد", style = MaterialTheme.typography.titleLarge)
             Text("دستاوردها بر اساس داده‌های واقعی اعضا و نردبان رتبه AK1 محاسبه می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             val achievements = listOf(
@@ -93,7 +95,35 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                 }
             }
             Text("نردبان افتخار", style = MaterialTheme.typography.titleLarge)
-            RankSystem.tiers.forEach { tier ->
+        } else {
+            Text("جدول عملکرد اعضا", style = MaterialTheme.typography.titleLarge)
+            val leaderboard = repo.members.map { member ->
+                member to repo.missionCompletions.count { member.id in it.memberIds }
+            }.sortedByDescending { it.second }
+            leaderboard.forEachIndexed { index, entry ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text((index + 1).toString().padStart(2, '0'), color = Neon.Cyan)
+                    Spacer(Modifier.width(12.dp))
+                    Text(entry.first.name, Modifier.weight(1f))
+                    Text("${entry.second} مأموریت", color = Neon.Gold, style = MaterialTheme.typography.labelMedium)
+                }
+                HorizontalDivider()
+            }
+            Text("آخرین فعالیت‌ها", style = MaterialTheme.typography.titleLarge)
+            val recent = repo.missionCompletions.sortedByDescending { it.completedAt }.take(30)
+            if (recent.isEmpty()) EmptyState("هنوز نتیجه‌ای ثبت نشده است.", "پس از ثبت مأموریت، گزارش آن اینجا نمایش داده می‌شود.")
+            recent.forEach { completion ->
+                val mission = repo.missions.firstOrNull { it.id == completion.missionId }
+                val names = repo.members.filter { it.id in completion.memberIds }.joinToString("، ") { it.name }
+                ListItem(
+                    headlineContent = { Text(mission?.title ?: "مأموریت حذف‌شده") },
+                    supportingContent = { Text(names + " • " + java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()).format(java.util.Date(completion.completedAt))) },
+                    trailingContent = { Text("+${mission?.xpReward ?: 0} XP", color = Neon.Cyan) }
+                )
+                HorizontalDivider()
+            }
+            Text("سوابق پاداش و اعلان‌های درون‌برنامه‌ای در دفتر رویداد اعضا ثبت می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        RankSystem.tiers.forEach { tier ->
                 val unlocked = repo.members.count { it.economy.level >= tier.minLevel }
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(tier.index.toString().padStart(2, '0'), color = Neon.Cyan)
