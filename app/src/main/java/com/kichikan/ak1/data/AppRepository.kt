@@ -30,6 +30,8 @@ class AppRepository(context: Context) {
     val shop = mutableListOf<ShopItem>()
     val missions = mutableListOf<Mission>()
     val missionCompletions = mutableListOf<MissionCompletion>()
+    val missionRequests = mutableListOf<MissionRequest>()
+    val missionNotices = mutableListOf<MissionNotice>()
     val sessions = mutableListOf<Session>()
     val attendance = mutableListOf<Attendance>()
     val assets = mutableListOf<CustomAsset>()
@@ -48,6 +50,8 @@ class AppRepository(context: Context) {
             wheel = state.wheel
             missions += state.missions
             missionCompletions += state.missionCompletions
+            missionRequests += state.missionRequests
+            missionNotices += state.missionNotices
             sessions += state.sessions
             attendance += state.attendance
             assets += state.assets
@@ -880,6 +884,56 @@ class AppRepository(context: Context) {
         return completion
     }
 
+
+    fun requestMission(memberId: String, missionId: String, message: String = ""): MissionRequest {
+        require(members.any { it.id == memberId }) { "عضو نامعتبر است" }
+        val mission = missions.firstOrNull { it.id == missionId && !it.hidden } ?: error("مأموریت پیدا نشد")
+        require(MissionService.canComplete(mission, System.currentTimeMillis())) { "این مأموریت اکنون فعال نیست" }
+        require(mission.type == MissionType.INDIVIDUAL) { "درخواست فردی برای مأموریت گروهی پشتیبانی نمی‌شود" }
+        require(missionRequests.none { it.missionId == missionId && it.memberId == memberId && it.status == MissionRequestStatus.PENDING }) { "برای این مأموریت درخواست در انتظار بررسی دارید" }
+        require(missionCompletions.none { it.missionId == missionId && memberId in it.memberIds }) { "این مأموریت قبلاً برای شما ثبت شده است" }
+        val now = System.currentTimeMillis()
+        val memberName = members.first { it.id == memberId }.name
+        val request = MissionRequest(newId("mission-request"), missionId, memberId, message.trim(), now)
+        missionRequests += request
+        val noticeText = "$memberName برای «${mission.title}» درخواست ثبت انجام فرستاد."
+        addMissionNotice("درخواست تازه مأموریت", noticeText, request.id)
+        persist()
+        MissionNotifications.post(appContext, "درخواست تازه مأموریت", noticeText, request.id.hashCode())
+        return request
+    }
+
+    fun reviewMissionRequest(requestId: String, approve: Boolean, mentorNote: String = ""): MissionRequest {
+        val index = missionRequests.indexOfFirst { it.id == requestId }
+        require(index >= 0) { "درخواست پیدا نشد" }
+        val request = missionRequests[index]
+        require(request.status == MissionRequestStatus.PENDING) { "این درخواست قبلاً بررسی شده است" }
+        val mission = missions.firstOrNull { it.id == request.missionId } ?: error("مأموریت حذف شده است")
+        val member = members.firstOrNull { it.id == request.memberId } ?: error("عضو پیدا نشد")
+        if (approve) completeMission(mission, listOf(request.memberId), mentorNote.ifBlank { "درخواست عضو تأیید شد" })
+        val reviewed = request.copy(
+            status = if (approve) MissionRequestStatus.APPROVED else MissionRequestStatus.REJECTED,
+            reviewedAt = System.currentTimeMillis(), mentorNote = mentorNote.trim().takeIf { it.isNotEmpty() }
+        )
+        missionRequests[index] = reviewed
+        val title = if (approve) "درخواست مأموریت تأیید شد" else "درخواست مأموریت رد شد"
+        val message = "درخواست «${mission.title}» برای ${member.name} ${if (approve) "تأیید" else "رد"} شد."
+        addMissionNotice(title, message, request.id)
+        persist()
+        MissionNotifications.post(appContext, title, message, request.id.hashCode() + 1)
+        return reviewed
+    }
+
+    private fun addMissionNotice(title: String, message: String, requestId: String?) {
+        missionNotices.add(0, MissionNotice(newId("mission-notice"), title, message, System.currentTimeMillis(), requestId))
+        while (missionNotices.size > 100) missionNotices.removeAt(missionNotices.lastIndex)
+    }
+
+    fun markMissionNoticesRead() {
+        missionNotices.indices.forEach { i -> if (!missionNotices[i].read) missionNotices[i] = missionNotices[i].copy(read = true) }
+        persist()
+    }
+
     fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session {
         require(members.any { it.id == memberId }) { "عضو نامعتبر است" }
         require(title.isNotBlank()) { "عنوان جلسه الزامی است" }
@@ -1138,7 +1192,9 @@ class AppRepository(context: Context) {
             attendance,
             assets,
             groups,
-            archived
+            archived,
+            missionRequests,
+            missionNotices
         )
     }
 
@@ -1170,6 +1226,8 @@ class AppRepository(context: Context) {
         shop.clear()
         missions.clear()
         missionCompletions.clear()
+        missionRequests.clear()
+        missionNotices.clear()
         sessions.clear()
         attendance.clear()
         assets.clear()
