@@ -266,7 +266,7 @@ class LocalStore(private val context: Context) {
         val raw = prefs.getString("backup", null) ?: return null
         val root = JSONObject(raw)
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..8) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..9) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         val ring = if (root.has("ringId")) RingAccount(
             root.getString("ringId"), root.getString("ringName"),
