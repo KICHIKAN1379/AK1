@@ -63,8 +63,16 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
     val crestOf = { g: Group -> repo.shop.firstOrNull { it.id == g.crestItemId }?.imagePath }
     val groupCardOf = { g: Group -> repo.shop.firstOrNull { it.id == g.cardItemId }?.imagePath }
     val memberCardOf = { m: Member -> com.kichikan.ak1.domain.service.RankArt.cardPath(context, com.kichikan.ak1.domain.service.RankSystem.forLevel(m.economy.level)) }
-    val rankedMembers = repo.members.sortedWith(compareByDescending<Member> { it.economy.level }.thenByDescending { it.economy.xp })
+    var query by remember { mutableStateOf("") }
+    var groupFilter by remember { mutableStateOf<String?>(null) }
+    val allRankedMembers = repo.members.sortedWith(compareByDescending<Member> { it.economy.level }.thenByDescending { it.economy.xp })
+    val rankedMembers = allRankedMembers.filter { member ->
+        (groupFilter == null || member.groupId == groupFilter) &&
+            (query.isBlank() || member.name.contains(query, ignoreCase = true))
+    }
     val rankedGroups = repo.groups.sortedByDescending { it.economy.spendablePoints }
+    val averageLevel = if (repo.members.isEmpty()) 0 else repo.members.map { it.economy.level }.average().toInt()
+    val totalXp = repo.members.sumOf { it.economy.xp }
     val maxMemberXp = (rankedMembers.maxOfOrNull { it.economy.xp } ?: 0).coerceAtLeast(1)
     val maxGroupPoints = (rankedGroups.maxOfOrNull { it.economy.spendablePoints } ?: 0).coerceAtLeast(1)
     val title = if (groups) "رتبه‌بندی گروه‌ها" else "رتبه‌بندی اعضا"
@@ -98,11 +106,37 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
         }
     }
     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeader(title, back, if (groups) "فقط با امتیاز و الماس مستقل گروه محاسبه می‌شود." else "بر اساس سطح و XP؛ خروجی تصویر، آواتار و قاب هر عضو را هم دارد.")
+        PageHeader(title, back, if (groups) "امتیاز مستقل گروه‌ها معیار رتبه است؛ اعضا و نشان هر گروه هم دیده می‌شوند." else "رتبه بر پایه سطح و XP؛ با آواتار، قاب و نشان اختصاصی اعضا.")
+        if (!groups) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RankingMetric("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
+                RankingMetric("میانگین سطح", "$averageLevel", Neon.Violet, Modifier.weight(1f))
+                RankingMetric("XP کل", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
+            }
+            OutlinedTextField(
+                value = query, onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                placeholder = { Text("جست‌وجوی نام عضو") }
+            )
+            if (repo.groups.isNotEmpty()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = groupFilter == null, onClick = { groupFilter = null }, label = { Text("همه گروه‌ها") })
+                    repo.groups.forEach { group ->
+                        FilterChip(selected = groupFilter == group.id, onClick = { groupFilter = group.id }, label = { Text(group.name) })
+                    }
+                }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RankingMetric("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
+                RankingMetric("اعضای فعال", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
+                RankingMetric("XP حلقه", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
+            }
+        }
         Button(onClick = { rankingExporter.launch(if (groups) "رتبه‌بندی-گروه‌ها.jpg" else "رتبه‌بندی-اعضا.jpg") }, modifier = Modifier.fillMaxWidth()) { Text("خروجی JPEG رتبه‌بندی") }
         if (!groups) {
             if (rankedMembers.isEmpty()) {
-                Text("هنوز عضوی ثبت نشده است.")
+                Text(if (repo.members.isEmpty()) "هنوز عضوی ثبت نشده است." else "عضوی با این نام یا گروه پیدا نشد.")
             } else {
                 PodiumCard(
                     entries = rankedMembers.take(3).mapIndexed { index, m ->
@@ -156,7 +190,7 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                     entries = rankedGroups.take(3).mapIndexed { index, g ->
                         PodiumEntry(
                             name = g.name,
-                            caption = "${g.economy.spendablePoints} امتیاز",
+                            caption = "${g.economy.spendablePoints} امتیاز • ${repo.members.count { it.groupId == g.id }} عضو",
                             fraction = g.economy.spendablePoints.toFloat() / maxGroupPoints,
                             avatar = g.profileImagePath?.takeIf { it.isNotBlank() },
                             frame = null,
@@ -179,7 +213,7 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                             RankRowCard(
                                 rank = index + 4,
                                 title = g.name,
-                                caption = "امتیاز ${g.economy.spendablePoints} • الماس ${g.economy.diamonds}",
+                                caption = "امتیاز ${g.economy.spendablePoints} • الماس ${g.economy.diamonds} • ${repo.members.count { it.groupId == g.id }} عضو",
                                 fraction = fraction,
                                 accent = Neon.Violet,
                                 avatar = g.profileImagePath?.takeIf { it.isNotBlank() },
@@ -193,6 +227,21 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RankingMetric(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = accent.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
+    ) {
+        Column(Modifier.padding(vertical = 10.dp, horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium, color = accent, maxLines = 1)
         }
     }
 }
