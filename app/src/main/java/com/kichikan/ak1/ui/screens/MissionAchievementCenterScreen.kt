@@ -254,7 +254,7 @@ private fun MissionWorkflowPanel(repo: AppRepository) {
             )
             HorizontalDivider()
         }
-        TextButton(onClick = { repo.markMissionNoticesRead() }, modifier = Modifier.align(Alignment.End)) {
+        TextButton(onClick = { repo.markMissionNoticesRead() }) {
             Text("خواندن همه اعلان‌ها")
         }
     }
