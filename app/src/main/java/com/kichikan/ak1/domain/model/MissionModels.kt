@@ -24,3 +24,18 @@ data class MissionCompletion(
     val completedAt: Long,
     val reason: String? = null
 )
+
+
+enum class MissionRequestStatus { PENDING, APPROVED, REJECTED }
+
+data class MissionRequest(
+    val id: String, val missionId: String, val memberId: String,
+    val message: String = "", val requestedAt: Long,
+    val status: MissionRequestStatus = MissionRequestStatus.PENDING,
+    val reviewedAt: Long? = null, val mentorNote: String? = null
+)
+
+data class MissionNotice(
+    val id: String, val title: String, val message: String, val createdAt: Long,
+    val requestId: String? = null, val read: Boolean = false
+)
