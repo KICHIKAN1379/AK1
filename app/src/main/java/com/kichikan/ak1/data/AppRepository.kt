@@ -911,7 +911,12 @@ class AppRepository(context: Context) {
         require(request.status == MissionRequestStatus.PENDING) { "این درخواست قبلاً بررسی شده است" }
         val mission = missions.firstOrNull { it.id == request.missionId } ?: error("مأموریت حذف شده است")
         val member = members.firstOrNull { it.id == request.memberId } ?: error("عضو پیدا نشد")
-        if (approve) completeMission(mission, listOf(request.memberId), mentorNote.ifBlank { "درخواست عضو تأیید شد" })
+        if (approve) {
+            require(missionCompletions.none { it.missionId == mission.id && request.memberId in it.memberIds }) {
+                "این مأموریت پس از ثبت درخواست، قبلاً برای این عضو ثبت شده است؛ از ثبت پاداش تکراری جلوگیری شد."
+            }
+            completeMission(mission, listOf(request.memberId), mentorNote.ifBlank { "درخواست عضو تأیید شد" })
+        }
         val reviewed = request.copy(
             status = if (approve) MissionRequestStatus.APPROVED else MissionRequestStatus.REJECTED,
             reviewedAt = System.currentTimeMillis(), mentorNote = mentorNote.trim().takeIf { it.isNotEmpty() }
@@ -1244,6 +1249,8 @@ class AppRepository(context: Context) {
             wheel = state.wheel
             missions += state.missions
             missionCompletions += state.missionCompletions
+            missionRequests += state.missionRequests
+            missionNotices += state.missionNotices
             sessions += state.sessions
             attendance += state.attendance
             assets += state.assets
