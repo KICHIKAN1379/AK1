@@ -444,51 +444,20 @@ class AppRepository(context: Context) {
     fun updateGroupProfile(groupId: String, description: String, profileImagePath: String?) =
         memberDomain.updateGroupProfile(groupId, description, profileImagePath)
 
+    private val economyDomain by lazy(LazyThreadSafetyMode.NONE) { EconomyRepository(this) }
+
     fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.addXp(it, amount, reason, actor, System.currentTimeMillis())
-        }
-
+        economyDomain.recordXp(memberId, amount, reason, actor)
     fun recordPoints(memberId: String, amount: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.adjustPoints(it, amount, reason, actor, System.currentTimeMillis())
-        }
-
+        economyDomain.recordPoints(memberId, amount, reason, actor)
     fun recordDiamonds(memberId: String, amount: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.adjustDiamonds(it, amount, reason, actor, System.currentTimeMillis())
-        }
-
+        economyDomain.recordDiamonds(memberId, amount, reason, actor)
     fun decreaseXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.decreaseXp(it, amount, reason, actor, System.currentTimeMillis())
-        }
-
+        economyDomain.decreaseXp(memberId, amount, reason, actor)
     fun spendPoints(memberId: String, amount: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.spendPoints(it, amount, reason, actor, System.currentTimeMillis())
-        }
-
+        economyDomain.spendPoints(memberId, amount, reason, actor)
     fun decreaseLevel(memberId: String, targetLevel: Int, reason: String, actor: String? = null) =
-        mutate(memberId) {
-            EconomyService.decreaseLevel(it, targetLevel, reason, actor, System.currentTimeMillis())
-        }
-
-    private fun mutate(
-        memberId: String,
-        operation: (MemberEconomy) -> EconomyChange
-    ): Member {
-        val member = members.first { it.id == memberId }
-        val change = operation(member.economy)
-
-        history += change.events.map { it.copy(memberId = memberId) }
-
-        // A new level only opens a gate. It must never change the member's look or
-        // silently add an item; the member claims the rank item deliberately in the store.
-        val updated = member.copy(economy = change.economy)
-        updateMember(updated)
-        return updated
-    }
+        economyDomain.decreaseLevel(memberId, targetLevel, reason, actor)
 
     fun updateWheelItem(item: WheelItem) { setWheel(wheel.copy(items = wheel.items.map { if (it.id == item.id) item else it })) }
     fun deleteWheelItem(itemId: String) { setWheel(wheel.copy(items = wheel.items.filterNot { it.id == itemId })) }
