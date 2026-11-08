@@ -26,12 +26,12 @@ class AppRepository(context: Context) {
     private val state = RepositoryState()
     private val statePublisher = AppStatePublisher()
 
-    val homeState get() = statePublisher.home
-    val membersState get() = statePublisher.members
-    val missionsState get() = statePublisher.missions
-    val sessionsState get() = statePublisher.sessions
-    val catalogState get() = statePublisher.catalog
-    val progressState get() = statePublisher.progress
+    internal val homeState get() = statePublisher.home
+    internal val membersState get() = statePublisher.members
+    internal val missionsState get() = statePublisher.missions
+    internal val sessionsState get() = statePublisher.sessions
+    internal val catalogState get() = statePublisher.catalog
+    internal val progressState get() = statePublisher.progress
 
     var ring: RingAccount?
         get() = state.ring
