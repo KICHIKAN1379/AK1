@@ -59,7 +59,7 @@ internal class WheelRepository(private val app: AppRepository) {
                 val shopIndex = app.shop.indexOfFirst { it.id == linked.id }
                 if (shopIndex >= 0 && linked.stock != null) app.shop[shopIndex] = linked.copy(stock = linked.stock - 1)
                 app.history += HistoryEvent(
-                    id = "app.wheel-item-${System.currentTimeMillis()}-$memberId",
+                    id = "wheel-item-${System.currentTimeMillis()}-$memberId",
                     memberId = memberId, type = HistoryType.REWARD_RECEIVED, amount = null,
                     title = "دریافت از گردونه: ${linked.name}", reason = item.customText ?: "جایزه گردونه",
                     createdAtEpochMillis = System.currentTimeMillis(), createdBy = "mentor",
@@ -69,7 +69,7 @@ internal class WheelRepository(private val app: AppRepository) {
             WheelRewardType.CUSTOM -> Unit
         }
         app.history += HistoryEvent(
-            id = "app.wheel-${System.currentTimeMillis()}-$memberId", memberId = memberId,
+            id = "wheel-${System.currentTimeMillis()}-$memberId", memberId = memberId,
             type = HistoryType.WHEEL_REWARD, amount = item.amount, title = item.title,
             reason = item.customText ?: "پاداش گردونه", createdAtEpochMillis = System.currentTimeMillis(),
             createdBy = "mentor", metadata = mapOf("itemId" to item.id, "type" to item.type.name)
