@@ -39,8 +39,8 @@ internal class SessionRepository(
         app.attendance += item
         // One ledger row per member and class day: re-marking the same day updates that row instead
         // of appending a second event with the same id, which used to break the app.history list.
-        val eventId = "app.attendance-${item.memberId}-${item.dateEpochMillis}"
-        app.history.removeAll { it.id == eventId || it.id == "app.attendance-" + item.id }
+        val eventId = "attendance-${item.memberId}-${item.dateEpochMillis}"
+        app.history.removeAll { it.id == eventId || it.id == "attendance-" + item.id }
         app.history += HistoryEvent(eventId, item.memberId, HistoryType.ATTENDANCE, null,
             "حضور و غیاب", item.note, item.createdAt, "mentor",
             mapOf("status" to item.status.name, "date" to item.dateEpochMillis.toString()))
@@ -54,6 +54,6 @@ internal class SessionRepository(
             item.memberId == memberId && item.sessionId == null &&
                 Instant.ofEpochMilli(item.dateEpochMillis).atZone(zone).toLocalDate() == targetDate
         }
-        recordAttendance(Attendance("app.attendance-$memberId-$dateEpochMillis", memberId, dateEpochMillis, status, null, note, System.currentTimeMillis()))
+        recordAttendance(Attendance("attendance-$memberId-$dateEpochMillis", memberId, dateEpochMillis, status, null, note, System.currentTimeMillis()))
     }
 }
