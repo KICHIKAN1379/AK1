@@ -24,6 +24,14 @@ class AppRepository(context: Context) {
     private val persistence = AppPersistence(appContext)
 
     private val state = RepositoryState()
+    private val statePublisher = AppStatePublisher()
+
+    val homeState get() = statePublisher.home
+    val membersState get() = statePublisher.members
+    val missionsState get() = statePublisher.missions
+    val sessionsState get() = statePublisher.sessions
+    val catalogState get() = statePublisher.catalog
+    val progressState get() = statePublisher.progress
 
     var ring: RingAccount?
         get() = state.ring
@@ -193,6 +201,7 @@ class AppRepository(context: Context) {
             ring, members, history, shop, wheel, missions, missionCompletions,
             sessions, attendance, assets, groups, archived, missionRequests, missionNotices
         )
+        statePublisher.publish(state)
     }
 
     /**
@@ -248,5 +257,6 @@ class AppRepository(context: Context) {
             groups += state.groups
             archived += state.archived
         }
+        statePublisher.publish(state)
     }
 }
