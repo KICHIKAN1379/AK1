@@ -69,7 +69,7 @@ internal fun HomeDashboardScreen(
     val zone = ZoneId.systemDefault()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val todayAttendance = data.attendance.count {
+    val todayAttendance = observedDomainState.attendance.count {
         Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == today &&
             it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE)
     }
