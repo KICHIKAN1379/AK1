@@ -307,7 +307,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
         return AssetArt.levelAvatarBitmap(level, 512, artBitmap("avatar_${tier % AssetArt.avatarNames.size}"))
     }
 
-    private fun regenerateLevelAvatars() {
+    fun regenerateLevelAvatars() {
         app.shop.filter { it.id.startsWith("level-avatar-") }.forEach { item ->
             val level = item.id.removePrefix("level-avatar-").toIntOrNull() ?: return@forEach
             val path = item.imagePath ?: return@forEach
