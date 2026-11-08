@@ -69,7 +69,7 @@ internal fun HomeDashboardScreen(
     val zone = ZoneId.systemDefault()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val todayAttendance = observedDomainState.attendance.count {
+    val todayAttendance = data.attendance.count {
         Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == today &&
             it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE)
     }
@@ -286,7 +286,7 @@ private fun WeeklyPulseCard(repo: AppRepository) {
     val today = LocalDate.now(zone)
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
     val counts = days.map { day ->
-        data.attendance.count {
+        observedDomainState.attendance.count {
             it.sessionId == null && (it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE) &&
                 Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
         }
