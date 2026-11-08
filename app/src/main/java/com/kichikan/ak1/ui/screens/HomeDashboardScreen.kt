@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +56,7 @@ internal fun HomeDashboardScreen(
     openMembers: () -> Unit,
     open: (Tab) -> Unit
 ) {
+    val data by repo.homeState.collectAsState()
     val context = LocalContext.current
     val assistantOpen = remember { mutableStateOf(false) }
     val reportOpen = remember { mutableStateOf(false) }
@@ -67,28 +69,28 @@ internal fun HomeDashboardScreen(
     val zone = ZoneId.systemDefault()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val todayAttendance = repo.attendance.count {
+    val todayAttendance = data.attendance.count {
         Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == today &&
             it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE)
     }
-    val todaySessions = repo.sessions.count {
+    val todaySessions = data.sessions.count {
         Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == today
     }
-    val activeMissions = repo.missions.count { it.active && !it.hidden }
-    val totalXp = repo.members.sumOf { it.economy.xp }
-    val totalPoints = repo.members.sumOf { it.economy.spendablePoints }
-    val totalDiamonds = repo.members.sumOf { it.economy.diamonds }
-    val assistantReport = remember(repo.members.size, repo.history.size, repo.attendance.size, repo.sessions.size, repo.missionCompletions.size) {
+    val activeMissions = data.missions.count { it.active && !it.hidden }
+    val totalXp = data.members.sumOf { it.economy.xp }
+    val totalPoints = data.members.sumOf { it.economy.spendablePoints }
+    val totalDiamonds = data.members.sumOf { it.economy.diamonds }
+    val assistantReport = remember(data.members.size, data.history.size, data.attendance.size, data.sessions.size, data.missionCompletions.size) {
         com.kichikan.ak1.domain.assistant.MentorAssistantAnalyzer.analyze(
-            members = repo.members.toList(),
-            history = repo.history.toList(),
-            attendance = repo.attendance.toList(),
-            sessions = repo.sessions.toList(),
-            missionCompletions = repo.missionCompletions.toList()
+            members = data.members.toList(),
+            history = data.history.toList(),
+            attendance = data.attendance.toList(),
+            sessions = data.sessions.toList(),
+            missionCompletions = data.missionCompletions.toList()
         )
     }
-    val recentEvents = remember(repo.history.size) {
-        repo.history.sortedByDescending { it.createdAtEpochMillis }.take(4)
+    val recentEvents = remember(data.history.size) {
+        data.history.sortedByDescending { it.createdAtEpochMillis }.take(4)
     }
 
     Column(
@@ -97,7 +99,7 @@ internal fun HomeDashboardScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         HomeIdentityHero(
-            ringName = repo.ring?.ringName ?: "حلقه من",
+            ringName = data.ring?.ringName ?: "حلقه من",
             day = jalali.day,
             month = JalaliCalendar.MONTH_NAMES[jalali.month - 1],
             year = jalali.year,
@@ -136,7 +138,7 @@ internal fun HomeDashboardScreen(
                     Text(totalXp.toString(), color = Color.White, fontSize = 36.sp, lineHeight = 42.sp, fontWeight = FontWeight.ExtraBold)
                     Text("XP کسب‌شده توسط اعضا", color = Neon.Cyan.copy(alpha = 0.9f), style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HeroMetricPill("اعضا", repo.members.size.toString(), Neon.Violet)
+                        HeroMetricPill("اعضا", data.members.size.toString(), Neon.Violet)
                         HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
                         HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Cyan)
                     }
@@ -283,7 +285,7 @@ private fun WeeklyPulseCard(repo: AppRepository) {
     val today = LocalDate.now(zone)
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
     val counts = days.map { day ->
-        repo.attendance.count {
+        data.attendance.count {
             it.sessionId == null && (it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE) &&
                 Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
         }
