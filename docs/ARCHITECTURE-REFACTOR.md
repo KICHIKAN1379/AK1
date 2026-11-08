@@ -1,6 +1,6 @@
 # AK1 Architecture Refactor — MRT Data Layer
 
-Status: Stage 1 (architecture inventory and target design)
+Status: Stages 1–4 implemented; Stage 5 verification in progress
 Base branch: `redesign/home-command-center`
 Working branch: `refactor/mrt-domain-state`
 Base commit: `44f68767fee68a7f8889c05694efa543b175e192`
@@ -91,3 +91,24 @@ Remove the remount-based `key(refresh)` mechanism only after observable state is
 - A mutation in one domain does not force unrelated destinations to rebuild.
 - Existing local data and ZIP/JSON backup compatibility are preserved.
 - Build and all unit tests pass on the refactor branch; failures are reported with their actual workflow evidence.
+
+
+## Implementation record — 2026-11-09
+
+### Completed in `refactor/mrt-domain-state`
+
+- Stage 1 — architecture inventory and migration plan.
+- Stage 2 — split domain operations out of `AppRepository` into `MemberRepository`, `EconomyRepository`, `MissionRepository`, `SessionRepository`, `CatalogRepository`, and `WheelRepository`; moved startup asset/catalog synchronization to `CatalogBootstrapper`; moved mutable collections to `RepositoryState`; isolated the existing `LocalStore` boundary behind `AppPersistence`.
+- Stage 3 — added `AppStatePublisher` and immutable `StateFlow` snapshots for Home, Members, Missions, Sessions, Catalog, and Progress. Snapshots publish after persistence; backup import also republishes the restored state.
+- Stage 4 — migrated current repository-backed composables to observe their relevant domain snapshot. Removed `key(refresh)` from `AK1App`; data refresh no longer remounts the active destination subtree. Existing screen layouts and visual styling were not redesigned.
+
+### Stage 5 verification
+
+- Added `AppStatePublisherTest` for snapshot immutability, publication, and isolation of unrelated domains.
+- Latest verified Build + Unit Tests: success on commit `45a48239070d158d7db8ace272d9e175f2c8cd81`, workflow run [#110](https://github.com/KICHIKAN1379/AK1/actions/runs/42536950491).
+- The separate signing-check job was still running when this record was prepared; its final result must be checked before calling the whole workflow complete.
+- No LocalStore JSON/ZIP schema changes were made. No cloud sync, visual redesign, or unrelated product behavior was introduced.
+
+### Remaining architectural boundary
+
+The domain repositories currently use the `AppRepository` compatibility facade for shared state access and cross-domain operations. Business operations have been removed from the facade, and mutable collections are owned by `RepositoryState`; narrowing the remaining constructor dependencies further is a possible follow-up, not a prerequisite for removing the two targeted bottlenecks.

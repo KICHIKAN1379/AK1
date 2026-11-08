@@ -2,6 +2,7 @@ package com.kichikan.ak1.data
 
 import com.kichikan.ak1.domain.model.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class AppStatePublisherTest {
@@ -42,4 +43,20 @@ class AppStatePublisherTest {
         assertEquals(2, publisher.members.value.members.size)
         assertEquals(0, publisher.sessions.value.sessions.size)
     }
+    @Test
+    fun missionChangesDoNotInvalidateUnrelatedSessionAndMemberSnapshots() {
+        val state = RepositoryState()
+        val publisher = AppStatePublisher()
+        publisher.publish(state)
+        val sessionsBefore = publisher.sessions.value
+        val membersBefore = publisher.members.value
+
+        state.missions += Mission("mission-1", "مأموریت یک")
+        publisher.publish(state)
+
+        assertSame(sessionsBefore, publisher.sessions.value)
+        assertSame(membersBefore, publisher.members.value)
+        assertEquals("مأموریت یک", publisher.missions.value.missions.single().title)
+    }
+
 }
