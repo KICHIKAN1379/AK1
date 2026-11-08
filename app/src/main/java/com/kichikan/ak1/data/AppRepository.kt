@@ -21,7 +21,7 @@ import java.time.ZoneId
 class AppRepository(context: Context) {
     private fun newId(prefix: String): String = "$prefix-${java.util.UUID.randomUUID()}"
     private val appContext = context.applicationContext
-    private val store = LocalStore(appContext)
+    private val persistence = AppPersistence(appContext)
 
     var ring: RingAccount? = null
         private set
@@ -43,7 +43,7 @@ class AppRepository(context: Context) {
         private set
 
     init {
-        store.load()?.let { state ->
+        persistence.load()?.let { state ->
             ring = state.ring
             members += state.members
             history += HistoryEvents.dedupeNewest(state.history)
@@ -1186,21 +1186,9 @@ class AppRepository(context: Context) {
 
     fun persist() {
         normaliseHistoryIds()
-        store.save(
-            ring,
-            members,
-            history,
-            shop,
-            wheel,
-            missions,
-            missionCompletions,
-            sessions,
-            attendance,
-            assets,
-            groups,
-            archived,
-            missionRequests,
-            missionNotices
+        persistence.save(
+            ring, members, history, shop, wheel, missions, missionCompletions,
+            sessions, attendance, assets, groups, archived, missionRequests, missionNotices
         )
     }
 
@@ -1218,14 +1206,14 @@ class AppRepository(context: Context) {
     }
 
     fun exportBackup(): String {
-        return store.exportJson() ?: run {
+        return persistence.exportJson() ?: run {
             persist()
-            store.exportJson() ?: "{}"
+            persistence.exportJson() ?: "{}"
         }
     }
 
     fun importBackup(raw: String) {
-        store.importJson(raw)
+        persistence.importJson(raw)
 
         members.clear()
         history.clear()
@@ -1241,7 +1229,7 @@ class AppRepository(context: Context) {
         archived.clear()
         wheel = WheelConfig()
 
-        store.load()?.let { state ->
+        persistence.load()?.let { state ->
             ring = state.ring
             members += state.members
             history += HistoryEvents.dedupeNewest(state.history)
