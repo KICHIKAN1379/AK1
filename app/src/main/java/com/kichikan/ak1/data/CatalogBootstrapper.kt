@@ -9,7 +9,7 @@ import com.kichikan.ak1.domain.service.RankSystem
 
 /** Handles first-run catalog setup and synchronization of bundled profile/rank artwork. */
 internal class CatalogBootstrapper(private val app: AppRepository) {
-    private fun seedStarterCatalog(regenerate: Boolean) {
+    fun seedStarterCatalog(regenerate: Boolean) {
         val directory = java.io.File(app.appContext.filesDir, "custom_assets/starter_catalog")
         if (!directory.exists() && !directory.mkdirs()) return
         AssetArt.avatarNames.forEachIndexed { index, name ->
@@ -54,7 +54,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
      *   install or restored backup) or the bundled PNG changed, so replacing a PNG updates the art.
      * - Files that are not readable images are skipped; one bad file never blocks the others.
      */
-    private fun syncProfilePack() {
+    fun syncProfilePack() {
         val names = app.appContext.assets.list(ProfilePack.ASSET_DIR)?.toList().orEmpty()
         if (names.isEmpty()) return
         val prefs = app.appContext.getSharedPreferences("ak1_profile_pack", Context.MODE_PRIVATE)
@@ -110,7 +110,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
      * No item is equipped automatically. Existing prices/methods are preserved if the mentor
      * edited them.
      */
-    private fun syncRankPack() {
+    fun syncRankPack() {
         val prefs = app.appContext.getSharedPreferences("ak1_rank_pack", Context.MODE_PRIVATE)
         if (prefs.getInt("version", 0) >= RankArt.VERSION) return
         var changed = false
@@ -170,7 +170,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
     }
 
     /** A separate group heraldic set. Prices are intentionally left for the mentor to configure. */
-    private fun syncGroupPack() {
+    fun syncGroupPack() {
         val prefs = app.appContext.getSharedPreferences("ak1_group_pack", Context.MODE_PRIVATE)
         if (prefs.getInt("version", 0) >= RankArt.VERSION) return
         var changed = false
@@ -221,7 +221,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
      * artwork as the rank pack. Their IDs, prices and gift-only methods stay untouched, and
      * a mentor-uploaded replacement image is never overwritten.
      */
-    private fun upgradeStarterLooks() {
+    fun upgradeStarterLooks() {
         val prefs = app.appContext.getSharedPreferences("ak1_starter_looks", Context.MODE_PRIVATE)
         if (prefs.getInt("version", 0) >= RankArt.VERSION) return
         val starterDirectory = "starter_catalog"
@@ -263,7 +263,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
      * honour system only allows deliberate mentor gifts, so those legacy zero-price entries
      * become manual gifts. Already-owned looks remain equipped/usable.
      */
-    private fun migrateNoFreeLooks() {
+    fun migrateNoFreeLooks() {
         val prefs = app.appContext.getSharedPreferences("ak1_looks", Context.MODE_PRIVATE)
         if (prefs.getBoolean("manual_only_v1", false)) return
         app.shop.indices.forEach { index ->
