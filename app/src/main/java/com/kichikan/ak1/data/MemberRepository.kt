@@ -24,7 +24,7 @@ internal class MemberRepository(
         check(app.ring == null) { "حلقه قبلاً ایجاد شده است" }
 
         val account = RingAccount(
-            newId("app.ring"),
+            newId("ring"),
             name.trim(),
             username.trim(),
             false
@@ -175,7 +175,7 @@ internal class MemberRepository(
     }
 
     /**
-     * Removes a member from the app.ring but keeps the full record in [app.archived], together with their
+     * Removes a member from the ring but keeps the full record in [archived], together with their
      * app.history, app.attendance and app.sessions (those rows are keyed by member id and stay untouched).
      */
     fun archiveMember(memberId: String): Boolean {
