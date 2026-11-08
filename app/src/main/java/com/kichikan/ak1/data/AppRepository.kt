@@ -483,54 +483,16 @@ class AppRepository(context: Context) {
         missionDomain.reviewMissionRequest(requestId, approve, mentorNote)
     fun markMissionNoticesRead() = missionDomain.markMissionNoticesRead()
 
-    fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session {
-        require(members.any { it.id == memberId }) { "عضو نامعتبر است" }
-        require(title.isNotBlank()) { "عنوان جلسه الزامی است" }
-        val session = Session(newId("session"), memberId, title.trim(), topic.trim(), System.currentTimeMillis(), location?.trim()?.takeIf { it.isNotEmpty() })
-        sessions += session
-        persist()
-        return session
-    }
+    private val sessionDomain by lazy(LazyThreadSafetyMode.NONE) { SessionRepository(this, ::newId) }
 
-    fun updateSession(session: Session) { val i = sessions.indexOfFirst { it.id == session.id }; if (i >= 0) { sessions[i] = session; persist() } }
-    fun deleteSession(sessionId: String) { sessions.removeAll { it.id == sessionId }; attendance.removeAll { it.sessionId == sessionId }; persist() }
-
-    fun addSession(session: Session) {
-        sessions.removeAll { it.id == session.id }
-        sessions += session
-        persist()
-    }
-
-    fun recordAttendance(item: Attendance) {
-        check(members.any { it.id == item.memberId }) { "عضو نامعتبر است" }
-        require(
-            item.status == AttendanceStatus.PRESENT ||
-                item.status == AttendanceStatus.LATE ||
-                item.status == AttendanceStatus.UNMARKED ||
-                !item.note.isNullOrBlank()
-        ) { "برای ثبت غیبت، وارد کردن دلیل الزامی است" }
-        attendance.removeAll { it.memberId == item.memberId && it.dateEpochMillis == item.dateEpochMillis }
-        attendance += item
-        // One ledger row per member and class day: re-marking the same day updates that row instead
-        // of appending a second event with the same id, which used to break the history list.
-        val eventId = "attendance-${item.memberId}-${item.dateEpochMillis}"
-        history.removeAll { it.id == eventId || it.id == "attendance-" + item.id }
-        history += HistoryEvent(eventId, item.memberId, HistoryType.ATTENDANCE, null,
-            "حضور و غیاب", item.note, item.createdAt, "mentor",
-            mapOf("status" to item.status.name, "date" to item.dateEpochMillis.toString()))
-        persist()
-    }
-
-    fun recordWeeklyAttendance(memberId: String, dateEpochMillis: Long, status: AttendanceStatus, note: String? = null) {
-        val zone = ZoneId.systemDefault()
-        val targetDate = Instant.ofEpochMilli(dateEpochMillis).atZone(zone).toLocalDate()
-        attendance.removeAll { item ->
-            item.memberId == memberId && item.sessionId == null &&
-                Instant.ofEpochMilli(item.dateEpochMillis).atZone(zone).toLocalDate() == targetDate
-        }
-        recordAttendance(Attendance("attendance-$memberId-$dateEpochMillis", memberId, dateEpochMillis, status, null, note, System.currentTimeMillis()))
-    }
-
+    fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session =
+        sessionDomain.addSession(memberId, title, topic, location)
+    fun updateSession(session: Session) = sessionDomain.updateSession(session)
+    fun deleteSession(sessionId: String) = sessionDomain.deleteSession(sessionId)
+    fun addSession(session: Session) = sessionDomain.addSession(session)
+    fun recordAttendance(item: Attendance) = sessionDomain.recordAttendance(item)
+    fun recordWeeklyAttendance(memberId: String, dateEpochMillis: Long, status: AttendanceStatus, note: String? = null) =
+        sessionDomain.recordWeeklyAttendance(memberId, dateEpochMillis, status, note)
 
     fun grantShopItem(memberId: String, itemId: String, reason: String): Boolean {
         require(reason.isNotBlank()) { "دلیل هدیه الزامی است" }
