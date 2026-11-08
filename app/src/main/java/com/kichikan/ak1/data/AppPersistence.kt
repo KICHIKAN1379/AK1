@@ -13,7 +13,7 @@ import com.kichikan.ak1.domain.model.*
 internal class AppPersistence(context: Context) {
     private val store = LocalStore(context.applicationContext)
 
-    fun load(): LocalStore.LoadedState? = store.load()
+    fun load(): LoadedState? = store.load()
 
     fun save(
         ring: RingAccount?,
