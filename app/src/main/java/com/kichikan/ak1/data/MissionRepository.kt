@@ -29,7 +29,7 @@ internal class MissionRepository(
         app.missionCompletions.filter { it.missionId == missionId && memberId in it.memberIds }.maxOfOrNull { it.completedAt }
 
     /** Default hidden app.missions, added once; the mentor can edit or delete them. They carry no points. */
-    private fun seedDefaultHiddenMissions() {
+    fun seedDefaultHiddenMissions() {
         val prefs = app.appContext.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE)
         if (prefs.getBoolean("hidden_missions_seeded", false)) return
         val defaults = listOf(
