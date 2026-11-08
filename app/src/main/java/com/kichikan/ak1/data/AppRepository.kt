@@ -42,6 +42,14 @@ class AppRepository(context: Context) {
     var wheel = WheelConfig()
         internal set
 
+    private val bootstrapper by lazy(LazyThreadSafetyMode.NONE) { CatalogBootstrapper(this) }
+    private val memberDomain by lazy(LazyThreadSafetyMode.NONE) { MemberRepository(this, ::newId) }
+    private val economyDomain by lazy(LazyThreadSafetyMode.NONE) { EconomyRepository(this) }
+    private val wheelDomain by lazy(LazyThreadSafetyMode.NONE) { WheelRepository(this) }
+    private val missionDomain by lazy(LazyThreadSafetyMode.NONE) { MissionRepository(this, ::newId) }
+    private val sessionDomain by lazy(LazyThreadSafetyMode.NONE) { SessionRepository(this, ::newId) }
+    private val catalogDomain by lazy(LazyThreadSafetyMode.NONE) { CatalogRepository(this) }
+
     init {
         persistence.load()?.let { state ->
             ring = state.ring
@@ -85,8 +93,6 @@ class AppRepository(context: Context) {
         runCatching { processBirthdayRewards() }
     }
 
-    private val bootstrapper by lazy(LazyThreadSafetyMode.NONE) { CatalogBootstrapper(this) }
-
     private fun seedStarterCatalog(regenerate: Boolean) = bootstrapper.seedStarterCatalog(regenerate)
     private fun syncProfilePack() = bootstrapper.syncProfilePack()
     private fun syncRankPack() = bootstrapper.syncRankPack()
@@ -96,8 +102,6 @@ class AppRepository(context: Context) {
     private fun migrateNoFreeLooks() = bootstrapper.migrateNoFreeLooks()
     fun setGroupLook(groupId: String, crestItemId: String?, cardItemId: String?) =
         bootstrapper.setGroupLook(groupId, crestItemId, cardItemId)
-
-    private val memberDomain by lazy(LazyThreadSafetyMode.NONE) { MemberRepository(this, ::newId) }
 
     fun createRing(name: String, username: String): RingAccount = memberDomain.createRing(name, username)
     fun addMember(name: String, birthDate: String? = null, responsibility: String = ""): Member =
@@ -125,8 +129,6 @@ class AppRepository(context: Context) {
     fun updateGroupProfile(groupId: String, description: String, profileImagePath: String?) =
         memberDomain.updateGroupProfile(groupId, description, profileImagePath)
 
-    private val economyDomain by lazy(LazyThreadSafetyMode.NONE) { EconomyRepository(this) }
-
     fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
         economyDomain.recordXp(memberId, amount, reason, actor)
     fun recordPoints(memberId: String, amount: Int, reason: String, actor: String? = null) =
@@ -140,13 +142,9 @@ class AppRepository(context: Context) {
     fun decreaseLevel(memberId: String, targetLevel: Int, reason: String, actor: String? = null) =
         economyDomain.decreaseLevel(memberId, targetLevel, reason, actor)
 
-    private val wheelDomain by lazy(LazyThreadSafetyMode.NONE) { WheelRepository(this) }
-
     fun updateWheelItem(item: WheelItem) = wheelDomain.updateWheelItem(item)
     fun deleteWheelItem(itemId: String) = wheelDomain.deleteWheelItem(itemId)
     fun setWheel(config: WheelConfig) = wheelDomain.setWheel(config)
-
-    private val missionDomain by lazy(LazyThreadSafetyMode.NONE) { MissionRepository(this, ::newId) }
 
     fun updateMission(mission: Mission) = missionDomain.updateMission(mission)
     fun deleteMission(missionId: String) = missionDomain.deleteMission(missionId)
@@ -162,8 +160,6 @@ class AppRepository(context: Context) {
         missionDomain.reviewMissionRequest(requestId, approve, mentorNote)
     fun markMissionNoticesRead() = missionDomain.markMissionNoticesRead()
 
-    private val sessionDomain by lazy(LazyThreadSafetyMode.NONE) { SessionRepository(this, ::newId) }
-
     fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session =
         sessionDomain.addSession(memberId, title, topic, location)
     fun updateSession(session: Session) = sessionDomain.updateSession(session)
@@ -172,8 +168,6 @@ class AppRepository(context: Context) {
     fun recordAttendance(item: Attendance) = sessionDomain.recordAttendance(item)
     fun recordWeeklyAttendance(memberId: String, dateEpochMillis: Long, status: AttendanceStatus, note: String? = null) =
         sessionDomain.recordWeeklyAttendance(memberId, dateEpochMillis, status, note)
-
-    private val catalogDomain by lazy(LazyThreadSafetyMode.NONE) { CatalogRepository(this) }
 
     fun grantShopItem(memberId: String, itemId: String, reason: String): Boolean =
         catalogDomain.grantShopItem(memberId, itemId, reason)
