@@ -23,24 +23,28 @@ class AppRepository(context: Context) {
     internal val appContext = context.applicationContext
     private val persistence = AppPersistence(appContext)
 
-    var ring: RingAccount? = null
-        internal set
+    private val state = RepositoryState()
 
-    val members = mutableListOf<Member>()
-    val history = mutableListOf<HistoryEvent>()
-    val shop = mutableListOf<ShopItem>()
-    val missions = mutableListOf<Mission>()
-    val missionCompletions = mutableListOf<MissionCompletion>()
-    val missionRequests = mutableListOf<MissionRequest>()
-    val missionNotices = mutableListOf<MissionNotice>()
-    val sessions = mutableListOf<Session>()
-    val attendance = mutableListOf<Attendance>()
-    val assets = mutableListOf<CustomAsset>()
-    val groups = mutableListOf<Group>()
-    val archived = mutableListOf<ArchivedMember>()
+    var ring: RingAccount?
+        get() = state.ring
+        internal set(value) { state.ring = value }
 
-    var wheel = WheelConfig()
-        internal set
+    val members: MutableList<Member> get() = state.members
+    val history: MutableList<HistoryEvent> get() = state.history
+    val shop: MutableList<ShopItem> get() = state.shop
+    val missions: MutableList<Mission> get() = state.missions
+    val missionCompletions: MutableList<MissionCompletion> get() = state.missionCompletions
+    val missionRequests: MutableList<MissionRequest> get() = state.missionRequests
+    val missionNotices: MutableList<MissionNotice> get() = state.missionNotices
+    val sessions: MutableList<Session> get() = state.sessions
+    val attendance: MutableList<Attendance> get() = state.attendance
+    val assets: MutableList<CustomAsset> get() = state.assets
+    val groups: MutableList<Group> get() = state.groups
+    val archived: MutableList<ArchivedMember> get() = state.archived
+
+    var wheel: WheelConfig
+        get() = state.wheel
+        internal set(value) { state.wheel = value }
 
     private val bootstrapper by lazy(LazyThreadSafetyMode.NONE) { CatalogBootstrapper(this) }
     private val memberDomain by lazy(LazyThreadSafetyMode.NONE) { MemberRepository(this, ::newId) }
