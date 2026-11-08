@@ -16,6 +16,7 @@ internal data class HomeDataState(
 )
 
 internal data class MembersDataState(
+    val ring: RingAccount? = null,
     val members: List<Member> = emptyList(),
     val groups: List<Group> = emptyList(),
     val shop: List<ShopItem> = emptyList(),
@@ -55,6 +56,9 @@ internal data class ProgressDataState(
     val history: List<HistoryEvent> = emptyList(),
     val missions: List<Mission> = emptyList(),
     val completions: List<MissionCompletion> = emptyList(),
+    val requests: List<MissionRequest> = emptyList(),
+    val notices: List<MissionNotice> = emptyList(),
+    val assets: List<CustomAsset> = emptyList(),
     val wheel: WheelConfig = WheelConfig(),
     val sessions: List<Session> = emptyList(),
     val attendance: List<Attendance> = emptyList(),
@@ -103,12 +107,12 @@ internal class AppStatePublisher {
         val wheel = state.wheel
 
         _home.value = HomeDataState(state.ring, members, history, attendance, sessions, missions, completions)
-        _members.value = MembersDataState(members, groups, shop, history, archived, assets)
+        _members.value = MembersDataState(state.ring, members, groups, shop, history, archived, assets)
         _missions.value = MissionDataState(members, missions, completions, requests, notices, history)
         _sessions.value = SessionsDataState(members, groups, sessions, attendance, shop)
         _catalog.value = CatalogDataState(members, shop, history, assets, wheel)
         _progress.value = ProgressDataState(
-            members, groups, history, missions, completions, wheel, sessions, attendance, shop
+            members, groups, history, missions, completions, requests, notices, assets, wheel, sessions, attendance, shop
         )
     }
 }
