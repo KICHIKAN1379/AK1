@@ -91,6 +91,7 @@ class AppRepository(context: Context) {
     private fun syncProfilePack() = bootstrapper.syncProfilePack()
     private fun syncRankPack() = bootstrapper.syncRankPack()
     private fun syncGroupPack() = bootstrapper.syncGroupPack()
+    private fun regenerateLevelAvatars() = bootstrapper.regenerateLevelAvatars()
     private fun upgradeStarterLooks() = bootstrapper.upgradeStarterLooks()
     private fun migrateNoFreeLooks() = bootstrapper.migrateNoFreeLooks()
     fun setGroupLook(groupId: String, crestItemId: String?, cardItemId: String?) =
