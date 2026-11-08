@@ -40,7 +40,7 @@ class AppRepository(context: Context) {
     val archived = mutableListOf<ArchivedMember>()
 
     var wheel = WheelConfig()
-        private set
+        internal set
 
     init {
         persistence.load()?.let { state ->
@@ -459,13 +459,11 @@ class AppRepository(context: Context) {
     fun decreaseLevel(memberId: String, targetLevel: Int, reason: String, actor: String? = null) =
         economyDomain.decreaseLevel(memberId, targetLevel, reason, actor)
 
-    fun updateWheelItem(item: WheelItem) { setWheel(wheel.copy(items = wheel.items.map { if (it.id == item.id) item else it })) }
-    fun deleteWheelItem(itemId: String) { setWheel(wheel.copy(items = wheel.items.filterNot { it.id == itemId })) }
+    private val wheelDomain by lazy(LazyThreadSafetyMode.NONE) { WheelRepository(this) }
 
-    fun setWheel(config: WheelConfig) {
-        wheel = config
-        persist()
-    }
+    fun updateWheelItem(item: WheelItem) = wheelDomain.updateWheelItem(item)
+    fun deleteWheelItem(itemId: String) = wheelDomain.deleteWheelItem(itemId)
+    fun setWheel(config: WheelConfig) = wheelDomain.setWheel(config)
 
     private val missionDomain by lazy(LazyThreadSafetyMode.NONE) { MissionRepository(this, ::newId) }
 
@@ -507,6 +505,8 @@ class AppRepository(context: Context) {
     fun deleteShopItem(itemId: String) = catalogDomain.deleteShopItem(itemId)
     fun addShopItem(item: ShopItem) = catalogDomain.addShopItem(item)
     fun addAsset(asset: CustomAsset) = catalogDomain.addAsset(asset)
+
+    fun spinWheel(memberId: String): WheelItem? = wheelDomain.spinWheel(memberId)
 
     fun persist() {
         normaliseHistoryIds()
