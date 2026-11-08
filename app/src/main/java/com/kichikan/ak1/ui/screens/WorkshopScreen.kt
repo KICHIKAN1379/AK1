@@ -29,6 +29,7 @@ import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
 @Composable
 internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, section: Int, back: () -> Unit, openSection: (Int) -> Unit = {}) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val context = LocalContext.current
     var addMission by remember { mutableStateOf(false) }; var editMission by remember { mutableStateOf<Mission?>(null) }; var completeMission by remember { mutableStateOf<Mission?>(null) }; var addWheel by remember { mutableStateOf(false) }; var editWheelConfig by remember { mutableStateOf(false) }; var editWheel by remember { mutableStateOf<WheelItem?>(null) }; var addShop by remember { mutableStateOf(false) }; var editShop by remember { mutableStateOf<ShopItem?>(null) }
     var assetKind by remember { mutableStateOf<String?>(null) }; var assetMessage by remember { mutableStateOf<String?>(null) }
@@ -140,6 +141,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
 
 @Composable
 private fun WorkshopSummary(repo: AppRepository, section: Int) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val accent = when (section) { 0 -> Neon.Cyan; 1 -> Neon.Gold; 2 -> Neon.Violet; else -> Neon.Sky }
     Card(Modifier.fillMaxWidth(), accent = accent) {
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,6 +191,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 }
 
 @Composable private fun MissionEditDialog(repo: AppRepository, item: Mission?, changed: () -> Unit, hiddenDefault: Boolean = false, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val context = LocalContext.current
     var title by remember { mutableStateOf(item?.title ?: "") }
     var desc by remember { mutableStateOf(item?.description ?: "") }
@@ -264,6 +267,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 }
 
 @Composable private fun WheelEditDialog(repo: AppRepository, item: WheelItem?, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var title by remember { mutableStateOf(item?.title ?: "") }
     var amount by remember { mutableStateOf((item?.amount ?: 0).toString()) }
     var weight by remember { mutableStateOf((item?.weight ?: 1).toString()) }
@@ -339,6 +343,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 
 @Composable
 private fun AddWheelItemDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var title by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(WheelRewardType.CUSTOM) }
     var amount by remember { mutableStateOf("0") }
@@ -369,6 +374,7 @@ private fun AddWheelItemDialog(repo: AppRepository, changed: () -> Unit, close: 
 
 @Composable
 private fun CompleteMissionDialog(repo: AppRepository, mission: Mission, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var selected by remember { mutableStateOf(setOf<String>()) }
     var reason by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -423,6 +429,7 @@ private enum class EconomyOp(val label: String, val isLevelTarget: Boolean = fal
 }
 
 @Composable internal fun EconomyDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var step by remember { mutableIntStateOf(0) }; var op by remember { mutableStateOf<EconomyOp?>(null) }; var memberId by remember { mutableStateOf(repo.members.firstOrNull()?.id?:"") }; var amount by remember { mutableStateOf("") }; var reason by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }; val member=repo.members.firstOrNull{it.id==memberId}
     fun submit(){val m=member?:run{error="عضو انتخاب نشده";return};val n=amount.toIntOrNull()?:run{error="مقدار را وارد کنید";return};if(n<=0){error="مقدار باید بیشتر از صفر باشد";return};if(op==EconomyOp.LEVEL_DOWN&&n>=m.economy.level){error="سطح مقصد باید کمتر از سطح فعلی باشد";return};if(reason.isBlank()){error="دلیل اجباری است";return};try{when(op){EconomyOp.XP_ADD->repo.recordXp(m.id,n,reason,"mentor");EconomyOp.XP_SUB->repo.decreaseXp(m.id,n,reason,"mentor");EconomyOp.POINTS_ADD->repo.recordPoints(m.id,n,reason,"mentor");EconomyOp.POINTS_SUB->repo.recordPoints(m.id,-n,reason,"mentor");EconomyOp.DIAMONDS_ADD->repo.recordDiamonds(m.id,n,reason,"mentor");EconomyOp.DIAMONDS_SUB->repo.recordDiamonds(m.id,-n,reason,"mentor");EconomyOp.LEVEL_DOWN->repo.decreaseLevel(m.id,n,reason,"mentor");null->Unit};changed();close()}catch(ex:IllegalArgumentException){error=ex.message}}
     AlertDialog(onDismissRequest=close,title={Text(if(step==0)"شناسنامه" else "ثبت ${op?.label}")},text={
@@ -433,6 +440,7 @@ private enum class EconomyOp(val label: String, val isLevelTarget: Boolean = fal
 }
 
 @Composable private fun WheelConfigDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var mode by remember { mutableStateOf(repo.wheel.mode) }; var points by remember { mutableStateOf(repo.wheel.spinCostPoints.toString()) }; var diamonds by remember { mutableStateOf(repo.wheel.spinCostDiamonds.toString()) }; var repeat by remember { mutableStateOf(repo.wheel.allowRepeatAfterWin) }
     AlertDialog(onDismissRequest=close,title={Text("تنظیمات گردونه")},text={Column(verticalArrangement=Arrangement.spacedBy(7.dp)){Row(Modifier.horizontalScroll(rememberScrollState())){WheelMode.values().forEach{m->FilterChip(mode==m,{mode=m},label={Text(m.name)})}};OutlinedTextField(points,{points=it.filter(Char::isDigit)},label={Text("هزینه امتیاز")});OutlinedTextField(diamonds,{diamonds=it.filter(Char::isDigit)},label={Text("هزینه الماس")});Row(verticalAlignment=Alignment.CenterVertically){Checkbox(repeat,{repeat=it});Text("تکرار جایزه بعد از برد")}}},confirmButton={TextButton({repo.setWheel(repo.wheel.copy(mode=mode,spinCostPoints=points.toIntOrNull()?:0,spinCostDiamonds=diamonds.toIntOrNull()?:0,freeSpin=mode==WheelMode.FREE,allowRepeatAfterWin=repeat));changed();close()}){Text("ذخیره")}},dismissButton={TextButton(close){Text("لغو")}})
 }

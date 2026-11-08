@@ -281,6 +281,7 @@ private fun TodayMissionBoard(
 
 @Composable
 private fun WeeklyPulseCard(repo: AppRepository) {
+    val observedDomainState = repo.homeState.collectAsState().value
     val zone = remember { ZoneId.systemDefault() }
     val today = LocalDate.now(zone)
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }

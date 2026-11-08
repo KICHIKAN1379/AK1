@@ -1,5 +1,6 @@
 package com.kichikan.ak1.ui
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -71,6 +72,7 @@ private fun planFromClock(): SpinPlan {
  */
 @Composable
 fun SpinWheelPage(repo: AppRepository, padding: PaddingValues) {
+    val observedDomainState = repo.catalogState.collectAsState().value
     var tick by remember { mutableIntStateOf(0) }
     var memberId by remember(repo.members.size) { mutableStateOf(repo.members.firstOrNull()?.id ?: "") }
     var result by remember { mutableStateOf<String?>(null) }

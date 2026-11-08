@@ -1,5 +1,6 @@
 package com.kichikan.ak1.ui
 
+import androidx.compose.runtime.collectAsState
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -228,6 +229,7 @@ internal fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
 /** The puzzle page: every group's puzzle, and one reset that clears all of them. */
 @Composable
 fun GroupPuzzlePage(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, back: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     var resetOpen by remember { mutableStateOf(false) }
     var version by remember { mutableIntStateOf(0) }

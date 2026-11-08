@@ -49,6 +49,7 @@ import androidx.compose.ui.window.DialogProperties
 
 @Composable
 internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, openGrowth: (Member) -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var page by remember { mutableIntStateOf(0) }
     var add by remember { mutableStateOf(false) }
     var addGroup by remember { mutableStateOf(false) }
@@ -458,6 +459,7 @@ private fun MiniStat(label: String, value: String, accent: Color, modifier: Modi
 }
 
 @Composable private fun GroupDialog(repo: AppRepository, group: Group?, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     var name by remember { mutableStateOf(group?.name ?: "") }
     var description by remember(group?.id) { mutableStateOf(group?.description ?: "") }
@@ -600,6 +602,7 @@ private fun MiniStat(label: String, value: String, accent: Color, modifier: Modi
 
 @Composable
 private fun GroupScoreDialog(repo: AppRepository, group: Group, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var points by remember { mutableStateOf("0") }
     var diamonds by remember { mutableStateOf("0") }
     var reason by remember { mutableStateOf("") }
@@ -630,6 +633,7 @@ private fun GroupScoreDialog(repo: AppRepository, group: Group, changed: () -> U
 }
 
 @Composable private fun MemberEditDialog(repo: AppRepository, member: Member, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var name by remember { mutableStateOf(member.name) }; var groupId by remember { mutableStateOf(member.groupId) }; var notes by remember { mutableStateOf(member.privateNotes) }; var responsibility by remember { mutableStateOf(member.responsibility) }
     AlertDialog(onDismissRequest = close, title = { Text("ویرایش عضو") }, text = { Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         OutlinedTextField(name, { name = it }, label = { Text("نام") }, singleLine = true); Text("گروه")
@@ -641,11 +645,13 @@ private fun GroupScoreDialog(repo: AppRepository, group: Group, changed: () -> U
 }
 
 @Composable private fun MemberNotesDialog(repo: AppRepository, member: Member, close: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     AlertDialog(onDismissRequest = close, title = { Text("توضیحات ${member.name}") }, text = { Text(if (member.privateNotes.isBlank()) "برای این عضو توضیحی ثبت نشده است." else member.privateNotes) }, confirmButton = { TextButton(close) { Text("بستن") } })
 }
 
 @Composable
 private fun AddMemberDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var name by remember { mutableStateOf("") }
     var responsibility by remember { mutableStateOf("") }
     var birthDigits by remember { mutableStateOf("") }
@@ -721,6 +727,7 @@ private fun MemberProfileDialog(
     onReport: () -> Unit,
     onTreasury: () -> Unit
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val avatarPath = repo.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath

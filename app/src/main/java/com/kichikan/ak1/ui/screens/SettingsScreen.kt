@@ -79,6 +79,7 @@ private fun SettingsTile(tool: SettingsTool, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, openArchive: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var musicEnabled by remember { mutableStateOf(BackgroundMusic.enabled(context)) }

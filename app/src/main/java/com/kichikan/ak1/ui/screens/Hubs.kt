@@ -14,6 +14,7 @@ import com.kichikan.ak1.data.AppRepository
 
 @Composable
 internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val now = System.currentTimeMillis()
     val upcomingSessions = repo.sessions.count { it.startsAt > now }
     val activeMissions = repo.missions.count { it.active && !it.hidden }
@@ -42,6 +43,7 @@ internal fun WorkshopHub(
     open: (Tab) -> Unit,
     back: () -> Unit
 ) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var identityOpen by remember { mutableStateOf(false) }
     HubScreen(
         padding, "تراشکاری", "ساخت و مدیریت مأموریت، جوایز و شخصی‌سازی",
@@ -86,6 +88,7 @@ internal fun StoreHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> U
 
 @Composable
 internal fun SessionsHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit, back: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val now = System.currentTimeMillis()
     val upcoming = repo.sessions.count { it.startsAt > now }
     val completed = repo.sessions.size - upcoming

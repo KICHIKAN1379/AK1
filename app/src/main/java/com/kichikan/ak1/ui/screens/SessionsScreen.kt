@@ -32,6 +32,7 @@ import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
 @Composable
 internal fun SessionsScreen(padding: PaddingValues, repo: AppRepository, changed: () -> Unit, attendance: Boolean, back: () -> Unit) {
+    val observedDomainState = repo.sessionsState.collectAsState().value
     var add by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Session?>(null) }
     var detail by remember { mutableStateOf<Session?>(null) }
@@ -222,6 +223,7 @@ private fun SessionStat(label: String, value: String, accent: Color, modifier: M
 
 @Composable
 private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
+    val observedDomainState = repo.sessionsState.collectAsState().value
     val context = LocalContext.current
     var attendanceEditTarget by remember { mutableStateOf<Pair<Member, java.time.LocalDate>?>(null) }
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
@@ -559,6 +561,7 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
 
 @Composable
 private fun AttendanceCalendarDialog(repo: AppRepository, session: Session, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.sessionsState.collectAsState().value
     var weekOffset by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
@@ -671,6 +674,7 @@ private fun buildAttendanceExcel(repo: AppRepository, monthOffset: Int = 0): Str
 }
 
 @Composable private fun SessionEditDialog(repo: AppRepository, session: Session?, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.sessionsState.collectAsState().value
     val context = LocalContext.current
     var memberId by remember { mutableStateOf(session?.memberId ?: repo.members.firstOrNull()?.id ?: "") }
     var topic by remember { mutableStateOf(session?.title ?: "") }
