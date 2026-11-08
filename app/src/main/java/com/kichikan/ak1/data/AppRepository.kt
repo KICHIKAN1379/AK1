@@ -20,7 +20,7 @@ import java.time.ZoneId
 
 class AppRepository(context: Context) {
     private fun newId(prefix: String): String = "$prefix-${java.util.UUID.randomUUID()}"
-    private val appContext = context.applicationContext
+    internal val appContext = context.applicationContext
     private val persistence = AppPersistence(appContext)
 
     var ring: RingAccount? = null
@@ -467,148 +467,21 @@ class AppRepository(context: Context) {
         persist()
     }
 
-    fun updateMission(mission: Mission) { val i = missions.indexOfFirst { it.id == mission.id }; if (i >= 0) { missions[i] = mission; persist() } }
-    fun deleteMission(missionId: String) { missions.removeAll { it.id == missionId }; missionCompletions.removeAll { it.missionId == missionId }; persist() }
+    private val missionDomain by lazy(LazyThreadSafetyMode.NONE) { MissionRepository(this, ::newId) }
 
-    fun addMission(mission: Mission) {
-        require(mission.xpReward >= 0 && mission.pointsReward >= 0 && mission.diamondReward >= 0)
-        missions.removeAll { it.id == mission.id }
-        missions += mission
-        persist()
-    }
-
-    /** Members who already received this hidden mission. */
-    fun hiddenReceivedIds(missionId: String): Set<String> =
-        missionCompletions.filter { it.missionId == missionId }.flatMap { it.memberIds }.toSet()
-
-    /** Date (epoch millis) a member received a hidden mission, or null. */
-    fun hiddenReceivedAt(memberId: String, missionId: String): Long? =
-        missionCompletions.filter { it.missionId == missionId && memberId in it.memberIds }.maxOfOrNull { it.completedAt }
-
-    /** Default hidden missions, added once; the mentor can edit or delete them. They carry no points. */
-    private fun seedDefaultHiddenMissions() {
-        val prefs = appContext.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("hidden_missions_seeded", false)) return
-        val defaults = listOf(
-            "اولین کمک به تازه‌وارد" to "اولین بار به عضو جدید در کاری کمک کند.",
-            "سکوت بی‌یادآوری" to "در یک جلسه، بدون یادآوری مربی، سکوت را رعایت کند.",
-            "خلاصه برای دوست" to "یک کتاب را خلاصه کند و برای یکی از دوستانش توضیح دهد.",
-            "زودتر از همه" to "در یک هفته، سه بار قبل از شروع جلسه حاضر شود.",
-            "همدلی کوچک" to "کسی را که ناراحت است پیدا کند و یک کار کوچک برای او انجام دهد."
-        )
-        defaults.forEach { (title, desc) ->
-            missions += Mission("hidden-" + title.hashCode().toString(16), title, desc, MissionType.INDIVIDUAL, hidden = true, active = true)
-        }
-        prefs.edit().putBoolean("hidden_missions_seeded", true).apply()
-        persist()
-    }
-
-    fun completeMission(
-        mission: Mission,
-        memberIds: List<String>,
-        reason: String? = null
-    ): MissionCompletion {
-        check(MissionService.canComplete(mission, System.currentTimeMillis())) {
-            "این مأموریت در حال حاضر قابل ثبت نیست"
-        }
-
-        // A hidden mission is received only once per member.
-        val alreadyReceived = if (mission.hidden) hiddenReceivedIds(mission.id) else emptySet()
-        val validIds = memberIds.distinct().filter { it !in alreadyReceived }
-        check(validIds.isNotEmpty()) { if (alreadyReceived.isNotEmpty()) "این مأموریت مخفی قبلاً برای این عضو ثبت شده است" else "حداقل یک عضو لازم است" }
-        validIds.forEach { id ->
-            check(members.any { it.id == id }) { "عضو نامعتبر است" }
-        }
-
-        val completion = MissionService.completion(
-            mission,
-            validIds,
-            System.currentTimeMillis(),
-            reason
-        )
-        missionCompletions += completion
-
-        validIds.forEach { memberId ->
-            if (mission.xpReward > 0) {
-                recordXp(memberId, mission.xpReward, "ماموریت: " + mission.title, "mentor")
-            }
-            if (mission.pointsReward > 0) {
-                recordPoints(memberId, mission.pointsReward, "ماموریت: " + mission.title, "mentor")
-            }
-            if (mission.diamondReward > 0) {
-                recordDiamonds(memberId, mission.diamondReward, "ماموریت: " + mission.title, "mentor")
-            }
-
-            history += HistoryEvent(
-                "mission-" + completion.id + "-" + memberId,
-                memberId,
-                HistoryType.MISSION_COMPLETED,
-                null,
-                mission.title,
-                reason,
-                completion.completedAt,
-                "mentor"
-            )
-        }
-
-        persist()
-        return completion
-    }
-
-
-    fun requestMission(memberId: String, missionId: String, message: String = ""): MissionRequest {
-        require(members.any { it.id == memberId }) { "عضو نامعتبر است" }
-        val mission = missions.firstOrNull { it.id == missionId && !it.hidden } ?: error("مأموریت پیدا نشد")
-        require(MissionService.canComplete(mission, System.currentTimeMillis())) { "این مأموریت اکنون فعال نیست" }
-        require(mission.type == MissionType.INDIVIDUAL) { "درخواست فردی برای مأموریت گروهی پشتیبانی نمی‌شود" }
-        require(missionRequests.none { it.missionId == missionId && it.memberId == memberId && it.status == MissionRequestStatus.PENDING }) { "برای این مأموریت درخواست در انتظار بررسی دارید" }
-        require(missionCompletions.none { it.missionId == missionId && memberId in it.memberIds }) { "این مأموریت قبلاً برای شما ثبت شده است" }
-        val now = System.currentTimeMillis()
-        val memberName = members.first { it.id == memberId }.name
-        val request = MissionRequest(newId("mission-request"), missionId, memberId, message.trim(), now)
-        missionRequests += request
-        val noticeText = "$memberName برای «${mission.title}» درخواست ثبت انجام فرستاد."
-        addMissionNotice("درخواست تازه مأموریت", noticeText, request.id)
-        persist()
-        MissionNotifications.post(appContext, "درخواست تازه مأموریت", noticeText, request.id.hashCode())
-        return request
-    }
-
-    fun reviewMissionRequest(requestId: String, approve: Boolean, mentorNote: String = ""): MissionRequest {
-        val index = missionRequests.indexOfFirst { it.id == requestId }
-        require(index >= 0) { "درخواست پیدا نشد" }
-        val request = missionRequests[index]
-        require(request.status == MissionRequestStatus.PENDING) { "این درخواست قبلاً بررسی شده است" }
-        val mission = missions.firstOrNull { it.id == request.missionId } ?: error("مأموریت حذف شده است")
-        val member = members.firstOrNull { it.id == request.memberId } ?: error("عضو پیدا نشد")
-        if (approve) {
-            require(missionCompletions.none { it.missionId == mission.id && request.memberId in it.memberIds }) {
-                "این مأموریت پس از ثبت درخواست، قبلاً برای این عضو ثبت شده است؛ از ثبت پاداش تکراری جلوگیری شد."
-            }
-            completeMission(mission, listOf(request.memberId), mentorNote.ifBlank { "درخواست عضو تأیید شد" })
-        }
-        val reviewed = request.copy(
-            status = if (approve) MissionRequestStatus.APPROVED else MissionRequestStatus.REJECTED,
-            reviewedAt = System.currentTimeMillis(), mentorNote = mentorNote.trim().takeIf { it.isNotEmpty() }
-        )
-        missionRequests[index] = reviewed
-        val title = if (approve) "درخواست مأموریت تأیید شد" else "درخواست مأموریت رد شد"
-        val message = "درخواست «${mission.title}» برای ${member.name} ${if (approve) "تأیید" else "رد"} شد."
-        addMissionNotice(title, message, request.id)
-        persist()
-        MissionNotifications.post(appContext, title, message, request.id.hashCode() + 1)
-        return reviewed
-    }
-
-    private fun addMissionNotice(title: String, message: String, requestId: String?) {
-        missionNotices.add(0, MissionNotice(newId("mission-notice"), title, message, System.currentTimeMillis(), requestId))
-        while (missionNotices.size > 100) missionNotices.removeAt(missionNotices.lastIndex)
-    }
-
-    fun markMissionNoticesRead() {
-        missionNotices.indices.forEach { i -> if (!missionNotices[i].read) missionNotices[i] = missionNotices[i].copy(read = true) }
-        persist()
-    }
+    fun updateMission(mission: Mission) = missionDomain.updateMission(mission)
+    fun deleteMission(missionId: String) = missionDomain.deleteMission(missionId)
+    fun addMission(mission: Mission) = missionDomain.addMission(mission)
+    fun hiddenReceivedIds(missionId: String): Set<String> = missionDomain.hiddenReceivedIds(missionId)
+    fun hiddenReceivedAt(memberId: String, missionId: String): Long? = missionDomain.hiddenReceivedAt(memberId, missionId)
+    private fun seedDefaultHiddenMissions() = missionDomain.seedDefaultHiddenMissions()
+    fun completeMission(mission: Mission, memberIds: List<String>, reason: String? = null): MissionCompletion =
+        missionDomain.completeMission(mission, memberIds, reason)
+    fun requestMission(memberId: String, missionId: String, message: String = ""): MissionRequest =
+        missionDomain.requestMission(memberId, missionId, message)
+    fun reviewMissionRequest(requestId: String, approve: Boolean, mentorNote: String = ""): MissionRequest =
+        missionDomain.reviewMissionRequest(requestId, approve, mentorNote)
+    fun markMissionNoticesRead() = missionDomain.markMissionNoticesRead()
 
     fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session {
         require(members.any { it.id == memberId }) { "عضو نامعتبر است" }
