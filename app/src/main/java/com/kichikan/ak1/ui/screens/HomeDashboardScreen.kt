@@ -64,7 +64,6 @@ internal fun HomeDashboardScreen(
     val data by repo.homeState.collectAsState()
     val context = LocalContext.current
     val assistantOpen = remember { mutableStateOf(false) }
-    val reportOpen = remember { mutableStateOf(false) }
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val photoUri = remember { prefs.getString("ring_profile_image", null) }
     val ringPhoto = remember(photoUri) {
@@ -75,33 +74,20 @@ internal fun HomeDashboardScreen(
         bannerUri?.let { AvatarRender.decodeSampled(context, android.net.Uri.parse(it), 960)?.asImageBitmap() }
     }
     val today = LocalDate.now()
-    val zone = ZoneId.systemDefault()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val todayAttendance = data.attendance.count {
-        Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == today &&
-            it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE)
+    val quickShortcuts = listOf(
+        HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.HOME),
+        HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
+        HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
+        HomeShortcut("home_workshop", "کارگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
+    ).filter { shortcut ->
+        prefs.getBoolean(shortcut.key, true)
     }
-    val todaySessions = data.sessions.count {
-        Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == today
-    }
-    val totalXp = data.members.sumOf { it.economy.xp }
-    val totalPoints = data.members.sumOf { it.economy.spendablePoints }
-    val totalDiamonds = data.members.sumOf { it.economy.diamonds }
-    val topMember = data.members.maxByOrNull { it.economy.xp }
-    val assistantReport = remember(data.members.size, data.history.size, data.attendance.size, data.sessions.size, data.missionCompletions.size) {
-        com.kichikan.ak1.domain.assistant.MentorAssistantAnalyzer.analyze(
-            members = data.members.toList(),
-            history = data.history.toList(),
-            attendance = data.attendance.toList(),
-            sessions = data.sessions.toList(),
-            missionCompletions = data.missionCompletions.toList()
-        )
-    }
-     Column(
-        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+
+    Column(
+        Modifier.fillMaxSize().padding(padding).padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         HomeIdentityHero(
             ringName = data.ring?.ringName ?: "حلقه من",
@@ -113,124 +99,40 @@ internal fun HomeDashboardScreen(
         )
         if (!quote.isNullOrBlank()) {
             AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppIcon(R.drawable.icon_settings_shortcuts, 28.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("جمله روز", color = Neon.Magenta, style = MaterialTheme.typography.labelSmall)
-                        Text(quote, style = MaterialTheme.typography.bodyMedium, maxLines = 2,
-                            overflow = TextOverflow.Ellipsis)
-                    }
-                }
+                Text(
+                    "«$quote»",
+                    Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
-
-        AkCard(onClick = { reportOpen.value = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), accent = Neon.Cyan) {
-            Box(
-                Modifier.fillMaxWidth()
-                    .background(Brush.linearGradient(listOf(Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C))))
-                    .drawBehind {
-                        drawCircle(
-                            Brush.radialGradient(listOf(Neon.Cyan.copy(alpha = 0.23f), Color.Transparent)),
-                            radius = size.width * 0.58f,
-                            center = androidx.compose.ui.geometry.Offset(size.width * 0.94f, 0f)
-                        )
-                        drawCircle(
-                            Brush.radialGradient(listOf(Neon.Magenta.copy(alpha = 0.16f), Color.Transparent)),
-                            radius = size.width * 0.52f,
-                            center = androidx.compose.ui.geometry.Offset(0f, size.height)
-                        )
-                    }
-                    .padding(18.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(color = Neon.Cyan.copy(alpha = 0.14f), shape = RoundedCornerShape(50)) {
-                            Text("RING EXPERIENCE", Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                color = Neon.Cyan, fontSize = 9.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.weight(1f))
-                        GlassIcon(GlassKind.XP, size = 30.dp, tint = Neon.Cyan)
-                    }
-                    Text("قدرت جمعی حلقه", color = Neon.Ice.copy(alpha = 0.78f), style = MaterialTheme.typography.labelLarge)
-                    Text(totalXp.toString(), color = Color.White, fontSize = 36.sp, lineHeight = 42.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("XP کسب‌شده توسط اعضا", color = Neon.Cyan.copy(alpha = 0.9f), style = MaterialTheme.typography.bodySmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HeroMetricPill("اعضا", data.members.size.toString(), Neon.Violet)
-                        HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
-                        HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Cyan)
-                    }
-                }
-            }
-        }
-
         WeeklyPulseCard(repo) { open(Tab.WEEKLY_PULSE) }
-
-        AkCard(onClick = openMembers, modifier = Modifier.fillMaxWidth(), accent = Neon.Violet) {
-            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(Neon.Violet.copy(alpha = 0.16f)),
-                    contentAlignment = Alignment.Center) {
-                    AppIcon(R.drawable.icon_home_member_management, 30.dp)
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("اعضای حلقه", style = MaterialTheme.typography.titleMedium)
-                    Text("پرونده‌ها، پیشرفت و وضعیت اعضا را مدیریت کن",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                }
-                Text("←", color = Neon.Cyan, fontSize = 23.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("دسترسی سریع", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.weight(1f))
+                Text("حداکثر ۴ میانبر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
-
-        MentorSignalCard(
-            insightCount = assistantReport.insights.size,
-            highPriorityCount = assistantReport.highPriorityCount,
-            hasAttentionItems = assistantReport.hasAttentionItems,
-            onClick = { assistantOpen.value = true }
-        )
-
-        val quickShortcuts = listOf(
-            HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
-            HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
-            HomeShortcut("home_workshop", "کارگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP),
-            HomeShortcut("home_reports", "گزارش‌ها", R.drawable.icon_nav_services, Tab.WEEKLY_PULSE),
-            HomeShortcut("home_missions", "مأموریت‌ها", R.drawable.icon_workshop_missions, Tab.MISSION_ACHIEVEMENTS),
-            HomeShortcut("home_quotes", "جمله‌های روز", R.drawable.icon_settings_shortcuts, Tab.SETTINGS)
-        ).filter { shortcut ->
-            prefs.getBoolean(shortcut.key, shortcut.key in setOf("home_sessions", "home_ranking"))
-        }
-        if (quickShortcuts.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("دسترسی سریع", style = MaterialTheme.typography.titleMedium)
-                quickShortcuts.chunked(2).forEach { rowItems ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                        rowItems.forEach { shortcut ->
-                            QuickLaunchItem(shortcut.title, shortcut.icon, Neon.Cyan, { open(shortcut.target) }, Modifier.weight(1f))
-                        }
-                        repeat(2 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+            quickShortcuts.chunked(2).forEach { rowItems ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    rowItems.forEach { shortcut ->
+                        QuickLaunchItem(
+                            shortcut.title,
+                            shortcut.icon,
+                            if (shortcut.key == "home_assistant") Neon.Magenta else Neon.Cyan,
+                            { if (shortcut.key == "home_assistant") assistantOpen.value = true else open(shortcut.target) },
+                            Modifier.weight(1f)
+                        )
                     }
+                    repeat(2 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
-        topMember?.let { leader ->
-            AkCard(onClick = { open(Tab.RANKING) }, modifier = Modifier.fillMaxWidth(), accent = Neon.Gold) {
-                Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppIcon(R.drawable.icon_services_competition, 34.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("صدرنشین حلقه", color = Neon.Gold, style = MaterialTheme.typography.labelSmall)
-                        Text(leader.name, style = MaterialTheme.typography.titleMedium)
-                        Text("سطح ${leader.economy.level} • ${leader.economy.xp} XP",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text("مشاهده رتبه‌ها ←", color = Neon.Gold, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
-         Spacer(Modifier.height(8.dp))
     }
     if (assistantOpen.value) MentorAssistantDialog(repo) { assistantOpen.value = false }
-    if (reportOpen.value) RingReportDialog(repo) { reportOpen.value = false }
 }
 
 @Composable
