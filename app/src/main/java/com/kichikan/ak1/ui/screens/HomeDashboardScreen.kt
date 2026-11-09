@@ -174,13 +174,12 @@ internal fun HomeDashboardScreen(
         val quickShortcuts = listOf(
             HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
             HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
-            HomeShortcut("home_workshop", "تراشکاری", R.drawable.icon_services_workshop, Tab.WORKSHOP),
-            HomeShortcut("home_reading", "کتاب‌خوانی", R.drawable.icon_services_reading, Tab.READING),
+            HomeShortcut("home_workshop", "کارگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP),
+            HomeShortcut("home_reports", "گزارش‌ها", R.drawable.icon_nav_services, Tab.WEEKLY_PULSE),
             HomeShortcut("home_missions", "مأموریت‌ها", R.drawable.icon_workshop_missions, Tab.MISSION_ACHIEVEMENTS),
-            HomeShortcut("home_store", "فروشگاه", R.drawable.icon_services_store, Tab.STORE),
-            HomeShortcut("home_wheel", "گردونه", R.drawable.icon_services_wheel, Tab.WHEEL)
+            HomeShortcut("home_quotes", "جمله‌های روز", R.drawable.icon_settings_shortcuts, Tab.SETTINGS)
         ).filter { shortcut ->
-            prefs.getBoolean(shortcut.key, shortcut.key in setOf("home_sessions", "home_ranking", "home_reading", "home_missions"))
+            prefs.getBoolean(shortcut.key, shortcut.key in setOf("home_sessions", "home_ranking"))
         }
         if (quickShortcuts.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
