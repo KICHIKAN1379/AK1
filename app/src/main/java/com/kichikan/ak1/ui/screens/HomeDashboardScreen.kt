@@ -77,7 +77,10 @@ internal fun HomeDashboardScreen(
     val todaySessions = data.sessions.count {
         Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == today
     }
-    val activeMissions = data.missions.count { it.active && !it.hidden }
+    val now = System.currentTimeMillis()
+    val activeMissions = data.missions.count {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
+    }
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
@@ -481,7 +484,7 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
 
         AkCard(Modifier.fillMaxWidth(), accent = Neon.Gold) {
             Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("مأموریت‌های فعال", style = MaterialTheme.typography.titleMedium)
+                Text("مأموریت فعال امروز", style = MaterialTheme.typography.titleMedium)
                 Text(activeMissions.toString(), color = Neon.Gold, style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold)
                 Text("مأموریت فعال در حلقه", color = MaterialTheme.colorScheme.onSurfaceVariant,
