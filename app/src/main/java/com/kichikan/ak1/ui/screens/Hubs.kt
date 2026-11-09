@@ -57,7 +57,8 @@ internal fun WorkshopHub(
             HubEntry("پازل گروهی", "تصویر و تکه‌های پازل هر گروه", Neon.Violet, { AppIcon(R.drawable.icon_workshop_avatar_frame, 62.dp) }) { open(Tab.WORKSHOP_PUZZLE) },
             HubEntry("جوایز فروشگاه", "ساخت و ویرایش آیتم‌ها", Neon.Gold, { AppIcon(R.drawable.icon_workshop_store_rewards, 62.dp) }) { open(Tab.WORKSHOP_PRIZES) },
             HubEntry("آواتار و قاب", "افزودن تصویر سفارشی", Neon.Violet, { AppIcon(R.drawable.icon_workshop_avatar_frame, 62.dp) }) { open(Tab.WORKSHOP_ASSETS) },
-            HubEntry("تنظیم گردونه", "جوایز، وزن و هزینه", Neon.Sky, { AppIcon(R.drawable.icon_workshop_wheel_settings, 62.dp) }) { open(Tab.WORKSHOP_WHEEL) }
+            HubEntry("تنظیم گردونه", "جوایز، وزن و هزینه", Neon.Sky, { AppIcon(R.drawable.icon_workshop_wheel_settings, 62.dp) }) { open(Tab.WORKSHOP_WHEEL) },
+            HubEntry("تنظیم نقشه کمال", "تعریف و مدیریت توانمندی‌ها و خودسازی", Neon.Magenta, { AppIcon(R.drawable.icon_settings_growth_map, 62.dp) }) { open(Tab.GROWTH_SETTINGS) }
         ),
         back
     )
