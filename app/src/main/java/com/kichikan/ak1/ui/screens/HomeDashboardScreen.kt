@@ -82,7 +82,7 @@ internal fun HomeDashboardScreen(
         HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
         HomeShortcut("home_workshop", "پالایشگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
     ).filter { shortcut ->
-        prefs.getBoolean(shortcut.key, true)
+        prefs.getBoolean(shortcut.key, shortcut.key != "home_sessions")
     }
 
     Column(
