@@ -108,9 +108,21 @@ internal fun HomeDashboardScreen(
             month = JalaliCalendar.MONTH_NAMES[jalali.month - 1],
             year = jalali.year,
             photo = ringPhoto,
-            banner = ringBanner,
-            quote = quote
+            banner = ringBanner
         )
+        if (!quote.isNullOrBlank()) {
+            AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppIcon(R.drawable.icon_settings_shortcuts, 28.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("جمله روز", color = Neon.Magenta, style = MaterialTheme.typography.labelSmall)
+                        Text(quote, style = MaterialTheme.typography.bodyMedium, maxLines = 2,
+                            overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
 
         AkCard(onClick = { reportOpen.value = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), accent = Neon.Cyan) {
             Box(
@@ -208,7 +220,7 @@ internal fun HomeDashboardScreen(
 @Composable
 private fun HomeIdentityHero(
     ringName: String, day: Int, month: String, year: Int,
-    photo: androidx.compose.ui.graphics.ImageBitmap?, banner: androidx.compose.ui.graphics.ImageBitmap?, quote: String?
+    photo: androidx.compose.ui.graphics.ImageBitmap?, banner: androidx.compose.ui.graphics.ImageBitmap?
 ) {
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
         if (banner != null) {
@@ -242,8 +254,6 @@ private fun HomeIdentityHero(
             Text("حلقه تربیتی", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall)
             Text(ringName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!quote.isNullOrBlank()) Text(quote, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Surface(shape = RoundedCornerShape(16.dp), color = Neon.Cyan.copy(alpha = 0.10f),
             border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.34f))) {
