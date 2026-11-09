@@ -52,6 +52,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+private data class HomeShortcut(val key: String, val title: String, val icon: Int, val target: Tab)
+
 @Composable
 internal fun HomeDashboardScreen(
     repo: AppRepository,
@@ -168,6 +170,31 @@ internal fun HomeDashboardScreen(
             hasAttentionItems = assistantReport.hasAttentionItems,
             onClick = { assistantOpen.value = true }
         )
+
+        val quickShortcuts = listOf(
+            HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
+            HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
+            HomeShortcut("home_workshop", "تراشکاری", R.drawable.icon_services_workshop, Tab.WORKSHOP),
+            HomeShortcut("home_reading", "کتاب‌خوانی", R.drawable.icon_services_reading, Tab.READING),
+            HomeShortcut("home_missions", "مأموریت‌ها", R.drawable.icon_workshop_missions, Tab.MISSION_ACHIEVEMENTS),
+            HomeShortcut("home_store", "فروشگاه", R.drawable.icon_services_store, Tab.STORE),
+            HomeShortcut("home_wheel", "گردونه", R.drawable.icon_services_wheel, Tab.WHEEL)
+        ).filter { shortcut ->
+            prefs.getBoolean(shortcut.key, shortcut.key in setOf("home_sessions", "home_ranking", "home_reading", "home_missions"))
+        }
+        if (quickShortcuts.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("دسترسی سریع", style = MaterialTheme.typography.titleMedium)
+                quickShortcuts.chunked(3).forEach { rowItems ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        rowItems.forEach { shortcut ->
+                            QuickLaunchItem(shortcut.title, shortcut.icon, Neon.Cyan, { open(shortcut.target) }, Modifier.weight(1f))
+                        }
+                        repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
          Spacer(Modifier.height(8.dp))
     }
     if (assistantOpen.value) MentorAssistantDialog(repo) { assistantOpen.value = false }
