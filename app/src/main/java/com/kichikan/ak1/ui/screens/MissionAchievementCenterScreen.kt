@@ -19,7 +19,7 @@ import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.ui.theme.Neon
 
 @Composable
-internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit) {
+internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit, openPuzzle: () -> Unit) {
     val observedDomainState = repo.missionsState.collectAsState().value
     var selected by remember { mutableIntStateOf(0) }
     val missions = repo.missions.filter { it.active && !it.hidden }
@@ -51,6 +51,7 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
             Text("عملیات در جریان", style = MaterialTheme.typography.titleLarge)
             if (missions.isEmpty()) EmptyState("فعلاً مأموریت فعالی تعریف نشده است.", "مربی می‌تواند از بخش تراشکاری مأموریت تازه بسازد.")
             Button(onClick = manageMissions, modifier = Modifier.fillMaxWidth()) { Text("ورود به کارگاه مدیریت مأموریت‌ها  ↗") }
+            OutlinedButton(onClick = openPuzzle, modifier = Modifier.fillMaxWidth()) { Text("پازل گروهی  ↗") }
             missions.forEach { mission ->
                 val participantCount = repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = .22f))) {
