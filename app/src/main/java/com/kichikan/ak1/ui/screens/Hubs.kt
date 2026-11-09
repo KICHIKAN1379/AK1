@@ -1,6 +1,8 @@
 package com.kichikan.ak1.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.kichikan.ak1.domain.model.*
@@ -10,6 +12,8 @@ import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.HubEntry
 import com.kichikan.ak1.ui.HubScreen
+import com.kichikan.ak1.ui.PageHeader
+import com.kichikan.ak1.ui.theme.Card as AkCard
 import com.kichikan.ak1.data.AppRepository
 
 @Composable
@@ -83,7 +87,7 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
         HubEntry("نشان‌ها", "نشان‌های قابل استفاده در پروفایل", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 52.dp) }) { open(Tab.STORE_BADGES) },
         HubEntry("جوایز", "جوایز قابل دریافت با امتیاز", Neon.Green, { AppIcon(R.drawable.icon_workshop_store_rewards, 52.dp) }) { open(Tab.STORE_REWARDS) }
     )
-    val featured = observedCatalogState.items.firstOrNull { it.active }
+    val featured = observedCatalogState.shop.firstOrNull { it.active }
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -91,13 +95,13 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
     ) {
         PageHeader("فروشگاه", back, "آواتار، قاب و جوایز حلقه")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Card(Modifier.weight(1f), accent = Neon.Gold) {
+            AkCard(Modifier.weight(1f), accent = Neon.Gold) {
                 Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelMedium)
                     Text(points.toString(), color = Neon.Gold, style = MaterialTheme.typography.headlineSmall)
                 }
             }
-            Card(Modifier.weight(1f), accent = Neon.Cyan) {
+            AkCard(Modifier.weight(1f), accent = Neon.Cyan) {
                 Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("الماس", style = MaterialTheme.typography.labelMedium)
                     Text(diamonds.toString(), color = Neon.Cyan, style = MaterialTheme.typography.headlineSmall)
@@ -108,7 +112,7 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
         categories.chunked(2).forEach { rowItems ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 rowItems.forEach { entry ->
-                    Card(onClick = entry.onClick, modifier = Modifier.weight(1f).heightIn(min = 142.dp),
+                    AkCard(onClick = entry.onClick, modifier = Modifier.weight(1f).heightIn(min = 142.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp), accent = entry.accent) {
                         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                             entry.icon()
@@ -122,7 +126,7 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
             }
         }
         featured?.let { item ->
-            Card(onClick = {
+            AkCard(onClick = {
                 open(when (item.type) {
                     ShopItemType.AVATAR -> Tab.STORE_AVATARS
                     ShopItemType.FRAME -> Tab.STORE_FRAMES
