@@ -89,11 +89,7 @@ internal fun HomeDashboardScreen(
             missionCompletions = data.missionCompletions.toList()
         )
     }
-    val recentEvents = remember(data.history.size) {
-        data.history.sortedByDescending { it.createdAtEpochMillis }.take(4)
-    }
-
-    Column(
+     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -146,15 +142,7 @@ internal fun HomeDashboardScreen(
             }
         }
 
-        TodayMissionBoard(
-            sessionCount = todaySessions,
-            attendanceCount = todayAttendance,
-            missionCount = activeMissions,
-            openSessions = { open(Tab.SESSIONS) },
-            openWorkshop = { open(Tab.WORKSHOP) }
-        )
-
-        WeeklyPulseCard(repo)
+        WeeklyPulseCard(repo) { open(Tab.WEEKLY_PULSE) }
 
         AkCard(onClick = openMembers, modifier = Modifier.fillMaxWidth(), accent = Neon.Violet) {
             Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically,
@@ -178,13 +166,7 @@ internal fun HomeDashboardScreen(
             hasAttentionItems = assistantReport.hasAttentionItems,
             onClick = { assistantOpen.value = true }
         )
-        RecentActivitySection(recentEvents)
-        QuickLaunchStrip(
-            onSessions = { open(Tab.SESSIONS) },
-            onCompetition = { open(Tab.RANKING) },
-            onWorkshop = { open(Tab.WORKSHOP) }
-        )
-        Spacer(Modifier.height(8.dp))
+         Spacer(Modifier.height(8.dp))
     }
     if (assistantOpen.value) MentorAssistantDialog(repo) { assistantOpen.value = false }
     if (reportOpen.value) RingReportDialog(repo) { reportOpen.value = false }
@@ -215,7 +197,7 @@ private fun HomeIdentityHero(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("مرکز فرماندهی", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall)
+            Text("حلقه تربیتی", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall)
             Text(ringName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (!quote.isNullOrBlank()) Text(quote, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -280,7 +262,7 @@ private fun TodayMissionBoard(
 }
 
 @Composable
-private fun WeeklyPulseCard(repo: AppRepository) {
+private fun WeeklyPulseCard(repo: AppRepository, onClick: () -> Unit) {
     val observedDomainState = repo.homeState.collectAsState().value
     val zone = remember { ZoneId.systemDefault() }
     val today = LocalDate.now(zone)
@@ -292,7 +274,7 @@ private fun WeeklyPulseCard(repo: AppRepository) {
         }
     }
     val peak = (counts.maxOrNull() ?: 0).coerceAtLeast(1)
-    AkCard(modifier = Modifier.fillMaxWidth(), accent = Neon.Green) {
+    AkCard(onClick = onClick, modifier = Modifier.fillMaxWidth(), accent = Neon.Green) {
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -350,7 +332,7 @@ private fun MentorSignalCard(
                 Text("✦", color = Neon.Magenta, fontSize = 27.sp)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("سیگنال‌های دستیار مربی", style = MaterialTheme.typography.titleMedium)
+                Text("دستیار مربی", style = MaterialTheme.typography.titleMedium)
                 Text(
                     if (hasAttentionItems) "$insightCount مورد برای بررسی • اولویت بالا: $highPriorityCount"
                     else "در داده‌های فعلی مورد مهمی برای پیگیری پیدا نشد",
@@ -418,6 +400,124 @@ private fun QuickLaunchItem(title: String, icon: Int, accent: Color, onClick: ()
             AppIcon(icon, 30.dp)
             Spacer(Modifier.height(4.dp))
             Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+
+@Composable
+internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
+    val data by repo.homeState.collectAsState()
+    val zone = remember { ZoneId.systemDefault() }
+    val today = LocalDate.now(zone)
+    val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
+    val counts = days.map { day ->
+        data.attendance.count {
+            it.sessionId == null &&
+                it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE) &&
+                Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
+        }
+    }
+    val peak = (counts.maxOrNull() ?: 0).coerceAtLeast(1)
+    val activeMissions = data.missions.count { it.active && !it.hidden }
+    val totalXp = data.members.sumOf { it.economy.xp }
+    val totalPoints = data.members.sumOf { it.economy.spendablePoints }
+    val totalDiamonds = data.members.sumOf { it.economy.diamonds }
+    val recent = data.history.sortedByDescending { it.createdAtEpochMillis }.take(20)
+
+    Column(
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = back) { Text("بازگشت") }
+            Spacer(Modifier.weight(1f))
+            Text("گزارش عملکرد حلقه", color = Neon.Green, style = MaterialTheme.typography.labelMedium)
+        }
+        Text("نبض هفتگی حلقه", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("نمای کلی فعالیت‌ها، اعضا و دستاوردهای ثبت‌شده", color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall)
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HeroMetricPill("اعضا", data.members.size.toString(), Neon.Violet)
+            HeroMetricPill("XP", totalXp.toString(), Neon.Cyan)
+            HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
+            HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Sky)
+        }
+
+        AkCard(Modifier.fillMaxWidth(), accent = Neon.Green) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("روند هفت روز اخیر", style = MaterialTheme.typography.titleMedium)
+                        Text("حضورهای ثبت‌شده", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(counts.sum().toString(), color = Neon.Green, fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall)
+                }
+                Row(Modifier.fillMaxWidth().height(132.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom) {
+                    days.forEachIndexed { index, day ->
+                        Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(counts[index].toString(), style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                                Box(Modifier.fillMaxWidth().fillMaxHeight((counts[index].toFloat() / peak).coerceAtLeast(0.035f))
+                                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                    .background(Brush.verticalGradient(listOf(Neon.Cyan, Neon.Green))))
+                            }
+                            Text(listOf("ی", "د", "س", "چ", "پ", "ج", "ش")[day.dayOfWeek.value % 7],
+                                color = if (day == today) Neon.Green else MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        }
+
+        AkCard(Modifier.fillMaxWidth(), accent = Neon.Gold) {
+            Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("مأموریت‌های فعال", style = MaterialTheme.typography.titleMedium)
+                Text(activeMissions.toString(), color = Neon.Gold, style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold)
+                Text("مأموریت فعال در حلقه", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        Text("ردّ فعالیت‌ها و سوابق", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        if (recent.isEmpty()) {
+            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+                Text("هنوز فعالیتی ثبت نشده است.", Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+                    recent.forEachIndexed { index, event ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.size(8.dp).clip(CircleShape)
+                                .background(if (index == 0) Neon.Cyan else Neon.Violet.copy(alpha = 0.72f)))
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(event.title, style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                val date = Instant.ofEpochMilli(event.createdAtEpochMillis).atZone(zone).toLocalDate()
+                                val jalali = JalaliCalendar.fromGregorian(date)
+                                Text("%04d/%02d/%02d".format(jalali.year, jalali.month, jalali.day),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            event.amount?.let { Text(if (it > 0) "+$it" else it.toString(),
+                                color = Neon.Green, fontWeight = FontWeight.Bold) }
+                        }
+                        if (index != recent.lastIndex) HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+                    }
+                }
+            }
         }
     }
 }
