@@ -88,6 +88,7 @@ internal fun HomeDashboardScreen(
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
+    val topMember = data.members.maxByOrNull { it.economy.xp }
     val assistantReport = remember(data.members.size, data.history.size, data.attendance.size, data.sessions.size, data.missionCompletions.size) {
         com.kichikan.ak1.domain.assistant.MentorAssistantAnalyzer.analyze(
             members = data.members.toList(),
@@ -208,6 +209,21 @@ internal fun HomeDashboardScreen(
                         }
                         repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                     }
+                }
+            }
+        }
+        topMember?.let { leader ->
+            AkCard(onClick = { open(Tab.RANKING) }, modifier = Modifier.fillMaxWidth(), accent = Neon.Gold) {
+                Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppIcon(R.drawable.icon_services_competition, 34.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("صدرنشین حلقه", color = Neon.Gold, style = MaterialTheme.typography.labelSmall)
+                        Text(leader.name, style = MaterialTheme.typography.titleMedium)
+                        Text("سطح ${leader.economy.level} • ${leader.economy.xp} XP",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text("مشاهده رتبه‌ها ←", color = Neon.Gold, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
