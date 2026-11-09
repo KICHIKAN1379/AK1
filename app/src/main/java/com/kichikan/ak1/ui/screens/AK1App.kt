@@ -76,9 +76,9 @@ internal fun AK1App(repo: AppRepository) {
                     }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
                     Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }) { tab = Tab.WORKSHOP_MISSIONS }
-                    Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SERVICES }
+                    Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SETTINGS }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
-                    Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.SERVICES }
+                    Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.HOME }
                     Tab.READING -> ReadingScreen(repo, padding, { changed() }) { tab = Tab.SERVICES }
                     Tab.SESSIONS -> SessionsHub(padding, repo, { tab = it }) { tab = Tab.SERVICES }
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0, { tab = Tab.WORKSHOP }) { tab = if (it == 4) Tab.WORKSHOP_HIDDEN_MISSIONS else Tab.WORKSHOP_MISSIONS }
