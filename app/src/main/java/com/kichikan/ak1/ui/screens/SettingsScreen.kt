@@ -54,6 +54,8 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var musicEnabled by remember { mutableStateOf(BackgroundMusic.enabled(context)) }
+    var ringNameInput by remember(repo.ring?.ringName) { mutableStateOf(repo.ring?.ringName ?: "") }
+    var ringUsernameInput by remember(repo.ring?.ringUsername) { mutableStateOf(repo.ring?.ringUsername ?: "") }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
             try {
@@ -121,6 +123,21 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val profilePreview = remember(profileImageUri) {
         profileImageUri?.let { raw ->
             AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 256)?.asImageBitmap()
+        }
+    }
+    var bannerUri by remember { mutableStateOf(prefs.getString("ring_home_banner", null)) }
+    val bannerPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            bannerUri = uri.toString()
+            prefs.edit().putString("ring_home_banner", uri.toString()).apply()
+            changed()
+            Toast.makeText(context, "تصویر بنر خانه ذخیره شد", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val bannerPreview = remember(bannerUri) {
+        bannerUri?.let { raw ->
+            AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 960)?.asImageBitmap()
         }
     }
     val shortcutPrefs = prefs
@@ -202,18 +219,42 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                                 }
                             }
                         }
-                        Text(repo.ring?.ringName ?: "حلقه", style = MaterialTheme.typography.titleLarge)
-                        Text("نام کاربری مربی: ${repo.ring?.ringUsername ?: "-"}",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("این تصویر در هویت حلقه و بخش بالای صفحه خانه نمایش داده می‌شود.",
+                        Text("تصویر حلقه", style = MaterialTheme.typography.titleMedium)
+                        Text("در بالای خانه کنار نام حلقه نمایش داده می‌شود.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Button(onClick = { profileImagePicker.launch(arrayOf("image/*")) },
-                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر پروفایل") }
+                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر حلقه") }
+                        OutlinedTextField(ringNameInput, { ringNameInput = it },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام حلقه") })
+                        OutlinedTextField(ringUsernameInput, { ringUsernameInput = it },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام کاربری حلقه") })
+                        Text("تصویر بنر خانه", style = MaterialTheme.typography.titleMedium)
+                        Surface(modifier = Modifier.fillMaxWidth().height(132.dp),
+                            shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                            if (bannerPreview != null) {
+                                Image(bitmap = bannerPreview, contentDescription = "بنر خانه",
+                                    modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                            } else {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("هنوز بنری انتخاب نشده است", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        OutlinedButton(onClick = { bannerPicker.launch(arrayOf("image/*")) },
+                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب یا تغییر بنر خانه") }
                         OutlinedButton(onClick = {
-                            profileImageUri = null
-                            prefs.edit().remove("ring_profile_image").apply()
+                            bannerUri = null
+                            prefs.edit().remove("ring_home_banner").apply()
                             changed()
-                        }, modifier = Modifier.fillMaxWidth()) { Text("حذف تصویر") }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("حذف بنر خانه") }
+                        Button(onClick = {
+                            runCatching { repo.updateRingProfile(ringNameInput, ringUsernameInput) }
+                                .onSuccess {
+                                    changed()
+                                    Toast.makeText(context, "پروفایل حلقه ذخیره شد", Toast.LENGTH_SHORT).show()
+                                }
+                                .onFailure { Toast.makeText(context, it.message ?: "ذخیره پروفایل انجام نشد", Toast.LENGTH_LONG).show() }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره") }
                     }
                 }
             }
