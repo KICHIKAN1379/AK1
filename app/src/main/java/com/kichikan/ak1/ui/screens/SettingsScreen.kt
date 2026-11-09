@@ -358,6 +358,9 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
                 OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) },
                     modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
+                OutlinedButton(onClick = openArchive, modifier = Modifier.fillMaxWidth()) {
+                    Text("بایگانی اعضا")
+                }
             }
             "reset" -> {
                 Text("بازنشانی برنامه", style = MaterialTheme.typography.titleLarge)
@@ -371,7 +374,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 Text("راهنمای برنامه", style = MaterialTheme.typography.titleLarge)
                 Text("AK1 به‌صورت آفلاین کار می‌کند. اطلاعات حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات و حضور و غیاب روی دستگاه نگهداری می‌شوند.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = openArchive, modifier = Modifier.fillMaxWidth()) { Text("مشاهده بایگانی اعضا") }
             }
             else -> Text("بخش تنظیمات پیدا نشد.", color = MaterialTheme.colorScheme.error)
         }
