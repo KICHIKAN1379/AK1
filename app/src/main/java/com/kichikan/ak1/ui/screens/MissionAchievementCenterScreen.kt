@@ -22,7 +22,10 @@ import com.kichikan.ak1.ui.theme.Neon
 internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit, openPuzzle: () -> Unit) {
     val observedDomainState = repo.missionsState.collectAsState().value
     var selected by remember { mutableIntStateOf(0) }
-    val missions = repo.missions.filter { it.active && !it.hidden }
+    val now = System.currentTimeMillis()
+    val missions = repo.missions.filter {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
+    }
     val completedCount = repo.history.count { it.type == HistoryType.MISSION_COMPLETED }
     val totalXp = repo.members.sumOf { it.economy.xp }
     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
