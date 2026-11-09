@@ -245,7 +245,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             SettingsTool(R.drawable.icon_settings_growth_map, "نقشه کمال") { growthManagerOpen = true },
             SettingsTool(R.drawable.icon_home_member_management, "بایگانی") { openArchive() },
             SettingsTool(R.drawable.icon_settings_shortcuts, "میانبرها") { shortcutsOpen = true },
-            SettingsTool(R.drawable.icon_settings_workshop, "تراشکاری") { openWorkshop() }
+            SettingsTool(R.drawable.icon_services_workshop, "تراشکاری") { openWorkshop() }
         )
         tools.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
