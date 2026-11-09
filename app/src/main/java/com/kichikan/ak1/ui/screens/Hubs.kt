@@ -18,21 +18,21 @@ internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (
     val now = System.currentTimeMillis()
     val upcomingSessions = repo.sessions.count { it.startsAt > now }
     val activeMissions = repo.missions.count { it.active && !it.hidden }
-    val markedAttendance = repo.attendance.count { it.status != AttendanceStatus.UNMARKED }
     val completedMissions = repo.missionCompletions.size
-    val serviceSummary = "${repo.members.size} عضو  •  ${repo.groups.size} گروه  •  ${repo.sessions.size} جلسه  •  $activeMissions مأموریت فعال"
+    var identityOpen by remember { mutableStateOf(false) }
+    val progressSummary = "${repo.members.size} عضو  •  ${repo.groups.size} گروه  •  ${repo.members.sumOf { it.economy.xp }} XP"
     HubScreen(
-        padding, "مرکز خدمات حلقه", serviceSummary,
+        padding, "پیشرفت", progressSummary,
         listOf(
-            HubEntry("مرکز مأموریت‌ها و دستاوردها", "$activeMissions مأموریت فعال  •  $completedMissions ثبت انجام", Neon.Magenta, { AppIcon(R.drawable.icon_workshop_missions, 62.dp) }) { open(Tab.MISSION_ACHIEVEMENTS) },
-            HubEntry("تراشکاری", "$activeMissions مأموریت فعال  •  مدیریت مأموریت‌ها و پاداش‌ها", Neon.Cyan, { AppIcon(R.drawable.icon_services_workshop, 62.dp) }) { open(Tab.WORKSHOP) },
-            HubEntry("جلسات", "$upcomingSessions جلسه پیش‌رو  •  $markedAttendance وضعیت حضور ثبت‌شده", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) },
-            HubEntry("رقابت", "رتبه‌بندی زنده اعضا و گروه‌ها", Neon.Violet, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
-            HubEntry("فروشگاه", "مدیریت آواتار، قاب، نشان و جوایز", Neon.Gold, { AppIcon(R.drawable.icon_services_store, 62.dp) }) { open(Tab.STORE) },
-            HubEntry("کتاب‌خوانی", "ثبت کتاب، سطح مطالعه و رتبه‌بندی", Neon.Green, { AppIcon(R.drawable.icon_services_reading, 62.dp) }) { open(Tab.READING) },
-            HubEntry("گردونه", "گردونه‌ی شانس و جایزه", Neon.Sky, { AppIcon(R.drawable.icon_services_wheel, 62.dp) }) { open(Tab.WHEEL) }
+            HubEntry("شناسنامه", "ثبت امتیاز، الماس، XP و سطح", Neon.Green, { AppIcon(R.drawable.icon_workshop_identity, 62.dp) }) { identityOpen = true },
+            HubEntry("مأموریت‌ها", "$activeMissions مأموریت فعال  •  $completedMissions ثبت انجام", Neon.Cyan, { AppIcon(R.drawable.icon_workshop_missions, 62.dp) }) { open(Tab.MISSION_ACHIEVEMENTS) },
+            HubEntry("کتاب‌خوانی", "ثبت کتاب، سطح مطالعه و رتبه‌بندی", Neon.Violet, { AppIcon(R.drawable.icon_services_reading, 62.dp) }) { open(Tab.READING) },
+            HubEntry("گردونه", "گردونه‌ی شانس و جایزه", Neon.Sky, { AppIcon(R.drawable.icon_services_wheel, 62.dp) }) { open(Tab.WHEEL) },
+            HubEntry("رقابت", "رتبه‌بندی اعضا و گروه‌ها", Neon.Gold, { AppIcon(R.drawable.icon_services_competition, 62.dp) }) { open(Tab.RANKING) },
+            HubEntry("جلسات و حضور", "$upcomingSessions جلسه پیش‌رو", Neon.Coral, { AppIcon(R.drawable.icon_services_sessions, 62.dp) }) { open(Tab.SESSIONS) }
         )
     )
+    if (identityOpen) EconomyDialog(repo, {}) { identityOpen = false }
 }
 
 @Composable
