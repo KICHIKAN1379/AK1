@@ -202,12 +202,12 @@ internal fun HomeDashboardScreen(
         if (quickShortcuts.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("دسترسی سریع", style = MaterialTheme.typography.titleMedium)
-                quickShortcuts.chunked(3).forEach { rowItems ->
+                quickShortcuts.chunked(2).forEach { rowItems ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                         rowItems.forEach { shortcut ->
                             QuickLaunchItem(shortcut.title, shortcut.icon, Neon.Cyan, { open(shortcut.target) }, Modifier.weight(1f))
                         }
-                        repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                        repeat(2 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
