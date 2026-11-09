@@ -73,17 +73,77 @@ internal fun RankingHub(padding: PaddingValues, open: (Tab) -> Unit, back: () ->
 }
 
 @Composable
-internal fun StoreHub(padding: PaddingValues, open: (Tab) -> Unit, back: () -> Unit) {
-    HubScreen(
-        padding, "فروشگاه", "آواتار، قاب، نشان و جایزه",
-        listOf(
-            HubEntry("آواتارها", "دریافت و فعال‌سازی آواتار", Neon.Cyan, { AppIcon(R.drawable.icon_store_avatars, 62.dp) }) { open(Tab.STORE_AVATARS) },
-            HubEntry("قاب‌ها", "دریافت و فعال‌سازی قاب", Neon.Violet, { AppIcon(R.drawable.icon_store_frames, 62.dp) }) { open(Tab.STORE_FRAMES) },
-            HubEntry("نشان‌ها", "نشان انتهای نام عضو", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 62.dp) }) { open(Tab.STORE_BADGES) },
-            HubEntry("جوایز", "جوایز قابل دریافت", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 62.dp) }) { open(Tab.STORE_REWARDS) }
-        ),
-        back
+internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit, back: () -> Unit) {
+    val observedCatalogState = repo.catalogState.collectAsState().value
+    val points = repo.members.sumOf { it.economy.spendablePoints }
+    val diamonds = repo.members.sumOf { it.economy.diamonds }
+    val categories = listOf(
+        HubEntry("آواتارها", "دریافت و فعال‌سازی آواتار", Neon.Cyan, { AppIcon(R.drawable.icon_store_avatars, 52.dp) }) { open(Tab.STORE_AVATARS) },
+        HubEntry("قاب‌ها", "قاب‌های ویژه و افکت‌دار", Neon.Violet, { AppIcon(R.drawable.icon_store_frames, 52.dp) }) { open(Tab.STORE_FRAMES) },
+        HubEntry("نشان‌ها", "نشان‌های قابل استفاده در پروفایل", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 52.dp) }) { open(Tab.STORE_BADGES) },
+        HubEntry("جوایز", "جوایز قابل دریافت با امتیاز", Neon.Green, { AppIcon(R.drawable.icon_workshop_store_rewards, 52.dp) }) { open(Tab.STORE_REWARDS) }
     )
+    val featured = observedCatalogState.items.firstOrNull { it.active }
+    Column(
+        Modifier.fillMaxSize().padding(padding).verticalScroll(androidx.compose.foundation.rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        PageHeader("فروشگاه", back, "آواتار، قاب و جوایز حلقه")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(Modifier.weight(1f), accent = Neon.Gold) {
+                Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelMedium)
+                    Text(points.toString(), color = Neon.Gold, style = MaterialTheme.typography.headlineSmall)
+                }
+            }
+            Card(Modifier.weight(1f), accent = Neon.Cyan) {
+                Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("الماس", style = MaterialTheme.typography.labelMedium)
+                    Text(diamonds.toString(), color = Neon.Cyan, style = MaterialTheme.typography.headlineSmall)
+                }
+            }
+        }
+        Text("دسته‌بندی فروشگاه", style = MaterialTheme.typography.titleLarge)
+        categories.chunked(2).forEach { rowItems ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                rowItems.forEach { entry ->
+                    Card(onClick = entry.onClick, modifier = Modifier.weight(1f).heightIn(min = 142.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp), accent = entry.accent) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            entry.icon()
+                            Text(entry.title, style = MaterialTheme.typography.titleMedium)
+                            Text(entry.subtitle, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                if (rowItems.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        featured?.let { item ->
+            Card(onClick = {
+                open(when (item.type) {
+                    ShopItemType.AVATAR -> Tab.STORE_AVATARS
+                    ShopItemType.FRAME -> Tab.STORE_FRAMES
+                    ShopItemType.BADGE -> Tab.STORE_BADGES
+                    else -> Tab.STORE_REWARDS
+                })
+            }, modifier = Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+                Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AppIcon(R.drawable.icon_workshop_store_rewards, 42.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("پیشنهاد فروشگاه", color = Neon.Magenta, style = MaterialTheme.typography.labelMedium)
+                        Text(item.name, style = MaterialTheme.typography.titleMedium)
+                        Text("مشاهده جزئیات و شرایط دریافت", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text("←", color = Neon.Cyan, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+        }
+    }
 }
 
 @Composable
