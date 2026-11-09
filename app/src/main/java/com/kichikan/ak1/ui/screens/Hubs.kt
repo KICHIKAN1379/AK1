@@ -134,7 +134,7 @@ internal fun RankingHub(padding: PaddingValues, open: (Tab) -> Unit, back: () ->
 }
 
 @Composable
-internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit, back: () -> Unit) {
+internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit) {
     val observedCatalogState = repo.catalogState.collectAsState().value
     val points = repo.members.sumOf { it.economy.spendablePoints }
     val diamonds = repo.members.sumOf { it.economy.diamonds }
@@ -149,7 +149,8 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        PageHeader("فروشگاه", back, "آواتار، قاب و جوایز حلقه")
+        Text("فروشگاه", style = MaterialTheme.typography.headlineMedium)
+        Text("آواتار، قاب و جوایز حلقه", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AkCard(Modifier.weight(1f), accent = Neon.Gold) {
                 Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
