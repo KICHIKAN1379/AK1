@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -514,7 +515,7 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
                             event.amount?.let { Text(if (it > 0) "+$it" else it.toString(),
                                 color = Neon.Green, fontWeight = FontWeight.Bold) }
                         }
-                        if (index != recent.lastIndex) HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+                        if (index != recent.lastIndex) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.06f)))
                     }
                 }
             }
