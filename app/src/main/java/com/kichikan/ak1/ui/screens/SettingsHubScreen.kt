@@ -29,18 +29,18 @@ private data class SettingsHubItem(val title: String, val icon: Int, val action:
 @Composable
 internal fun SettingsHubScreen(
     padding: androidx.compose.foundation.layout.PaddingValues,
-    openGeneral: () -> Unit,
+    openGeneral: (String) -> Unit,
     openWorkshop: () -> Unit
 ) {
     val items = listOf(
-        SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile, openGeneral),
-        SettingsHubItem("تم و صدا", R.drawable.icon_settings_backup, openGeneral),
-        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts, openGeneral),
-        SettingsHubItem("روزهای کلاس", R.drawable.icon_services_sessions, openGeneral),
-        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts, openGeneral),
-        SettingsHubItem("ورودی و خروجی", R.drawable.icon_settings_backup, openGeneral),
-        SettingsHubItem("تنظیمات کارخانه", R.drawable.icon_settings_restore, openGeneral),
-        SettingsHubItem("راهنما", R.drawable.icon_nav_services, openGeneral),
+        SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile) { openGeneral("profile") },
+        SettingsHubItem("تم و صدا", R.drawable.icon_settings_backup) { openGeneral("appearance") },
+        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
+        SettingsHubItem("روزهای کلاس", R.drawable.icon_services_sessions) { openGeneral("schedule") },
+        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
+        SettingsHubItem("ورودی و خروجی", R.drawable.icon_settings_backup) { openGeneral("backup") },
+        SettingsHubItem("تنظیمات کارخانه", R.drawable.icon_settings_restore) { openGeneral("reset") },
+        SettingsHubItem("راهنما", R.drawable.icon_nav_services) { openGeneral("help") },
         SettingsHubItem("تراشکاری", R.drawable.icon_services_workshop, openWorkshop),
     )
     Column(
