@@ -18,7 +18,8 @@ internal fun parentOf(tab: Tab): Tab = when (tab) {
     Tab.WORKSHOP -> Tab.SETTINGS
     Tab.RANKING, Tab.READING, Tab.SESSIONS, Tab.WHEEL -> Tab.SERVICES
     Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE -> Tab.SERVICES
-    Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL -> Tab.SETTINGS
+    Tab.GROWTH_SETTINGS -> Tab.WORKSHOP
+    Tab.SETTINGS_GENERAL -> Tab.SETTINGS
     Tab.GROWTH -> Tab.MEMBERS
     Tab.ARCHIVE -> Tab.SETTINGS
     else -> Tab.HOME
