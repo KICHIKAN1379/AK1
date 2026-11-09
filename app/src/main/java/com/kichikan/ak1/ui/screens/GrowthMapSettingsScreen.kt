@@ -61,7 +61,10 @@ internal fun GrowthMapSettingsScreen(padding: androidx.compose.foundation.layout
     }
     fun add(category: String, value: String) {
         val clean = value.trim()
-        if (clean.isNotBlank() && clean !in listFor(category)) save(category, listFor(category) + clean)
+        if (clean.isNotBlank() && clean !in listFor(category)) {
+            save(category, listFor(category) + clean)
+            GrowthStore.setActive(prefs, category, clean, true)
+        }
     }
     fun remove(category: String, value: String) {
         save(category, listFor(category) - value)
