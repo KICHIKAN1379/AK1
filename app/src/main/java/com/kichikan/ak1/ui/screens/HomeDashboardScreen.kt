@@ -70,6 +70,10 @@ internal fun HomeDashboardScreen(
     val ringPhoto = remember(photoUri) {
         photoUri?.let { AvatarRender.decodeSampled(context, android.net.Uri.parse(it), 256)?.asImageBitmap() }
     }
+    val bannerUri = remember { prefs.getString("ring_home_banner", null) }
+    val ringBanner = remember(bannerUri) {
+        bannerUri?.let { AvatarRender.decodeSampled(context, android.net.Uri.parse(it), 960)?.asImageBitmap() }
+    }
     val today = LocalDate.now()
     val zone = ZoneId.systemDefault()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
@@ -104,6 +108,7 @@ internal fun HomeDashboardScreen(
             month = JalaliCalendar.MONTH_NAMES[jalali.month - 1],
             year = jalali.year,
             photo = ringPhoto,
+            banner = ringBanner,
             quote = quote
         )
 
@@ -203,9 +208,18 @@ internal fun HomeDashboardScreen(
 @Composable
 private fun HomeIdentityHero(
     ringName: String, day: Int, month: String, year: Int,
-    photo: androidx.compose.ui.graphics.ImageBitmap?, quote: String?
+    photo: androidx.compose.ui.graphics.ImageBitmap?, banner: androidx.compose.ui.graphics.ImageBitmap?, quote: String?
 ) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
+        if (banner != null) {
+            Image(bitmap = banner, contentDescription = null, modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.24f)
+        } else {
+            Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(
+                Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C)
+            ))))
+        }
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(58.dp).drawBehind {
                 drawCircle(
