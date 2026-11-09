@@ -298,7 +298,7 @@ private fun WeeklyPulseCard(repo: AppRepository, onClick: () -> Unit) {
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
     val counts = days.map { day ->
         observedDomainState.attendance.count {
-            it.sessionId == null && (it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE) &&
+            (it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE) &&
                 Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
         }
     }
@@ -443,8 +443,7 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
     val counts = days.map { day ->
         data.attendance.count {
-            it.sessionId == null &&
-                it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE) &&
+            it.status in setOf(AttendanceStatus.PRESENT, AttendanceStatus.LATE) &&
                 Instant.ofEpochMilli(it.dateEpochMillis).atZone(zone).toLocalDate() == day
         }
     }
