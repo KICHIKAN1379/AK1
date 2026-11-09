@@ -252,6 +252,7 @@ private fun HomeIdentityHero(
                 Text("$month $year", color = Neon.Ice, fontSize = 9.sp)
             }
         }
+        }
     }
 }
 
