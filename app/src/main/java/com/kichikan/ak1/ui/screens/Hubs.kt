@@ -109,7 +109,7 @@ internal fun WorkshopHub(
 ) {
     val observedDomainState = repo.progressState.collectAsState().value
     HubScreen(
-        padding, "تراشکاری", "ساخت و مدیریت مأموریت، جوایز و شخصی‌سازی",
+        padding, "پالایشگاه", "ساخت و مدیریت مأموریت، جوایز و شخصی‌سازی",
         listOf(
             HubEntry("مأموریت‌ها", "ساخت و ثبت انجام مأموریت", Neon.Cyan, { AppIcon(R.drawable.icon_workshop_missions, 62.dp) }) { open(Tab.WORKSHOP_MISSIONS) },
             HubEntry("جوایز فروشگاه", "ساخت و ویرایش آیتم‌ها", Neon.Gold, { AppIcon(R.drawable.icon_workshop_store_rewards, 62.dp) }) { open(Tab.WORKSHOP_PRIZES) },
