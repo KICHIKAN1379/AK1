@@ -32,15 +32,16 @@ internal fun SettingsHubScreen(
     openGeneral: (String) -> Unit,
     openWorkshop: () -> Unit
 ) {
+    // Keep the order aligned with the approved UX2 settings hierarchy.
     val items = listOf(
-        SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile) { openGeneral("profile") },
         SettingsHubItem("پالایشگاه", R.drawable.icon_services_workshop, openWorkshop),
-        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
+        SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile) { openGeneral("profile") },
         SettingsHubItem("صدا، پس‌زمینه و تم", R.drawable.icon_settings_backup) { openGeneral("appearance") },
-        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
+        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
         SettingsHubItem("روزهای کلاس", R.drawable.icon_services_sessions) { openGeneral("schedule") },
-        SettingsHubItem("بازگشت تنظیمات کارخانه", R.drawable.icon_settings_restore) { openGeneral("reset") },
+        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
         SettingsHubItem("ورودی و خروجی اطلاعات", R.drawable.icon_settings_backup) { openGeneral("backup") },
+        SettingsHubItem("بازگشت تنظیمات کارخانه", R.drawable.icon_settings_restore) { openGeneral("reset") },
         SettingsHubItem("راهنما", R.drawable.icon_nav_services) { openGeneral("help") }
     )
     Column(
