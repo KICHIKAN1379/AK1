@@ -33,7 +33,6 @@ import com.kichikan.ak1.ui.theme.ThemeState
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.audio.BackgroundMusic
 import com.kichikan.ak1.data.AppRepository
-import com.kichikan.ak1.ui.GrowthItemsManagerDialog
 import com.kichikan.ak1.ui.FactoryResetDialog
 import com.kichikan.ak1.ui.ReportExport
 import com.kichikan.ak1.data.AutoArchive
@@ -46,34 +45,6 @@ private fun ActionLabel(icon: Int, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         AppIcon(icon, 22.dp)
         Text(text)
-    }
-}
-
-private data class SettingsTool(val icon: Int, val label: String, val onClick: () -> Unit)
-
-/** Phone-menu style tile: big icon with the label underneath. */
-@Composable
-private fun SettingsTile(tool: SettingsTool, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = tool.onClick,
-        modifier = modifier.heightIn(min = 96.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = Color.White.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.25f))
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            AppIcon(tool.icon, 34.dp)
-            Text(
-                tool.label,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
-        }
     }
 }
 
