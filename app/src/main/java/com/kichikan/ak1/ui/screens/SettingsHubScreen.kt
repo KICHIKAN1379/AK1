@@ -30,9 +30,7 @@ private data class SettingsHubItem(val title: String, val icon: Int, val action:
 internal fun SettingsHubScreen(
     padding: androidx.compose.foundation.layout.PaddingValues,
     openGeneral: () -> Unit,
-    openWorkshop: () -> Unit,
-    openGrowthMap: () -> Unit,
-    openArchive: () -> Unit
+    openWorkshop: () -> Unit
 ) {
     val items = listOf(
         SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile, openGeneral),
@@ -44,8 +42,6 @@ internal fun SettingsHubScreen(
         SettingsHubItem("تنظیمات کارخانه", R.drawable.icon_settings_restore, openGeneral),
         SettingsHubItem("راهنما", R.drawable.icon_nav_services, openGeneral),
         SettingsHubItem("تراشکاری", R.drawable.icon_services_workshop, openWorkshop),
-        SettingsHubItem("تنظیم نقشه کمال", R.drawable.icon_settings_growth_map, openGrowthMap),
-        SettingsHubItem("بایگانی", R.drawable.icon_home_member_management, openArchive)
     )
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
