@@ -34,6 +34,16 @@ internal class MemberRepository(
         return account
     }
 
+    fun updateRingProfile(name: String, username: String): RingAccount {
+        require(name.isNotBlank()) { "نام حلقه الزامی است" }
+        require(username.isNotBlank()) { "نام کاربری حلقه الزامی است" }
+        val current = app.ring ?: throw IllegalStateException("حلقه پیدا نشد")
+        val updated = current.copy(ringName = name.trim(), ringUsername = username.trim())
+        app.ring = updated
+        app.persist()
+        return updated
+    }
+
     fun addMember(name: String, birthDate: String? = null, responsibility: String = ""): Member {
         check(app.ring != null) { "ابتدا حلقه را ایجاد کنید" }
         require(name.isNotBlank()) { "نام عضو الزامی است" }
