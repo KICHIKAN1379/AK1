@@ -32,11 +32,11 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = back) { Text("← بازگشت") }
             Spacer(Modifier.weight(1f))
-            Text("MISSION HQ", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall)
+            Text("AK1 • MISSIONS", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall)
         }
         Card(shape = RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = Color.Transparent), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = .34f))) {
             Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF102B50), Color(0xFF211344), Color(0xFF111B35)))).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("مرکز مأموریت‌ها و دستاوردها", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                Text("مأموریت‌ها و دستاوردها", color = Color.White, style = MaterialTheme.typography.headlineSmall)
                 Text("مسیر پیشرفت اعضا؛ از مأموریت‌های فعال تا نشان‌های افتخار", color = Neon.Ice)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Metric("مأموریت فعال", missions.size.toString(), Neon.Cyan, Modifier.weight(1f))
