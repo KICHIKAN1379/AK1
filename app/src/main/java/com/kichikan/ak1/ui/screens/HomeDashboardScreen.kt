@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +40,7 @@ import com.kichikan.ak1.domain.calendar.JalaliCalendar
 import com.kichikan.ak1.domain.model.AttendanceStatus
 import com.kichikan.ak1.domain.model.HistoryEvent
 import com.kichikan.ak1.ui.AvatarRender
+import com.kichikan.ak1.ui.MemberAvatar
 import com.kichikan.ak1.ui.RingReportDialog
 import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Card as AkCard
@@ -412,6 +414,7 @@ private fun QuickLaunchItem(title: String, icon: Int, accent: Color, onClick: ()
 @Composable
 internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
     val data by repo.homeState.collectAsState()
+    val memberData by repo.membersState.collectAsState()
     val zone = remember { ZoneId.systemDefault() }
     val today = LocalDate.now(zone)
     val days = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
@@ -448,6 +451,24 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
             HeroMetricPill("XP", totalXp.toString(), Neon.Cyan)
             HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
             HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Sky)
+        }
+
+        AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("اعضای حلقه", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.weight(1f))
+                    Text("${data.members.size} عضو", color = Neon.Violet, style = MaterialTheme.typography.labelMedium)
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    data.members.take(12).forEach { member ->
+                        val avatarPath = memberData.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath
+                        val framePath = memberData.shop.firstOrNull { it.id == member.frameItemId }?.imagePath
+                        MemberAvatar(avatarPath, framePath, 44.dp, member.name)
+                    }
+                }
+            }
         }
 
         AkCard(Modifier.fillMaxWidth(), accent = Neon.Green) {
