@@ -59,6 +59,7 @@ internal fun AK1App(repo: AppRepository) {
             when (targetTab) {
                     Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
                     Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
+                    Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.SETTINGS }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
@@ -95,7 +96,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
-                    Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.WORKSHOP })
+                    Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.WORKSHOP }, { tab = Tab.GROWTH_SETTINGS })
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
             }
         }
@@ -128,7 +129,7 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 private val Tab.depth: Int
     get() = when (this) {
         Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.STORE, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE -> 1
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.GROWTH_SETTINGS -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
@@ -178,7 +179,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                     val selected = current == target ||
                         (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE)) ||
                         (target == Tab.STORE && current in listOf(Tab.STORE, Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS)) ||
-                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE))
+                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE, Tab.GROWTH_SETTINGS))
                     val iconScale by animateFloatAsState(
                         targetValue = if (selected) 1f else 0.92f,
                         animationSpec = Motion.Selection,
