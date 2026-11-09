@@ -34,14 +34,14 @@ internal fun SettingsHubScreen(
 ) {
     val items = listOf(
         SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile) { openGeneral("profile") },
-        SettingsHubItem("تم و صدا", R.drawable.icon_settings_backup) { openGeneral("appearance") },
-        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
-        SettingsHubItem("روزهای کلاس", R.drawable.icon_services_sessions) { openGeneral("schedule") },
-        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
-        SettingsHubItem("ورودی و خروجی", R.drawable.icon_settings_backup) { openGeneral("backup") },
-        SettingsHubItem("تنظیمات کارخانه", R.drawable.icon_settings_restore) { openGeneral("reset") },
-        SettingsHubItem("راهنما", R.drawable.icon_nav_services) { openGeneral("help") },
         SettingsHubItem("تراشکاری", R.drawable.icon_services_workshop, openWorkshop),
+        SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
+        SettingsHubItem("صدا، پس‌زمینه و تم", R.drawable.icon_settings_backup) { openGeneral("appearance") },
+        SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
+        SettingsHubItem("روزهای کلاس", R.drawable.icon_services_sessions) { openGeneral("schedule") },
+        SettingsHubItem("بازگشت تنظیمات کارخانه", R.drawable.icon_settings_restore) { openGeneral("reset") },
+        SettingsHubItem("ورودی و خروجی اطلاعات", R.drawable.icon_settings_backup) { openGeneral("backup") },
+        SettingsHubItem("راهنما", R.drawable.icon_nav_services) { openGeneral("help") }
     )
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
