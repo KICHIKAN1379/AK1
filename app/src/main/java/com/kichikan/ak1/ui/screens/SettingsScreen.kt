@@ -145,7 +145,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         "home_assistant" to "دستیار مربی",
         "home_sessions" to "جلسات",
         "home_ranking" to "رقابت",
-        "home_workshop" to "کارگاه",
+        "home_workshop" to "پالایشگاه",
         "home_reports" to "گزارش‌ها",
         "home_missions" to "مأموریت‌ها",
         "home_quotes" to "جمله‌های روز"
