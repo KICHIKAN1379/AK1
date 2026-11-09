@@ -39,6 +39,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
     var selectedMemberId by remember { mutableStateOf(lastStoreMemberId.takeIf { id -> repo.members.any { it.id == id } } ?: repo.members.firstOrNull()?.id ?: "") }
     var selectedCategory by remember(showCategoryTabs) { mutableStateOf(filter) }
     var result by remember { mutableStateOf<String?>(null) }
+    var memberPickerOpen by remember { mutableStateOf(false) }
     var manualGrantItem by remember { mutableStateOf<ShopItem?>(null) }
     var exportItem by remember { mutableStateOf<ShopItem?>(null) }
     var expandedItemId by remember { mutableStateOf<String?>(null) }
@@ -60,6 +61,13 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
     }
     val member = repo.members.firstOrNull { it.id == selectedMemberId }
     val now = System.currentTimeMillis()
+    val weeklyPurchaseMission = repo.missions.firstOrNull {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now) &&
+            (it.title.contains("خرید") || it.description.contains("خرید"))
+    }
+    val weeklyPurchaseCompletions = weeklyPurchaseMission?.let { mission ->
+        repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
+    } ?: 0
     val memberAvatarPath = member?.let { m -> repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath }
     val memberFramePath = member?.let { m -> repo.shop.firstOrNull { it.id == m.frameItemId }?.imagePath }
     val title = if (showCategoryTabs) "فروشگاه" else when (filter) {
@@ -106,8 +114,17 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repo.members.forEach { m -> FilterChip(selectedMemberId == m.id, { selectedMemberId = m.id; lastStoreMemberId = m.id; result = null }, label = { Text(m.name) }) }
+        if (showCategoryTabs) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("موجودی برای: ${member?.name ?: "عضو انتخاب نشده"}",
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f))
+                TextButton(onClick = { memberPickerOpen = true }) { Text("تغییر عضو") }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repo.members.forEach { m -> FilterChip(selectedMemberId == m.id, { selectedMemberId = m.id; lastStoreMemberId = m.id; result = null }, label = { Text(m.name) }) }
+            }
         }
         if (showCategoryTabs) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -122,6 +139,20 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
             }
         }
         result?.let { Text(it, color = Neon.Cyan) }
+        weeklyPurchaseMission?.let { mission ->
+            Card(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+                Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppIcon(R.drawable.icon_workshop_store_rewards, 34.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("مأموریت مرتبط با خرید", color = Neon.Magenta, style = MaterialTheme.typography.labelSmall)
+                        Text(mission.title, style = MaterialTheme.typography.titleSmall)
+                        Text("${weeklyPurchaseCompletions} از ${repo.members.size} عضو",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         if (activeFilter == ShopItemType.REWARD) {
             Text(
                 "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار، قاب و نشان در بخش‌های خودشان هستند.",
@@ -276,6 +307,28 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                 }
             }
         }
+    }
+    if (memberPickerOpen) {
+        AlertDialog(
+            onDismissRequest = { memberPickerOpen = false },
+            title = { Text("انتخاب عضو برای فروشگاه") },
+            text = {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repo.members.forEach { candidate ->
+                        TextButton(onClick = {
+                            selectedMemberId = candidate.id
+                            lastStoreMemberId = candidate.id
+                            result = null
+                            memberPickerOpen = false
+                        }, modifier = Modifier.fillMaxWidth()) {
+                            Text("${candidate.name} • سطح ${candidate.economy.level}")
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { memberPickerOpen = false }) { Text("بستن") } }
+        )
     }
     manualGrantItem?.let { item ->
         ManualGrantDialog(repo, selectedMemberId, item, changed) { manualGrantItem = null }
