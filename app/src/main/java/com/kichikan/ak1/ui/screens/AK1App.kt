@@ -179,6 +179,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                 items.forEach { (target, label) ->
                     val selected = current == target ||
                         (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE)) ||
+                        (target == Tab.MEMBERS && current == Tab.GROWTH) ||
                         (target == Tab.STORE && current in listOf(Tab.STORE, Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS)) ||
                         (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE, Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL))
                     val iconScale by animateFloatAsState(
