@@ -75,7 +75,7 @@ internal fun AK1App(repo: AppRepository) {
                         }
                     }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
-                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }) { tab = Tab.WORKSHOP_MISSIONS }
+                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }, { tab = Tab.WORKSHOP_MISSIONS }) { tab = Tab.WORKSHOP_PUZZLE }
                     Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SETTINGS }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.STORE -> StoreHub(padding, repo, { tab = it }) { tab = Tab.HOME }
@@ -83,7 +83,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.SESSIONS -> SessionsHub(padding, repo, { tab = it }) { tab = Tab.SERVICES }
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0, { tab = Tab.WORKSHOP }) { tab = if (it == 4) Tab.WORKSHOP_HIDDEN_MISSIONS else Tab.WORKSHOP_MISSIONS }
                     Tab.WORKSHOP_HIDDEN_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 4, { tab = Tab.WORKSHOP_MISSIONS }) { tab = Tab.WORKSHOP_MISSIONS }
-                    Tab.WORKSHOP_PUZZLE -> GroupPuzzlePage(repo, padding, { changed() }) { tab = Tab.WORKSHOP }
+                    Tab.WORKSHOP_PUZZLE -> GroupPuzzlePage(repo, padding, { changed() }) { tab = Tab.MISSION_ACHIEVEMENTS }
                     Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1, { tab = Tab.WORKSHOP })
                     Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2, { tab = Tab.WORKSHOP })
                     Tab.WORKSHOP_WHEEL -> WorkshopScreen(repo, padding, { changed() }, 3, { tab = Tab.WORKSHOP })
@@ -134,7 +134,7 @@ private val Tab.depth: Int
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
-        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.GROWTH_SETTINGS -> 2
+        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.GROWTH_SETTINGS, Tab.WORKSHOP_PUZZLE -> 2
         else -> 1
     }
 
@@ -178,10 +178,10 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp)) {
                 items.forEach { (target, label) ->
                     val selected = current == target ||
-                        (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE)) ||
+                        (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE, Tab.WORKSHOP_PUZZLE)) ||
                         (target == Tab.MEMBERS && current == Tab.GROWTH) ||
                         (target == Tab.STORE && current in listOf(Tab.STORE, Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS)) ||
-                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE, Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL))
+                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL))
                     val iconScale by animateFloatAsState(
                         targetValue = if (selected) 1f else 0.92f,
                         animationSpec = Motion.Selection,
