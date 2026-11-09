@@ -91,10 +91,10 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.WHEEL -> SpinWheelPage(repo, padding)
                     Tab.RANK_MEMBERS -> RankingScreen(repo, padding, false) { tab = Tab.RANKING }
                     Tab.RANK_GROUPS -> RankingScreen(repo, padding, true) { tab = Tab.RANKING }
-                    Tab.STORE_AVATARS -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.BADGE, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
+                    Tab.STORE_AVATARS -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.BADGE, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }, { tab = Tab.STORE }, false)
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
                     Tab.SETTINGS -> SettingsHubScreen(padding, { focus -> settingsFocus = focus; tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP })
