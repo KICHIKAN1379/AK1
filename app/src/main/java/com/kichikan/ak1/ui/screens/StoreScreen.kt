@@ -135,6 +135,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                 listOf(
                     ShopItemType.AVATAR to "آواتار",
                     ShopItemType.FRAME to "قاب",
+                    ShopItemType.BADGE to "نشان‌ها",
                     ShopItemType.REWARD to "جوایز"
                 ).forEach { (category, label) ->
                     FilterChip(selectedCategory == category, { selectedCategory = category }, label = { Text(label) })
