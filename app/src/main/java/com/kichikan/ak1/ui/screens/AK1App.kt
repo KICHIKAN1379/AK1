@@ -59,7 +59,7 @@ internal fun AK1App(repo: AppRepository) {
             when (targetTab) {
                     Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
                     Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
-                    Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.SETTINGS }
+                    Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.WORKSHOP }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
@@ -96,8 +96,8 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
-                    Tab.SETTINGS -> SettingsHubScreen(padding, { tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP }, { tab = Tab.GROWTH_SETTINGS }, { tab = Tab.ARCHIVE })
-                    Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.WORKSHOP }, { tab = Tab.GROWTH_SETTINGS })
+                    Tab.SETTINGS -> SettingsHubScreen(padding, { tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP })
+                    Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE })
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
             }
         }
@@ -130,11 +130,11 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 private val Tab.depth: Int
     get() = when (this) {
         Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.STORE, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL -> 1
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.SETTINGS_GENERAL -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
-        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE -> 2
+        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.GROWTH_SETTINGS -> 2
         else -> 1
     }
 
