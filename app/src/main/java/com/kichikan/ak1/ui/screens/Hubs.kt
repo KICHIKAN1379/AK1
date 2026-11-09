@@ -26,7 +26,10 @@ import com.kichikan.ak1.data.AppRepository
 @Composable
 internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (Tab) -> Unit) {
     val observedDomainState = repo.progressState.collectAsState().value
-    val activeMissions = repo.missions.count { it.active && !it.hidden }
+    val now = System.currentTimeMillis()
+    val activeMissions = repo.missions.count {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
+    }
     val completedMissions = repo.missionCompletions.size
     val markedAttendance = repo.attendance.count { it.status != AttendanceStatus.UNMARKED }
     val presentAttendance = repo.attendance.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
