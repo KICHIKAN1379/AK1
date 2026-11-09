@@ -7,6 +7,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.kichikan.ak1.domain.model.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import com.kichikan.ak1.R
 import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Neon
