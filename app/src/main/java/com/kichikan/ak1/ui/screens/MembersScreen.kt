@@ -158,58 +158,34 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                     val avatarPath = repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath
                     val framePath = repo.shop.firstOrNull { it.id == m.frameItemId }?.imagePath
                     val badgePath = repo.shop.firstOrNull { it.id == m.badgeItemId }?.imagePath
-                    RankCardSurface(
-                        level = m.economy.level,
+                    Card(
+                        onClick = { profileMember = m },
                         modifier = Modifier.fillMaxWidth().animateItem(),
-                        cardAvatarPath = avatarPath
+                        accent = Neon.Cyan
                     ) {
-                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                RankedAvatar(avatarPath, framePath, m.economy.level, 84.dp, m.name)
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                        TextButton(onClick = { profileMember = m }, contentPadding = PaddingValues(0.dp)) {
-                                            Text(m.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                                        }
-                                        RankBadge(badgePath, 22.dp)
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        RankTierChip(m.economy.level)
-                                        repo.groups.firstOrNull { it.id == m.groupId }?.let {
-                                            Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                    m.responsibility.takeIf { it.isNotBlank() }?.let {
-                                        Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
-                                            Text("مسئولیت: $it", Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                        }
-                                    }
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            RankedAvatar(avatarPath, framePath, m.economy.level, 52.dp, m.name)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(m.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                                    RankBadge(badgePath, 18.dp)
+                                    Spacer(Modifier.weight(1f))
+                                    RankTierChip(m.economy.level)
                                 }
+                                LevelProgress(xp = m.economy.xp, level = m.economy.level)
+                                Text(
+                                    "XP ${m.economy.xp}  •  امتیاز ${m.economy.spendablePoints}  •  💎 ${m.economy.diamonds}" +
+                                        (repo.groups.firstOrNull { it.id == m.groupId }?.name?.let { "  •  $it" } ?: ""),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
                             }
-                            LevelProgress(xp = m.economy.xp, level = m.economy.level)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                listOf(
-                                    Triple("سطح", m.economy.level.toString(), MaterialTheme.colorScheme.primaryContainer),
-                                    Triple("XP", m.economy.xp.toString(), MaterialTheme.colorScheme.secondaryContainer),
-                                    Triple("امتیاز", m.economy.spendablePoints.toString(), MaterialTheme.colorScheme.tertiary.copy(alpha = 0.13f)),
-                                    Triple("💎", m.economy.diamonds.toString(), MaterialTheme.colorScheme.surfaceVariant)
-                                ).forEach { (label, value, tint) ->
-                                    Surface(
-                                        modifier = Modifier.weight(1f),
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-                                        color = tint
-                                    ) {
-                                        Column(Modifier.padding(vertical = 8.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                                        }
-                                    }
-                                }
-                            }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { actionMember = m }, modifier = Modifier.weight(1f)) { Text("گزینه‌های عضو") }
-                                OutlinedButton(onClick = { exportMember = m; exporter.launch("${m.name}-member-card.jpg") }, modifier = Modifier.weight(1f)) { Text("خروجی کارت") }
-                            }
+                            Text("‹", style = MaterialTheme.typography.titleLarge, color = Neon.Cyan)
                         }
                     }
                 }
