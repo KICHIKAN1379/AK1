@@ -34,9 +34,10 @@ import com.kichikan.ak1.data.AppRepository
 private var lastStoreMemberId: String = ""
 
 @Composable
-internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: ShopItemType, changed: () -> Unit, back: () -> Unit) {
+internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: ShopItemType, changed: () -> Unit, back: () -> Unit, showCategoryTabs: Boolean = false) {
     val observedDomainState = repo.catalogState.collectAsState().value
     var selectedMemberId by remember { mutableStateOf(lastStoreMemberId.takeIf { id -> repo.members.any { it.id == id } } ?: repo.members.firstOrNull()?.id ?: "") }
+    var selectedCategory by remember(showCategoryTabs) { mutableStateOf(filter) }
     var result by remember { mutableStateOf<String?>(null) }
     var manualGrantItem by remember { mutableStateOf<ShopItem?>(null) }
     var exportItem by remember { mutableStateOf<ShopItem?>(null) }
@@ -61,7 +62,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
     val now = System.currentTimeMillis()
     val memberAvatarPath = member?.let { m -> repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath }
     val memberFramePath = member?.let { m -> repo.shop.firstOrNull { it.id == m.frameItemId }?.imagePath }
-    val title = when (filter) {
+    val title = if (showCategoryTabs) "فروشگاه" else when (filter) {
         ShopItemType.AVATAR -> "آواتارها"
         ShopItemType.FRAME -> "قاب‌ها"
         ShopItemType.BADGE -> "نشان‌ها"
@@ -71,15 +72,57 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
     // The rewards tab is deliberately only the mentor-entered REWARD items. Avatars,
     // frames, badges and profile-pack looks live in their own tabs and must never be
     // mixed into "جوایز".
-    val shown = repo.shop.filter { it.active && it.type == filter }
+    val activeFilter = if (showCategoryTabs) selectedCategory else filter
+    val shown = repo.shop.filter { it.active && it.type == activeFilter }
     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeader(title, back, "فروشگاه")
-        member?.let { Text("${it.name} • سطح ${it.economy.level} • امتیاز ${it.economy.spendablePoints} • الماس ${it.economy.diamonds}", style = MaterialTheme.typography.bodyMedium) }
+        if (showCategoryTabs) {
+            Text("فروشگاه", style = MaterialTheme.typography.headlineMedium)
+            Text("موجودی عضو و آیتم‌های قابل دریافت", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall)
+        } else {
+            PageHeader(title, back, "فروشگاه")
+        }
+        member?.let { current ->
+            Text("${current.name} • سطح ${current.economy.level}", style = MaterialTheme.typography.bodyMedium)
+            if (showCategoryTabs) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Card(Modifier.weight(1f), accent = Neon.Gold) {
+                        Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelSmall)
+                            Text(current.economy.spendablePoints.toString(), color = Neon.Gold,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    Card(Modifier.weight(1f), accent = Neon.Cyan) {
+                        Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("الماس", style = MaterialTheme.typography.labelSmall)
+                            Text(current.economy.diamonds.toString(), color = Neon.Cyan,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+            } else {
+                Text("امتیاز ${current.economy.spendablePoints} • الماس ${current.economy.diamonds}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             repo.members.forEach { m -> FilterChip(selectedMemberId == m.id, { selectedMemberId = m.id; lastStoreMemberId = m.id; result = null }, label = { Text(m.name) }) }
         }
+        if (showCategoryTabs) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf(
+                    ShopItemType.AVATAR to "آواتار",
+                    ShopItemType.FRAME to "قاب",
+                    ShopItemType.REWARD to "جوایز"
+                ).forEach { (category, label) ->
+                    FilterChip(selectedCategory == category, { selectedCategory = category }, label = { Text(label) })
+                }
+            }
+        }
         result?.let { Text(it, color = Neon.Cyan) }
-        if (filter == ShopItemType.REWARD) {
+        if (activeFilter == ShopItemType.REWARD) {
             Text(
                 "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار، قاب و نشان در بخش‌های خودشان هستند.",
                 style = MaterialTheme.typography.bodySmall,
