@@ -43,6 +43,7 @@ internal fun AK1App(repo: AppRepository) {
     var tab by remember { mutableStateOf(Tab.HOME) }
     var ringReady by remember { mutableStateOf(repo.ring != null) }
     var growthMemberId by remember { mutableStateOf<String?>(null) }
+    var settingsFocus by remember { mutableStateOf("appearance") }
     val memberState by repo.membersState.collectAsState()
     fun changed() {}
     if (!ringReady) { WelcomeScreen(repo) { ringReady = true }; return }
@@ -96,8 +97,8 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
-                    Tab.SETTINGS -> SettingsHubScreen(padding, { tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP })
-                    Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE })
+                    Tab.SETTINGS -> SettingsHubScreen(padding, { focus -> settingsFocus = focus; tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP })
+                    Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.SETTINGS }, settingsFocus)
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
             }
         }
