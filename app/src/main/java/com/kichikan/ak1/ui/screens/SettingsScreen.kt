@@ -154,10 +154,11 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         "home_identity" to "شناسنامه", "home_members" to "مدیریت اعضا",
         "home_assistant" to "دستیار مربی", "home_workshop" to "تراشکاری",
         "home_sessions" to "جلسات", "home_ranking" to "رقابت",
+        "home_reading" to "کتاب‌خوانی", "home_missions" to "مأموریت‌ها",
         "home_store" to "فروشگاه", "home_wheel" to "گردونه"
     )
     val shortcutStates = remember { mutableStateMapOf<String, Boolean>().apply {
-        shortcutLabels.forEach { (key, _) -> put(key, shortcutPrefs.getBoolean(key, key in listOf("home_identity", "home_members", "home_assistant"))) }
+        shortcutLabels.forEach { (key, _) -> put(key, shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking", "home_reading", "home_missions"))) }
     } }
     val weekdayLabels = listOf(6 to "شنبه", 0 to "یکشنبه", 1 to "دوشنبه", 2 to "سه‌شنبه", 3 to "چهارشنبه", 4 to "پنجشنبه", 5 to "جمعه")
     val activeWeekdays = remember { mutableStateListOf<Int>().apply {
