@@ -64,7 +64,6 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     var exportMember by remember { mutableStateOf<Member?>(null) }
     var query by remember { mutableStateOf("") }
     var sortMode by remember { mutableStateOf("level") }
-    var groupFilter by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/jpeg")) { uri ->
         val m = exportMember
@@ -103,13 +102,11 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
             val needle = query.trim()
             val filteredMembers = repo.members
                 .filter { member ->
-                    (needle.isBlank() || member.name.contains(needle, ignoreCase = true) ||
-                        member.responsibility.contains(needle, ignoreCase = true)) &&
-                        (groupFilter == null || member.groupId == groupFilter)
+                    needle.isBlank() || member.name.contains(needle, ignoreCase = true)
                 }
                 .let { members ->
                     when (sortMode) {
-                        "xp" -> members.sortedWith(compareByDescending<Member> { it.economy.xp }.thenBy { it.name })
+                        "points" -> members.sortedWith(compareByDescending<Member> { it.economy.spendablePoints }.thenBy { it.name })
                         "name" -> members.sortedBy { it.name.lowercase() }
                         else -> members.sortedWith(compareByDescending<Member> { it.economy.level }.thenByDescending { it.economy.xp }.thenBy { it.name })
                     }
@@ -120,22 +117,8 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("جست‌وجوی عضو") },
-                placeholder = { Text("نام یا مسئولیت") }
+                placeholder = { Text("جست‌وجو بر اساس نام عضو") }
             )
-            Text("فیلتر گروه", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(7.dp)
-            ) {
-                FilterChip(selected = groupFilter == null, onClick = { groupFilter = null }, label = { Text("همه گروه‌ها") })
-                repo.groups.forEach { group ->
-                    FilterChip(
-                        selected = groupFilter == group.id,
-                        onClick = { groupFilter = if (groupFilter == group.id) null else group.id },
-                        label = { Text(group.name) }
-                    )
-                }
-            }
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -155,7 +138,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
                 FilterChip(selected = sortMode == "level", onClick = { sortMode = "level" }, label = { Text("رتبه و سطح") })
-                FilterChip(selected = sortMode == "xp", onClick = { sortMode = "xp" }, label = { Text("بیشترین XP") })
+                FilterChip(selected = sortMode == "points", onClick = { sortMode = "points" }, label = { Text("امتیاز") })
                 FilterChip(selected = sortMode == "name", onClick = { sortMode = "name" }, label = { Text("نام") })
             }
             if (filteredMembers.isEmpty()) {
