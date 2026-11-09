@@ -224,7 +224,6 @@ private fun SessionStat(label: String, value: String, accent: Color, modifier: M
 @Composable
 private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     val observedDomainState = repo.sessionsState.collectAsState().value
-    val context = LocalContext.current
     val zone = remember { java.time.ZoneId.systemDefault() }
     val today = java.time.LocalDate.now(zone)
     var weeklyMode by remember { mutableStateOf(true) }
@@ -233,7 +232,10 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     var selectedDate by remember { mutableStateOf(today) }
     var memberSearch by remember { mutableStateOf("") }
     var selectedGroupId by remember { mutableStateOf<String?>(null) }
-    val pending = remember { mutableStateMapOf<String, AttendanceStatus>() }
+    var reasonMember by remember { mutableStateOf<com.kichikan.ak1.domain.model.Member?>(null) }
+    var reasonStatus by remember { mutableStateOf<AttendanceStatus?>(null) }
+    var reasonText by remember { mutableStateOf("") }
+
     val weekStart = today.plusWeeks(weekOffset.toLong())
         .minusDays(((today.plusWeeks(weekOffset.toLong()).dayOfWeek.value + 1) % 7).toLong())
     val monthStart = today.withDayOfMonth(1).plusMonths(monthOffset.toLong())
@@ -241,7 +243,6 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
         else (0 until monthStart.lengthOfMonth()).map { monthStart.plusDays(it.toLong()) }
     LaunchedEffect(weeklyMode, weekOffset, monthOffset) {
         if (selectedDate !in dateItems) selectedDate = dateItems.firstOrNull() ?: today
-        pending.clear()
     }
     val visibleMembers = repo.members.filter { member ->
         (selectedGroupId == null || member.groupId == selectedGroupId) &&
@@ -252,30 +253,46 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
             record.memberId == memberId && record.sessionId == null &&
                 java.time.Instant.ofEpochMilli(record.dateEpochMillis).atZone(zone).toLocalDate() == selectedDate
         }?.status ?: AttendanceStatus.UNMARKED
-    fun effectiveStatus(memberId: String) = pending[memberId] ?: savedStatus(memberId)
-    val statuses = visibleMembers.map { effectiveStatus(it.id) }
+    fun savedNote(memberId: String): String =
+        repo.attendance.firstOrNull { record ->
+            record.memberId == memberId && record.sessionId == null &&
+                java.time.Instant.ofEpochMilli(record.dateEpochMillis).atZone(zone).toLocalDate() == selectedDate
+        }?.note.orEmpty()
+    val statuses = visibleMembers.map { savedStatus(it.id) }
     val present = statuses.count { it == AttendanceStatus.PRESENT }
     val late = statuses.count { it == AttendanceStatus.LATE }
     val absent = statuses.count { it == AttendanceStatus.ABSENT }
     val excused = statuses.count { it == AttendanceStatus.EXCUSED }
+    val unmarked = statuses.count { it == AttendanceStatus.UNMARKED }
     val marked = statuses.count { it != AttendanceStatus.UNMARKED }
     val rate = if (visibleMembers.isEmpty()) 0 else (present + late) * 100 / visibleMembers.size
     val jalali = JalaliCalendar.fromGregorian(selectedDate)
+    val epoch = selectedDate.atStartOfDay(zone).toInstant().toEpochMilli()
+
+    fun saveStatus(member: com.kichikan.ak1.domain.model.Member, status: AttendanceStatus, note: String? = null) {
+        repo.recordWeeklyAttendance(member.id, epoch, status, note)
+        changed()
+    }
+    fun chooseStatus(member: com.kichikan.ak1.domain.model.Member, status: AttendanceStatus) {
+        if (status == AttendanceStatus.ABSENT || status == AttendanceStatus.EXCUSED || status == AttendanceStatus.UNMARKED) {
+            reasonMember = member
+            reasonStatus = status
+            reasonText = savedNote(member.id)
+        } else {
+            saveStatus(member, status)
+        }
+    }
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = {
-                if (weeklyMode) weekOffset-- else monthOffset--
-            }) { Text("‹") }
+            TextButton(onClick = { if (weeklyMode) weekOffset-- else monthOffset-- }) { Text("‹") }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("حضور و غیاب", style = MaterialTheme.typography.titleLarge)
                 Text("${jalali.day} ${JalaliCalendar.MONTH_NAMES[jalali.month - 1]} ${jalali.year}",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            TextButton(onClick = {
-                if (weeklyMode) weekOffset++ else monthOffset++
-            }) { Text("›") }
+            TextButton(onClick = { if (weeklyMode) weekOffset++ else monthOffset++ }) { Text("›") }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = weeklyMode, onClick = { weeklyMode = true }, label = { Text("هفتگی") }, modifier = Modifier.weight(1f))
@@ -287,11 +304,8 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
                 dateItems.forEach { date ->
                     val j = JalaliCalendar.fromGregorian(date)
                     val dayName = listOf("ش", "ی", "د", "س", "چ", "پ", "ج")[date.dayOfWeek.value % 7]
-                    FilterChip(
-                        selected = selectedDate == date,
-                        onClick = { selectedDate = date; pending.clear() },
-                        label = { Text("$dayName\n${j.day}") }
-                    )
+                    FilterChip(selected = selectedDate == date, onClick = { selectedDate = date },
+                        label = { Text("$dayName\n${j.day}") })
                 }
             }
         }
@@ -301,19 +315,14 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
                     SessionStat("حاضر", "$present", Neon.Green, Modifier.weight(1f))
                     SessionStat("تأخیر", "$late", Neon.Gold, Modifier.weight(1f))
                     SessionStat("غایب", "$absent", Neon.Coral, Modifier.weight(1f))
-                    SessionStat("حضور", "$rate٪", Neon.Cyan, Modifier.weight(1f))
+                    SessionStat("موجه", "$excused", Neon.Violet, Modifier.weight(1f))
                 }
-                Text("ثبت‌شده: $marked از ${visibleMembers.size} عضو  •  موجه: $excused",
+                Text("بدون ثبت: $unmarked  •  ثبت‌شده: $marked از ${visibleMembers.size} عضو  •  حضور: $rate٪",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        OutlinedTextField(
-            value = memberSearch,
-            onValueChange = { memberSearch = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text("جست‌وجوی نام عضو") }
-        )
+        OutlinedTextField(value = memberSearch, onValueChange = { memberSearch = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("جست‌وجوی نام عضو") })
         if (repo.groups.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(selected = selectedGroupId == null, onClick = { selectedGroupId = null }, label = { Text("همه") })
@@ -328,11 +337,12 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
             items(visibleMembers, key = { it.id }) { member ->
                 val avatarPath = repo.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath
                 val framePath = repo.shop.firstOrNull { it.id == member.frameItemId }?.imagePath
-                val current = effectiveStatus(member.id)
+                val current = savedStatus(member.id)
                 Card(Modifier.fillMaxWidth(), accent = when (current) {
                     AttendanceStatus.PRESENT -> Neon.Green
                     AttendanceStatus.LATE -> Neon.Gold
                     AttendanceStatus.ABSENT -> Neon.Coral
+                    AttendanceStatus.EXCUSED -> Neon.Violet
                     else -> Neon.Cyan
                 }) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
@@ -340,48 +350,73 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             MemberAvatar(avatarPath, framePath, 38.dp, member.name)
-                            Text(member.name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                            Text(when (current) {
-                                AttendanceStatus.PRESENT -> "حاضر"
-                                AttendanceStatus.LATE -> "تأخیر"
-                                AttendanceStatus.ABSENT -> "غایب"
-                                AttendanceStatus.EXCUSED -> "موجه"
-                                else -> "ثبت‌نشده"
-                            }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(member.name, style = MaterialTheme.typography.titleSmall)
+                                Text(when (current) {
+                                    AttendanceStatus.PRESENT -> "حاضر"
+                                    AttendanceStatus.LATE -> "تأخیر"
+                                    AttendanceStatus.ABSENT -> "غایب"
+                                    AttendanceStatus.EXCUSED -> "غیبت موجه"
+                                    else -> "بدون ثبت"
+                                }, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (savedNote(member.id).isNotBlank()) Text("دلیل: ${savedNote(member.id)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            FilterChip(
-                                selected = current == AttendanceStatus.PRESENT,
-                                onClick = { pending[member.id] = AttendanceStatus.PRESENT },
-                                label = { Text("حاضر") }, modifier = Modifier.weight(1f)
-                            )
-                            FilterChip(
-                                selected = current == AttendanceStatus.ABSENT,
-                                onClick = { pending[member.id] = AttendanceStatus.ABSENT },
-                                label = { Text("غایب") }, modifier = Modifier.weight(1f)
-                            )
-                            FilterChip(
-                                selected = current == AttendanceStatus.LATE,
-                                onClick = { pending[member.id] = AttendanceStatus.LATE },
-                                label = { Text("تأخیر") }, modifier = Modifier.weight(1f)
-                            )
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            FilterChip(selected = current == AttendanceStatus.PRESENT,
+                                onClick = { chooseStatus(member, AttendanceStatus.PRESENT) }, label = { Text("حاضر") })
+                            FilterChip(selected = current == AttendanceStatus.ABSENT,
+                                onClick = { chooseStatus(member, AttendanceStatus.ABSENT) }, label = { Text("غایب") })
+                            FilterChip(selected = current == AttendanceStatus.EXCUSED,
+                                onClick = { chooseStatus(member, AttendanceStatus.EXCUSED) }, label = { Text("غیبت موجه") })
+                            FilterChip(selected = current == AttendanceStatus.UNMARKED,
+                                onClick = { chooseStatus(member, AttendanceStatus.UNMARKED) }, label = { Text("بدون ثبت") })
+                            FilterChip(selected = current == AttendanceStatus.LATE,
+                                onClick = { chooseStatus(member, AttendanceStatus.LATE) }, label = { Text("تأخیر") })
                         }
                     }
                 }
             }
         }
-        Button(
-            onClick = {
-                val epoch = selectedDate.atStartOfDay(zone).toInstant().toEpochMilli()
-                pending.toMap().forEach { (memberId, status) ->
-                    repo.recordWeeklyAttendance(memberId, epoch, status)
+    }
+
+    val requestedStatus = reasonStatus
+    val requestedMember = reasonMember
+    if (requestedStatus != null && requestedMember != null) {
+        val statusLabel = when (requestedStatus) {
+            AttendanceStatus.ABSENT -> "غیبت"
+            AttendanceStatus.EXCUSED -> "غیبت موجه"
+            else -> "بدون ثبت"
+        }
+        AlertDialog(
+            onDismissRequest = { reasonMember = null; reasonStatus = null; reasonText = "" },
+            title = { Text("دلیل $statusLabel") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("برای ثبت این وضعیت، نوشتن دلیل الزامی است.")
+                    OutlinedTextField(value = reasonText, onValueChange = { reasonText = it },
+                        modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4,
+                        placeholder = { Text("دلیل را بنویسید…") })
                 }
-                pending.clear()
-                changed()
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = pending.isNotEmpty()
-        ) { Text(if (pending.isEmpty()) "همه تغییرات ذخیره شده‌اند" else "ثبت حضور • ${pending.size} تغییر") }
+            confirmButton = {
+                TextButton(onClick = {
+                    if (reasonText.isNotBlank()) {
+                        saveStatus(requestedMember, requestedStatus, reasonText.trim())
+                        reasonMember = null
+                        reasonStatus = null
+                        reasonText = ""
+                    }
+                }, enabled = reasonText.isNotBlank()) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = { reasonMember = null; reasonStatus = null; reasonText = "" }) { Text("انصراف") }
+            }
+        )
     }
 }
 
