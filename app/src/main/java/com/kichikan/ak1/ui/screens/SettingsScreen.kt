@@ -121,14 +121,15 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     }
     val shortcutPrefs = prefs
     val shortcutLabels = listOf(
-        "home_identity" to "شناسنامه", "home_members" to "مدیریت اعضا",
-        "home_assistant" to "دستیار مربی", "home_workshop" to "تراشکاری",
-        "home_sessions" to "جلسات", "home_ranking" to "رقابت",
-        "home_reading" to "کتاب‌خوانی", "home_missions" to "مأموریت‌ها",
-        "home_store" to "فروشگاه", "home_wheel" to "گردونه"
+        "home_sessions" to "جلسات",
+        "home_ranking" to "رقابت",
+        "home_workshop" to "کارگاه",
+        "home_reports" to "گزارش‌ها",
+        "home_missions" to "مأموریت‌ها",
+        "home_quotes" to "جمله‌های روز"
     )
     val shortcutStates = remember { mutableStateMapOf<String, Boolean>().apply {
-        shortcutLabels.forEach { (key, _) -> put(key, shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking", "home_reading", "home_missions"))) }
+        shortcutLabels.forEach { (key, _) -> put(key, shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking"))) }
     } }
     val weekdayLabels = listOf(6 to "شنبه", 0 to "یکشنبه", 1 to "دوشنبه", 2 to "سه‌شنبه", 3 to "چهارشنبه", 4 to "پنجشنبه", 5 to "جمعه")
     val activeWeekdays = remember { mutableStateListOf<Int>().apply {
@@ -339,10 +340,14 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             title = { Text("میانبرهای خانه") },
             text = {
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("هر میانبری که تیک بخورد در خانه نمایش داده می‌شود.")
+                    Text("${shortcutStates.values.count { it }} از ۴ میانبر انتخاب شده • حداکثر ۴ میانبر")
+                    Text("هر میانبری که انتخاب شود در خانه نمایش داده می‌شود.")
                     shortcutLabels.forEach { (key, label) ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = shortcutStates[key] == true, onCheckedChange = { shortcutStates[key] = it })
+                            Checkbox(checked = shortcutStates[key] == true, onCheckedChange = { checked ->
+                                val selectedCount = shortcutStates.values.count { it }
+                                if (!checked || selectedCount < 4) shortcutStates[key] = checked
+                            })
                             Text(label)
                         }
                     }
@@ -361,7 +366,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             dismissButton = {
                 TextButton(onClick = {
                     shortcutLabels.forEach { (key, _) ->
-                        shortcutStates[key] = shortcutPrefs.getBoolean(key, key in listOf("home_identity", "home_members", "home_assistant"))
+                        shortcutStates[key] = shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking"))
                     }
                     shortcutsOpen = false
                 }) { Text("انصراف") }
