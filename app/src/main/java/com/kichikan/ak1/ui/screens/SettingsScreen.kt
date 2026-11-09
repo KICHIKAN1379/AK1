@@ -85,7 +85,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     var quotesOpen by remember { mutableStateOf(false) }
     var newQuote by remember { mutableStateOf("") }
     val quotes = remember { mutableStateListOf<String>().apply { addAll(DailyQuotes.list(context)) } }
-    var profileOpen by remember { mutableStateOf(false) }
     var factoryOpen by remember { mutableStateOf(false) }
     val backgroundPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -117,6 +116,11 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             prefs.edit().putString("ring_profile_image", uri.toString()).apply()
             changed()
             Toast.makeText(context, "تصویر پروفایل حلقه ذخیره شد", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val profilePreview = remember(profileImageUri) {
+        profileImageUri?.let { raw ->
+            AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 256)?.asImageBitmap()
         }
     }
     val shortcutPrefs = prefs
@@ -182,8 +186,35 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 Text("پروفایل حلقه", style = MaterialTheme.typography.titleLarge)
                 Text("نام حلقه، نام کاربری مربی و تصویر هویت حلقه را ویرایش کن.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                Button(onClick = { profileOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("ویرایش اطلاعات و تصویر پروفایل")
+                Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(modifier = Modifier.size(116.dp), shape = androidx.compose.foundation.shape.CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = androidx.compose.foundation.BorderStroke(2.dp, Neon.Cyan)) {
+                            if (profilePreview != null) {
+                                Image(bitmap = profilePreview, contentDescription = "تصویر پروفایل حلقه",
+                                    modifier = Modifier.fillMaxSize())
+                            } else {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("K1", style = MaterialTheme.typography.headlineMedium, color = Neon.Cyan)
+                                }
+                            }
+                        }
+                        Text(repo.ring?.ringName ?: "حلقه", style = MaterialTheme.typography.titleLarge)
+                        Text("نام کاربری مربی: ${repo.ring?.ringUsername ?: "-"}",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("این تصویر در هویت حلقه و بخش بالای صفحه خانه نمایش داده می‌شود.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(onClick = { profileImagePicker.launch(arrayOf("image/*")) },
+                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر پروفایل") }
+                        OutlinedButton(onClick = {
+                            profileImageUri = null
+                            prefs.edit().remove("ring_profile_image").apply()
+                            changed()
+                        }, modifier = Modifier.fillMaxWidth()) { Text("حذف تصویر") }
+                    }
                 }
             }
             "appearance" -> {
@@ -305,35 +336,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         }
     }
     if (factoryOpen) FactoryResetDialog { factoryOpen = false }
-    if (profileOpen) {
-        val preview = remember(profileImageUri) {
-            profileImageUri?.let { raw ->
-                AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 256)?.asImageBitmap()
-            }
-        }
-        AlertDialog(
-            onDismissRequest = { profileOpen = false },
-            title = { Text("ویرایش پروفایل حلقه") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(modifier = Modifier.size(112.dp), shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)) {
-                        if (preview != null) Image(bitmap = preview, contentDescription = "پیش‌نمایش تصویر حلقه", modifier = Modifier.fillMaxSize())
-                        else Box(contentAlignment = Alignment.Center) { Text("K1", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary) }
-                    }
-                    Text(repo.ring?.ringName ?: "حلقه", style = MaterialTheme.typography.titleMedium)
-                    Text("تصویر در بالای صفحه خانه کنار نام حلقه نمایش داده می‌شود.", style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(onClick = { profileImagePicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر") }
-                }
-            },
-            confirmButton = { TextButton(onClick = { profileOpen = false }) { Text("انجام شد") } },
-            dismissButton = { TextButton(onClick = {
-                profileImageUri = null
-                prefs.edit().remove("ring_profile_image").apply()
-                changed()
-                profileOpen = false
-            }) { Text("حذف تصویر") } }
-        )
-    }
     if (shortcutsOpen) {
         AlertDialog(
             onDismissRequest = { shortcutsOpen = false },
