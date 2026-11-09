@@ -212,10 +212,10 @@ private fun HomeIdentityHero(
 ) {
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
         if (banner != null) {
-            Image(bitmap = banner, contentDescription = null, modifier = Modifier.fillMaxSize(),
+            Image(bitmap = banner, contentDescription = null, modifier = Modifier.matchParentSize(),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.24f)
         } else {
-            Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(
+            Box(Modifier.matchParentSize().background(Brush.linearGradient(listOf(
                 Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C)
             ))))
         }
