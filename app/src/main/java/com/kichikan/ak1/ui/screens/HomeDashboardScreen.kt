@@ -80,7 +80,7 @@ internal fun HomeDashboardScreen(
         HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.HOME),
         HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
         HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
-        HomeShortcut("home_workshop", "کارگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
+        HomeShortcut("home_workshop", "پالایشگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
     ).filter { shortcut ->
         prefs.getBoolean(shortcut.key, true)
     }
