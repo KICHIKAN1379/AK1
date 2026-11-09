@@ -7,7 +7,7 @@ internal enum class Tab {
     RANK_MEMBERS, RANK_GROUPS,
     STORE_AVATARS, STORE_FRAMES, STORE_BADGES, STORE_REWARDS,
     SESSIONS_LIST, SESSIONS_ATTENDANCE,
-    GROWTH, ARCHIVE, WEEKLY_PULSE
+    GROWTH, ARCHIVE, WEEKLY_PULSE, GROWTH_SETTINGS
 }
 
 internal fun parentOf(tab: Tab): Tab = when (tab) {
@@ -18,6 +18,7 @@ internal fun parentOf(tab: Tab): Tab = when (tab) {
     Tab.WORKSHOP -> Tab.SETTINGS
     Tab.RANKING, Tab.READING, Tab.SESSIONS, Tab.WHEEL -> Tab.SERVICES
     Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE -> Tab.SERVICES
+    Tab.GROWTH_SETTINGS -> Tab.SETTINGS
     Tab.GROWTH -> Tab.MEMBERS
     Tab.ARCHIVE -> Tab.SETTINGS
     else -> Tab.HOME
