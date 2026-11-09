@@ -146,7 +146,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                     Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(if (repo.members.isEmpty()) "هنوز عضوی ثبت نشده است" else "عضوی با این فیلتر پیدا نشد", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (repo.members.isEmpty()) "اولین عضو حلقه را اضافه کن تا مسیر رشد و رتبه‌بندی شکل بگیرد." else "فیلتر گروه یا عبارت جست‌وجو را تغییر بده.",
+                            if (repo.members.isEmpty()) "اولین عضو حلقه را اضافه کن تا مسیر رشد و رتبه‌بندی شکل بگیرد." else "عبارت جست‌وجو یا ترتیب نمایش را تغییر بده.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
