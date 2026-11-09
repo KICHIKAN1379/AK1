@@ -79,10 +79,6 @@ internal fun HomeDashboardScreen(
     val todaySessions = data.sessions.count {
         Instant.ofEpochMilli(it.startsAt).atZone(zone).toLocalDate() == today
     }
-    val now = System.currentTimeMillis()
-    val activeMissions = data.missions.count {
-        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
-    }
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
@@ -426,7 +422,10 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
         }
     }
     val peak = (counts.maxOrNull() ?: 0).coerceAtLeast(1)
-    val activeMissions = data.missions.count { it.active && !it.hidden }
+    val now = System.currentTimeMillis()
+    val activeMissions = data.missions.count {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
+    }
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
