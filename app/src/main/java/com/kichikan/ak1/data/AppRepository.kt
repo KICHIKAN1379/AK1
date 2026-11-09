@@ -116,6 +116,7 @@ class AppRepository(context: Context) {
         bootstrapper.setGroupLook(groupId, crestItemId, cardItemId)
 
     fun createRing(name: String, username: String): RingAccount = memberDomain.createRing(name, username)
+    fun updateRingProfile(name: String, username: String): RingAccount = memberDomain.updateRingProfile(name, username)
     fun addMember(name: String, birthDate: String? = null, responsibility: String = ""): Member =
         memberDomain.addMember(name, birthDate, responsibility)
     fun processBirthdayRewards(now: Long = System.currentTimeMillis()): Int = memberDomain.processBirthdayRewards(now)
