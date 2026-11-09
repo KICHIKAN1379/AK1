@@ -101,6 +101,13 @@ object GrowthStore {
     fun saveSkills(prefs: SharedPreferences, list: List<String>) = writeList(prefs, SKILL_KEY, list)
     fun saveCharacters(prefs: SharedPreferences, list: List<String>) = writeList(prefs, CHARACTER_KEY, list)
 
+    private fun activeKey(category: String, name: String) = "growth_active_${category}_${name}"
+    fun isActive(prefs: SharedPreferences, category: String, name: String): Boolean =
+        prefs.getBoolean(activeKey(category, name), true)
+    fun setActive(prefs: SharedPreferences, category: String, name: String, active: Boolean) {
+        prefs.edit().putBoolean(activeKey(category, name), active).apply()
+    }
+
     private fun logKey(memberId: String) = "growth_log_$memberId"
 
     fun unlocked(prefs: SharedPreferences, memberId: String): Map<String, Long> = runCatching {
@@ -132,9 +139,9 @@ fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, b
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var tick by remember { mutableStateOf(0) }
-    val knowledge = remember(tick) { GrowthStore.knowledge(prefs) }
-    val skills = remember(tick) { GrowthStore.skills(prefs) }
-    val characters = remember(tick) { GrowthStore.characters(prefs) }
+    val knowledge = remember(tick) { GrowthStore.knowledge(prefs).filter { GrowthStore.isActive(prefs, "knowledge", it) } }
+    val skills = remember(tick) { GrowthStore.skills(prefs).filter { GrowthStore.isActive(prefs, "skills", it) } }
+    val characters = remember(tick) { GrowthStore.characters(prefs).filter { GrowthStore.isActive(prefs, "characters", it) } }
     val unlocked = remember(tick, member.id) { GrowthStore.unlocked(prefs, member.id) }
     // The percentage counts only خودسازی (character virtues). توانمندی‌ها are shown separately.
     val total = characters.size
