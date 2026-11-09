@@ -34,7 +34,7 @@ internal fun SettingsHubScreen(
 ) {
     val items = listOf(
         SettingsHubItem("ویرایش پروفایل حلقه", R.drawable.icon_settings_edit_profile) { openGeneral("profile") },
-        SettingsHubItem("تراشکاری", R.drawable.icon_services_workshop, openWorkshop),
+        SettingsHubItem("پالایشگاه", R.drawable.icon_services_workshop, openWorkshop),
         SettingsHubItem("جمله‌های روز", R.drawable.icon_settings_shortcuts) { openGeneral("quotes") },
         SettingsHubItem("صدا، پس‌زمینه و تم", R.drawable.icon_settings_backup) { openGeneral("appearance") },
         SettingsHubItem("میانبرهای خانه", R.drawable.icon_settings_shortcuts) { openGeneral("shortcuts") },
