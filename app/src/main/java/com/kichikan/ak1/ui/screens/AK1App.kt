@@ -58,6 +58,7 @@ internal fun AK1App(repo: AppRepository) {
         ) { targetTab ->
             when (targetTab) {
                     Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
+                    Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
@@ -94,7 +95,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
-                    Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }) { tab = Tab.ARCHIVE }
+                    Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.WORKSHOP })
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
             }
         }
@@ -126,8 +127,8 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 /** 0 = root tab, 1 = section, 2 = sub-page of a section. */
 private val Tab.depth: Int
     get() = when (this) {
-        Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS -> 1
+        Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.STORE, Tab.SETTINGS -> 0
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
@@ -140,7 +141,8 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     val items = listOf(
         Tab.HOME to "خانه",
         Tab.MEMBERS to "اعضا",
-        Tab.SERVICES to "خدمات",
+        Tab.SERVICES to "پیشرفت",
+        Tab.STORE to "فروشگاه",
         Tab.SETTINGS to "تنظیمات"
     )
     Box(
@@ -174,7 +176,9 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp)) {
                 items.forEach { (target, label) ->
                     val selected = current == target ||
-                        (target == Tab.SERVICES && current !in listOf(Tab.HOME, Tab.MEMBERS, Tab.SETTINGS))
+                        (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE)) ||
+                        (target == Tab.STORE && current in listOf(Tab.STORE, Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS)) ||
+                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE))
                     val iconScale by animateFloatAsState(
                         targetValue = if (selected) 1f else 0.92f,
                         animationSpec = Motion.Selection,
@@ -204,6 +208,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                                 Tab.HOME -> R.drawable.icon_nav_home
                                 Tab.MEMBERS -> R.drawable.icon_nav_members
                                 Tab.SERVICES -> R.drawable.icon_nav_services
+                                Tab.STORE -> R.drawable.icon_services_store
                                 else -> R.drawable.icon_nav_settings
                             },
                             size = 26.dp,
