@@ -224,7 +224,7 @@ private fun TodayMissionBoard(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(missionCount.toString(), fontSize = 27.sp, fontWeight = FontWeight.Bold, color = Neon.Gold)
                         Text("مأموریت فعال", style = MaterialTheme.typography.labelMedium)
-                        Text("ورود به کارگاه", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                        Text("ورود به پالایشگاه", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                     }
                 }
             }
@@ -357,7 +357,7 @@ private fun QuickLaunchStrip(onSessions: () -> Unit, onCompetition: () -> Unit, 
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             QuickLaunchItem("جلسات", R.drawable.icon_services_sessions, Neon.Cyan, onSessions, Modifier.weight(1f))
             QuickLaunchItem("رقابت", R.drawable.icon_services_competition, Neon.Gold, onCompetition, Modifier.weight(1f))
-            QuickLaunchItem("کارگاه", R.drawable.icon_services_workshop, Neon.Coral, onWorkshop, Modifier.weight(1f))
+            QuickLaunchItem("پالایشگاه", R.drawable.icon_services_workshop, Neon.Coral, onWorkshop, Modifier.weight(1f))
         }
     }
 }
