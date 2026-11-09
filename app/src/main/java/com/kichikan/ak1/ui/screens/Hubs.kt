@@ -34,6 +34,7 @@ internal fun ServicesScreen(padding: PaddingValues, repo: AppRepository, open: (
     val markedAttendance = repo.attendance.count { it.status != AttendanceStatus.UNMARKED }
     val presentAttendance = repo.attendance.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
     val attendanceRate = if (markedAttendance == 0) 0f else presentAttendance.toFloat() / markedAttendance
+    var identityOpen by remember { mutableStateOf(false) }
     val entries = listOf(
         HubEntry("شناسنامه", "ثبت امتیاز، الماس، XP و سطح", Neon.Green, { AppIcon(R.drawable.icon_workshop_identity, 52.dp) }) { identityOpen = true },
         HubEntry("مأموریت‌ها", "$activeMissions مأموریت فعال • $completedMissions ثبت انجام", Neon.Cyan, { AppIcon(R.drawable.icon_workshop_missions, 52.dp) }) { open(Tab.MISSION_ACHIEVEMENTS) },
@@ -107,7 +108,6 @@ internal fun WorkshopHub(
     back: () -> Unit
 ) {
     val observedDomainState = repo.progressState.collectAsState().value
-    var identityOpen by remember { mutableStateOf(false) }
     HubScreen(
         padding, "تراشکاری", "ساخت و مدیریت مأموریت، جوایز و شخصی‌سازی",
         listOf(
@@ -141,10 +141,9 @@ internal fun StoreHub(padding: PaddingValues, repo: AppRepository, open: (Tab) -
     val categories = listOf(
         HubEntry("آواتارها", "دریافت و فعال‌سازی آواتار", Neon.Cyan, { AppIcon(R.drawable.icon_store_avatars, 52.dp) }) { open(Tab.STORE_AVATARS) },
         HubEntry("قاب‌ها", "قاب‌های ویژه و افکت‌دار", Neon.Violet, { AppIcon(R.drawable.icon_store_frames, 52.dp) }) { open(Tab.STORE_FRAMES) },
-        HubEntry("نشان‌ها", "نشان‌های قابل استفاده در پروفایل", Neon.Gold, { AppIcon(R.drawable.icon_store_rewards, 52.dp) }) { open(Tab.STORE_BADGES) },
         HubEntry("جوایز", "جوایز قابل دریافت با امتیاز", Neon.Green, { AppIcon(R.drawable.icon_workshop_store_rewards, 52.dp) }) { open(Tab.STORE_REWARDS) }
     )
-    val featured = observedCatalogState.shop.firstOrNull { it.active }
+    val featured = observedCatalogState.shop.firstOrNull { it.active && it.type in setOf(ShopItemType.AVATAR, ShopItemType.FRAME, ShopItemType.REWARD) }
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 14.dp),
