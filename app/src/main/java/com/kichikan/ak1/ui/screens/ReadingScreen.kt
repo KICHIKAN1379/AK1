@@ -1,5 +1,6 @@
 package com.kichikan.ak1.ui.screens
 
+import androidx.compose.runtime.collectAsState
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -83,6 +84,7 @@ internal fun ReadingScreen(
     changed: () -> Unit,
     back: () -> Unit
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var page by remember { mutableIntStateOf(0) }
     var selectedMemberId by remember { mutableStateOf(repo.members.firstOrNull()?.id.orEmpty()) }
     var detailMemberId by remember { mutableStateOf<String?>(null) }
@@ -302,6 +304,7 @@ internal fun ReadingScreen(
 
 @Composable
 private fun ReadingMemberHeader(member: Member, progress: ReadingProgress, repo: AppRepository) {
+    val observedDomainState = repo.membersState.collectAsState().value
     Card(Modifier.fillMaxWidth(), accent = Neon.Green) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -390,6 +393,7 @@ private fun ReadingRankingCard(
     repo: AppRepository,
     fraction: Float
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val accent = when (rank) {
         1 -> Neon.Gold
         2 -> Color(0xFFC9D6E8)
@@ -444,6 +448,7 @@ private fun ReadingMemberDialog(
     onEdit: (ReadingBook) -> Unit,
     close: () -> Unit
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val progress = repo.readingProgressFor(member)
     var deleteCandidate by remember { mutableStateOf<ReadingBook?>(null) }
     AlertDialog(
@@ -523,6 +528,7 @@ private fun ReadingBookDialog(
     changed: () -> Unit,
     close: () -> Unit
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var title by remember(existing?.id) { mutableStateOf(existing?.title ?: "") }
     var dailyMinutes by remember(existing?.id) { mutableStateOf((existing?.dailyMinutes ?: 0).toString()) }
     var pages by remember(existing?.id) { mutableStateOf((existing?.pages ?: 0).toString()) }

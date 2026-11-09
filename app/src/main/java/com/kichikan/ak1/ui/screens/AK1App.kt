@@ -41,10 +41,10 @@ import com.kichikan.ak1.ui.theme.Neon
 @Composable
 internal fun AK1App(repo: AppRepository) {
     var tab by remember { mutableStateOf(Tab.HOME) }
-    var refresh by remember { mutableIntStateOf(0) }
     var ringReady by remember { mutableStateOf(repo.ring != null) }
     var growthMemberId by remember { mutableStateOf<String?>(null) }
-    fun changed() { refresh++ }
+    val memberState by repo.membersState.collectAsState()
+    fun changed() {}
     if (!ringReady) { WelcomeScreen(repo) { ringReady = true }; return }
     androidx.activity.compose.BackHandler(enabled = tab != Tab.HOME) { tab = parentOf(tab) }
     Scaffold(
@@ -56,15 +56,14 @@ internal fun AK1App(repo: AppRepository) {
             transitionSpec = { tabTransition(initialState, targetState) },
             label = "ak1-screen"
         ) { targetTab ->
-            key(refresh) {
-                when (targetTab) {
+            when (targetTab) {
                     Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
                     }
                     Tab.GROWTH -> {
-                        val growthMember = repo.members.firstOrNull { it.id == growthMemberId }
+                        val growthMember = memberState.members.firstOrNull { it.id == growthMemberId }
                         if (growthMember != null) {
                             GrowthMapPage(repo, growthMember, padding) { tab = Tab.MEMBERS }
                         } else {
@@ -97,7 +96,6 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
                     Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }) { tab = Tab.ARCHIVE }
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
-                }
             }
         }
     }

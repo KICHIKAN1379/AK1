@@ -20,6 +20,7 @@ import com.kichikan.ak1.ui.theme.Neon
 
 @Composable
 internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit) {
+    val observedDomainState = repo.missionsState.collectAsState().value
     var selected by remember { mutableIntStateOf(0) }
     val missions = repo.missions.filter { it.active && !it.hidden }
     val completedCount = repo.history.count { it.type == HistoryType.MISSION_COMPLETED }
@@ -163,6 +164,7 @@ private fun EmptyState(title: String, detail: String) {
 
 @Composable
 private fun MissionWorkflowPanel(repo: AppRepository) {
+    val observedDomainState = repo.missionsState.collectAsState().value
     var memberMenu by remember { mutableStateOf(false) }
     var missionMenu by remember { mutableStateOf(false) }
     var selectedMemberId by remember { mutableStateOf(repo.members.firstOrNull()?.id.orEmpty()) }

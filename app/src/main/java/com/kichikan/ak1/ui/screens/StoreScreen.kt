@@ -35,6 +35,7 @@ private var lastStoreMemberId: String = ""
 
 @Composable
 internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: ShopItemType, changed: () -> Unit, back: () -> Unit) {
+    val observedDomainState = repo.catalogState.collectAsState().value
     var selectedMemberId by remember { mutableStateOf(lastStoreMemberId.takeIf { id -> repo.members.any { it.id == id } } ?: repo.members.firstOrNull()?.id ?: "") }
     var result by remember { mutableStateOf<String?>(null) }
     var manualGrantItem by remember { mutableStateOf<ShopItem?>(null) }
@@ -257,6 +258,7 @@ private fun StoreBadge(text: String, accent: Color, modifier: Modifier = Modifie
 
 @Composable
 private fun ManualGrantDialog(repo: AppRepository, memberId: String, item: ShopItem, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.catalogState.collectAsState().value
     var reason by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(

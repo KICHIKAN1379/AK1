@@ -1,5 +1,6 @@
 package com.kichikan.ak1.ui
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -127,6 +128,7 @@ internal fun shamsi(epochDay: Long): String {
  */
 @Composable
 fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, back: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var tick by remember { mutableStateOf(0) }

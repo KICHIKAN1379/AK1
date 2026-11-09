@@ -56,6 +56,7 @@ private data class PodiumEntry(
 
 @Composable
 internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: Boolean, back: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val avatarOf = { m: Member -> repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath }
     val frameOf = { m: Member -> repo.shop.firstOrNull { it.id == m.frameItemId }?.imagePath }

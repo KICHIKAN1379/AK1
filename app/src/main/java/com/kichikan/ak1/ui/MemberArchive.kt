@@ -1,5 +1,6 @@
 package com.kichikan.ak1.ui
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import com.kichikan.ak1.ui.theme.Neon
  */
 @Composable
 fun MemberArchivePage(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
     var message by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableIntStateOf(0) }
     var confirmPurge by remember { mutableStateOf<ArchivedMember?>(null) }
@@ -144,6 +146,7 @@ private fun ArchiveRow(
     onRestore: () -> Unit,
     onPurge: () -> Unit
 ) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val member = entry.member
     val avatarPath = repo.shop.firstOrNull { it.id == member.avatarItemId }?.imagePath
     val framePath = repo.shop.firstOrNull { it.id == member.frameItemId }?.imagePath
