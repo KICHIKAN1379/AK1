@@ -59,6 +59,7 @@ internal fun AK1App(repo: AppRepository) {
         ) { targetTab ->
             when (targetTab) {
                     Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
+                    Tab.ASSISTANT -> AssistantScreen(repo, padding)
                     Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
                     Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.WORKSHOP }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
@@ -131,7 +132,7 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 private val Tab.depth: Int
     get() = when (this) {
         Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.STORE, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.SETTINGS_GENERAL -> 1
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.SETTINGS_GENERAL, Tab.ASSISTANT -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,

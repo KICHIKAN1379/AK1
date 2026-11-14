@@ -63,7 +63,6 @@ internal fun HomeDashboardScreen(
 ) {
     val data by repo.homeState.collectAsState()
     val context = LocalContext.current
-    val assistantOpen = remember { mutableStateOf(false) }
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val photoUri = remember { prefs.getString("ring_profile_image", null) }
     val ringPhoto = remember(photoUri) {
@@ -77,7 +76,7 @@ internal fun HomeDashboardScreen(
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
     val quickShortcuts = listOf(
-        HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.HOME),
+        HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.ASSISTANT),
         HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
         HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
         HomeShortcut("home_workshop", "پالایشگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
@@ -123,7 +122,7 @@ internal fun HomeDashboardScreen(
                             shortcut.title,
                             shortcut.icon,
                             if (shortcut.key == "home_assistant") Neon.Magenta else Neon.Cyan,
-                            { if (shortcut.key == "home_assistant") assistantOpen.value = true else open(shortcut.target) },
+                            { open(shortcut.target) },
                             Modifier.weight(1f)
                         )
                     }
@@ -132,7 +131,6 @@ internal fun HomeDashboardScreen(
             }
         }
     }
-    if (assistantOpen.value) MentorAssistantDialog(repo) { assistantOpen.value = false }
 }
 
 @Composable

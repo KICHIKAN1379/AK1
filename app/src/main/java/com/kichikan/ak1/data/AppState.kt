@@ -1,6 +1,8 @@
 package com.kichikan.ak1.data
 
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.domain.assistant.AssistantAlert
+import com.kichikan.ak1.domain.assistant.AssistantFollowUp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,6 +91,8 @@ internal class AppStatePublisher {
 
     private val _progress = MutableStateFlow(ProgressDataState())
     val progress: StateFlow<ProgressDataState> = _progress.asStateFlow()
+    private val _assistant = MutableStateFlow(AssistantDataState())
+    val assistant: StateFlow<AssistantDataState> = _assistant.asStateFlow()
 
     fun publish(state: RepositoryState) {
         // Copy each mutable collection once; snapshots share these immutable list instances.
@@ -114,5 +118,22 @@ internal class AppStatePublisher {
         _progress.value = ProgressDataState(
             members, groups, history, missions, completions, requests, notices, assets, wheel, sessions, attendance, shop
         )
+        _assistant.value = AssistantDataState(
+            members = members, alerts = state.assistantAlerts.toList(), followUps = state.assistantFollowUps.toList(),
+            history = history, sessions = sessions, completions = completions, attendance = attendance,
+            missions = missions, requests = requests
+        )
     }
 }
+
+internal data class AssistantDataState(
+ val members: List<Member> = emptyList(),
+ val alerts: List<AssistantAlert> = emptyList(),
+ val followUps: List<AssistantFollowUp> = emptyList(),
+ val history: List<HistoryEvent> = emptyList(),
+ val sessions: List<Session> = emptyList(),
+ val completions: List<MissionCompletion> = emptyList(),
+ val attendance: List<Attendance> = emptyList(),
+ val missions: List<Mission> = emptyList(),
+ val requests: List<MissionRequest> = emptyList()
+)

@@ -33,6 +33,7 @@ class AppRepository(context: Context) {
     internal val sessionsState get() = statePublisher.sessions
     internal val catalogState get() = statePublisher.catalog
     internal val progressState get() = statePublisher.progress
+    internal val assistantState get() = statePublisher.assistant
 
     var ring: RingAccount?
         get() = state.ring
