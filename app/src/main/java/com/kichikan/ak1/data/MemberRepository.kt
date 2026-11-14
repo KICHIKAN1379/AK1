@@ -52,7 +52,8 @@ internal class MemberRepository(
 
         val member = Member(
             newId("member"), app.ring!!.ringId, name.trim(), birthDate = normalizedBirthDate,
-            responsibility = responsibility.trim()
+            responsibility = responsibility.trim(),
+            registeredAtEpochMillis = System.currentTimeMillis()
         )
         app.members += member
         app.persist()

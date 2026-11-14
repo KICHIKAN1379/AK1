@@ -37,7 +37,11 @@ data class Member(
     /** Independent reading history; reading level and score are derived from it. */
     val readingBooks: List<ReadingBook> = emptyList(),
     /** Whole points already transferred into the spendable economy from reading. */
-    val readingAwardedPoints: Int = 0
+    val readingAwardedPoints: Int = 0,
+    /** Actual registration timestamp; zero is reserved for legacy records. */
+    val registeredAtEpochMillis: Long = 0L,
+    /** Stable monitoring baseline for legacy members; not a fabricated registration date. */
+    val monitoringStartAtEpochMillis: Long? = null
 )
 
 /**
