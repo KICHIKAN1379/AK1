@@ -267,8 +267,15 @@ class LocalStore(private val context: Context) {
     fun load(): LoadedState? {
         val raw = prefs.getString("backup", null) ?: return null
         val root = JSONObject(raw)
+        // Assign legacy members one stable monitoring baseline on first schema-10 load.
+        // Their historical registration date remains unknown (registeredAtEpochMillis = 0).
+        if (!root.has("assistantLegacyMonitoringStartedAt")) {
+            root.put("assistantLegacyMonitoringStartedAt", System.currentTimeMillis())
+            prefs.edit().putString("backup", root.toString()).commit()
+        }
+        val legacyMonitoringStart = root.optLong("assistantLegacyMonitoringStartedAt", System.currentTimeMillis())
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..9) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..10) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         val ring = if (root.has("ringId")) RingAccount(
             root.getString("ringId"), root.getString("ringName"),
@@ -295,7 +302,7 @@ class LocalStore(private val context: Context) {
                 parseReadingBooks(o),
                 o.optInt("readingAwardedPoints", 0),
                 o.optLong("registeredAtEpochMillis", 0L),
-                if (o.isNull("monitoringStartAtEpochMillis")) null else o.optLong("monitoringStartAtEpochMillis")
+                if (o.isNull("monitoringStartAtEpochMillis")) legacyMonitoringStart else o.optLong("monitoringStartAtEpochMillis")
             )
         }
 
