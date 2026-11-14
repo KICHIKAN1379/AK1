@@ -27,7 +27,7 @@ class LocalStore(private val context: Context) {
         missionRequests: List<MissionRequest> = emptyList(),
         missionNotices: List<MissionNotice> = emptyList()
     ) {
-        val root = JSONObject().put("schemaVersion", 9)
+        val root = JSONObject().put("schemaVersion", 10)
         ring?.let {
             root.put("ringId", it.ringId).put("ringName", it.ringName)
                 .put("ringUsername", it.ringUsername).put("passwordRequired", it.passwordRequired)
@@ -43,6 +43,8 @@ class LocalStore(private val context: Context) {
                 .put("frame", it.frameItemId ?: JSONObject.NULL)
                 .put("badge", it.badgeItemId ?: JSONObject.NULL)
                 .put("readingAwardedPoints", it.readingAwardedPoints)
+                .put("registeredAtEpochMillis", it.registeredAtEpochMillis)
+                .put("monitoringStartAtEpochMillis", it.monitoringStartAtEpochMillis ?: JSONObject.NULL)
                 .put("readingBooks", readingBooksJson(it.readingBooks))
                 .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL).put("privateNotes", it.privateNotes).put("responsibility", it.responsibility))
         }
@@ -246,7 +248,7 @@ class LocalStore(private val context: Context) {
             throw IllegalArgumentException("ساختار فایل پشتیبان معتبر نیست", e)
         }
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..9) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..10) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         // Validate the entire backup before accepting it. If parsing any nested record fails,
         // restore the previous saved data instead of leaving the app with a broken backup.
@@ -291,7 +293,9 @@ class LocalStore(private val context: Context) {
                 o.optString("responsibility", ""),
                 o.optString("badge").takeIf { it.isNotEmpty() && it != "null" },
                 parseReadingBooks(o),
-                o.optInt("readingAwardedPoints", 0)
+                o.optInt("readingAwardedPoints", 0),
+                o.optLong("registeredAtEpochMillis", 0L),
+                if (o.isNull("monitoringStartAtEpochMillis")) null else o.optLong("monitoringStartAtEpochMillis")
             )
         }
 
@@ -314,7 +318,9 @@ class LocalStore(private val context: Context) {
                     o.optString("responsibility", ""),
                     o.optString("badge").takeIf { it.isNotEmpty() && it != "null" },
                     parseReadingBooks(o),
-                    o.optInt("readingAwardedPoints", 0)
+                    o.optInt("readingAwardedPoints", 0),
+                    o.optLong("registeredAtEpochMillis", 0L),
+                    if (o.isNull("monitoringStartAtEpochMillis")) null else o.optLong("monitoringStartAtEpochMillis")
                 ),
                 o.optLong("archivedAt", 0L)
             )
