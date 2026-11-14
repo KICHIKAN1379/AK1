@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -79,6 +80,7 @@ object DailyDateNotification {
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")
             .setContentIntent(openApp)
             .setNumber(date.day)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -142,7 +144,9 @@ object MissionNotifications {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
         val notification = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher).setContentTitle(title).setContentText(message)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
+            .setContentTitle(title).setContentText(message)
             .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(openApp).setAutoCancel(true)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT).build()
