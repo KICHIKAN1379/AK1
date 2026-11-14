@@ -213,6 +213,7 @@ class AppRepository(context: Context) {
     fun upsertAssistantAlert(alert: AssistantAlert) = assistantDomain.upsertAlert(alert)
     fun markAssistantAlertDone(id: String, completedAtEpochMillis: Long = System.currentTimeMillis()) =
         assistantDomain.markAlertDone(id, completedAtEpochMillis)
+    fun evaluateAssistantAlerts(now: Long = System.currentTimeMillis()) = assistantDomain.evaluate(now)
 
     fun persist() {
         normaliseHistoryIds()

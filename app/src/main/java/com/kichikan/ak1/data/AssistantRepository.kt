@@ -1,9 +1,22 @@
 package com.kichikan.ak1.data
 
 import com.kichikan.ak1.domain.assistant.*
+import java.time.ZoneId
 
 /** Durable CRUD boundary for assistant alerts and mentor follow-ups. */
 internal class AssistantRepository(private val app: AppRepository, private val newId: (String) -> String) {
+    fun evaluate(now: Long = System.currentTimeMillis()) {
+        val snapshot = AssistantAlertEngine.Input(
+            app.members.toList(), app.history.toList(), app.sessions.toList(), app.missionCompletions.toList(),
+            app.missionRequests.toList(), app.assistantFollowUps.toList(), app.assistantAlerts.toList(),
+            AssistantDataProvider.growthLastAction(app.appContext, app.members.map { it.id }.toSet())
+        )
+        val evaluated = AssistantAlertEngine.evaluate(snapshot, now, ZoneId.systemDefault())
+        if (evaluated != app.assistantAlerts) {
+            app.assistantAlerts.clear(); app.assistantAlerts.addAll(evaluated); app.persist()
+        }
+    }
+
     fun upsertAlert(alert: AssistantAlert) {
         require(app.members.any { it.id == alert.memberId } || app.archived.any { it.member.id == alert.memberId }) { "عضو پیدا نشد" }
         val byId = app.assistantAlerts.indexOfFirst { it.id == alert.id }
