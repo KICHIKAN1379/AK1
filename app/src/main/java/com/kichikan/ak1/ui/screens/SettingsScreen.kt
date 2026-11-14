@@ -54,6 +54,25 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     var musicEnabled by remember { mutableStateOf(BackgroundMusic.enabled(context)) }
+    var hasCustomMusic by remember { mutableStateOf(BackgroundMusic.hasCustomTrack(context)) }
+    val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            try {
+                val size = context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)
+                    ?.use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null }
+                require(size != null && size > 0L) { "حجم فایل قابل تشخیص نیست" }
+                require(size <= 20L * 1024L * 1024L) { "حجم موزیک نباید بیشتر از ۲۰ مگابایت باشد" }
+                val mime = context.contentResolver.getType(uri)
+                require(mime == null || mime.startsWith("audio/")) { "فایل انتخاب‌شده صوتی نیست" }
+                context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                BackgroundMusic.setCustomTrack(context, uri)
+                hasCustomMusic = true
+                Toast.makeText(context, "موزیک انتخابی ذخیره شد", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: "انتخاب موزیک انجام نشد", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     var ringNameInput by remember(repo.ring?.ringName) { mutableStateOf(repo.ring?.ringName ?: "") }
     var ringUsernameInput by remember(repo.ring?.ringUsername) { mutableStateOf(repo.ring?.ringUsername ?: "") }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -268,6 +287,21 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                         BackgroundMusic.setEnabled(context, on)
                     })
                     Text("پخش موسیقی پس‌زمینه")
+                }
+                OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) },
+                    modifier = Modifier.fillMaxWidth()) { Text("اضافه کردن موزیک") }
+                Text(
+                    if (hasCustomMusic) "موزیک شخصی مربی فعال است • حداکثر حجم: ۲۰ مگابایت"
+                    else "می‌توانی فایل صوتی دلخواهت را انتخاب کنی • حداکثر حجم: ۲۰ مگابایت",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (hasCustomMusic) {
+                    TextButton(onClick = {
+                        BackgroundMusic.clearCustomTrack(context)
+                        hasCustomMusic = false
+                        Toast.makeText(context, "موزیک پیش‌فرض برنامه فعال شد", Toast.LENGTH_SHORT).show()
+                    }) { Text("بازگشت به موزیک پیش‌فرض") }
                 }
                 Text("ظاهر برنامه", style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
