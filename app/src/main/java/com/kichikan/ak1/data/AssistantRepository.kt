@@ -2,16 +2,41 @@ package com.kichikan.ak1.data
 
 import com.kichikan.ak1.domain.assistant.*
 import java.time.ZoneId
+import com.kichikan.ak1.domain.calendar.BirthdayRules
+import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
 /** Durable CRUD boundary for assistant alerts and mentor follow-ups. */
 internal class AssistantRepository(private val app: AppRepository, private val newId: (String) -> String) {
     fun evaluate(now: Long = System.currentTimeMillis()) {
+        val zone = ZoneId.systemDefault()
+        val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        app.members.forEach { member ->
+            val birth = BirthdayRules.parseStored(member.birthDate)
+            if (birth != null) {
+                var next = BirthdayRules.birthdayInYear(birth, JalaliCalendar.fromGregorian(today).year)
+                var birthdayDate = JalaliCalendar.toGregorian(next)
+                if (birthdayDate.isBefore(today)) {
+                    next = BirthdayRules.birthdayInYear(birth, next.year + 1)
+                    birthdayDate = JalaliCalendar.toGregorian(next)
+                }
+                val reference = "birthday:" + member.id + ":" + next.year
+                if (app.assistantFollowUps.none { it.sourceReference == reference }) {
+                    val due = birthdayDate.minusDays(3).atStartOfDay(zone).toInstant().toEpochMilli()
+                    app.assistantFollowUps += AssistantFollowUp(
+                        id = newId("birthday-follow-up"), memberId = member.id,
+                        title = "یادآوری تولد " + member.name, description = "سه روز تا تولد عضو باقی مانده است.",
+                        dueAtEpochMillis = due, createdAtEpochMillis = now,
+                        sourceType = AssistantFollowUpSource.BIRTHDAY, sourceReference = reference
+                    )
+                }
+            }
+        }
         val snapshot = AssistantAlertEngine.Input(
             app.members.toList(), app.history.toList(), app.sessions.toList(), app.missionCompletions.toList(),
             app.missionRequests.toList(), app.assistantFollowUps.toList(), app.assistantAlerts.toList(),
             AssistantDataProvider.growthLastAction(app.appContext, app.members.map { it.id }.toSet())
         )
-        val evaluated = AssistantAlertEngine.evaluate(snapshot, now, ZoneId.systemDefault())
+        val evaluated = AssistantAlertEngine.evaluate(snapshot, now, zone)
         if (evaluated != app.assistantAlerts) {
             app.assistantAlerts.clear(); app.assistantAlerts.addAll(evaluated); app.persist()
         }

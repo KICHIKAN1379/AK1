@@ -109,6 +109,7 @@ class AppRepository(context: Context) {
         // was off was never rewarded. processBirthdayRewards() is idempotent per Jalali year,
         // which makes this catch-up safe to run on every start.
         runCatching { processBirthdayRewards() }
+        runCatching { evaluateAssistantAlerts() }
     }
 
     private fun seedStarterCatalog(regenerate: Boolean) = bootstrapper.seedStarterCatalog(regenerate)

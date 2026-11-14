@@ -31,7 +31,7 @@ object AssistantAlertEngine {
    listOf("توانمندی","خودسازی").forEach{branch->val at=growth[branch];if(now-base(at)>=30L*DAY)add(AssistantAlertTab.GROWTH_MAP,"growth-30d-"+branch,"۳۰ روز بدون پیشرفت در "+branch,"در شاخه "+branch+" از نقشه کمال، ۳۰ روز یا بیشتر مورد فعالی ثبت نشده است.",base(at))}
    val lastSession=input.sessions.filter{it.memberId==m.id}.maxOfOrNull{it.startsAt}
    val cutoff=Instant.ofEpochMilli(now).atZone(zone).toLocalDate().minusMonths(3).atStartOfDay(zone).toInstant().toEpochMilli()
-   if((lastSession?:start)<=cutoff)add(AssistantAlertTab.SESSIONS,"session-3-calendar-months","سه ماه بدون جلسه فردی","از آخرین جلسه فردی ثبت‌شده سه ماه تقویمی یا بیشتر گذشته است.",lastSession?:start)
+   if(maxOf(lastSession?:0L,start)<=cutoff)add(AssistantAlertTab.SESSIONS,"session-3-calendar-months","سه ماه بدون جلسه فردی","از آخرین جلسه فردی ثبت‌شده سه ماه تقویمی یا بیشتر گذشته است.",maxOf(lastSession?:0L,start))
    val lastReading=m.readingBooks.maxOfOrNull{it.completedAtEpochMillis}
    if(now-base(lastReading)>=30L*DAY)add(AssistantAlertTab.READING,"reading-30d","۳۰ روز بدون ثبت کتاب تکمیل‌شده","در ۳۰ روز اخیر رکورد تازه‌ای از کتاب تکمیل‌شده ثبت نشده است؛ این به‌معنای مطالعه‌نکردن نیست.",base(lastReading))
    input.followUps.filter{it.memberId==m.id&&it.status==AssistantRecordStatus.OPEN&&it.dueAtEpochMillis<=now}.forEach{f->add(AssistantAlertTab.FOLLOW_UP,"follow-up-"+f.id,"پیگیری سررسیدشده","زمان پیگیری «"+f.title+"» فرارسیده است.",f.dueAtEpochMillis,listOf(f.id),f.id)}
