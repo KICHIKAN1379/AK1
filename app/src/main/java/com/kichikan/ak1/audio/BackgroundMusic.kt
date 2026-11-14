@@ -17,6 +17,7 @@ object BackgroundMusic {
     private const val VOLUME = 0.30f
 
     private var player: MediaPlayer? = null
+    @Volatile private var playbackRequested = false
 
     fun enabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, true)
@@ -46,6 +47,7 @@ object BackgroundMusic {
 
     /** Starts or resumes the selected loop while the app is enabled and the phone is not silent. */
     fun start(context: Context) {
+        playbackRequested = true
         if (!enabled(context)) return
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         if (audio?.ringerMode == AudioManager.RINGER_MODE_SILENT) return
@@ -64,7 +66,7 @@ object BackgroundMusic {
             created.isLooping = true
             created.setVolume(VOLUME, VOLUME)
             created.setOnPreparedListener { mediaPlayer ->
-                if (enabled(appContext)) mediaPlayer.start()
+                if (playbackRequested && enabled(appContext)) mediaPlayer.start()
             }
             created.setOnErrorListener { mediaPlayer, _, _ ->
                 runCatching { mediaPlayer.release() }
@@ -90,10 +92,12 @@ object BackgroundMusic {
 
     /** Pauses without releasing, so returning to the app resumes where it stopped. */
     fun pause() {
+        playbackRequested = false
         runCatching { player?.takeIf { it.isPlaying }?.pause() }
     }
 
     fun stop() {
+        playbackRequested = false
         runCatching { player?.release() }
         player = null
     }
