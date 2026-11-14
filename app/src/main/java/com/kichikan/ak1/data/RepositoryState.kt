@@ -1,6 +1,7 @@
 package com.kichikan.ak1.data
 
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.domain.assistant.*
 
 /**
  * In-memory source of truth for the offline ring.
@@ -23,6 +24,8 @@ internal class RepositoryState {
     val assets = mutableListOf<CustomAsset>()
     val groups = mutableListOf<Group>()
     val archived = mutableListOf<ArchivedMember>()
+    val assistantAlerts = mutableListOf<AssistantAlert>()
+    val assistantFollowUps = mutableListOf<AssistantFollowUp>()
 
     var wheel = WheelConfig()
 }

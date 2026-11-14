@@ -4,6 +4,7 @@ import android.content.Context
 import com.kichikan.ak1.domain.calendar.BirthdayRules
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.domain.assistant.*
 import com.kichikan.ak1.domain.service.EconomyChange
 import com.kichikan.ak1.domain.service.EconomyService
 import com.kichikan.ak1.domain.service.HistoryEvents
@@ -49,6 +50,9 @@ class AppRepository(context: Context) {
     val assets: MutableList<CustomAsset> get() = state.assets
     val groups: MutableList<Group> get() = state.groups
     val archived: MutableList<ArchivedMember> get() = state.archived
+    internal val assistantAlerts: MutableList<AssistantAlert> get() = state.assistantAlerts
+    internal val assistantFollowUps: MutableList<AssistantFollowUp> get() = state.assistantFollowUps
+    private val assistantDomain by lazy(LazyThreadSafetyMode.NONE) { AssistantRepository(this, ::newId) }
 
     var wheel: WheelConfig
         get() = state.wheel
@@ -78,6 +82,8 @@ class AppRepository(context: Context) {
             assets += state.assets
             groups += state.groups
             archived += state.archived
+            assistantAlerts += state.assistantAlerts
+            assistantFollowUps += state.assistantFollowUps
         }
         val catalogPrefs = appContext.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE)
         if (!catalogPrefs.getBoolean("starter_catalog_created", false)) {
@@ -196,11 +202,24 @@ class AppRepository(context: Context) {
 
     fun spinWheel(memberId: String): WheelItem? = wheelDomain.spinWheel(memberId)
 
+    fun addAssistantFollowUp(memberId: String, title: String, description: String, dueAtEpochMillis: Long,
+                            sourceType: AssistantFollowUpSource = AssistantFollowUpSource.MANUAL,
+                            sourceReference: String? = null): AssistantFollowUp =
+        assistantDomain.addFollowUp(memberId, title, description, dueAtEpochMillis, sourceType, sourceReference)
+    fun updateAssistantFollowUp(item: AssistantFollowUp) = assistantDomain.updateFollowUp(item)
+    fun completeAssistantFollowUp(id: String, completedAtEpochMillis: Long = System.currentTimeMillis()) =
+        assistantDomain.completeFollowUp(id, completedAtEpochMillis)
+    fun deleteAssistantFollowUp(id: String) = assistantDomain.deleteFollowUp(id)
+    fun upsertAssistantAlert(alert: AssistantAlert) = assistantDomain.upsertAlert(alert)
+    fun markAssistantAlertDone(id: String, completedAtEpochMillis: Long = System.currentTimeMillis()) =
+        assistantDomain.markAlertDone(id, completedAtEpochMillis)
+
     fun persist() {
         normaliseHistoryIds()
         persistence.save(
             ring, members, history, shop, wheel, missions, missionCompletions,
-            sessions, attendance, assets, groups, archived, missionRequests, missionNotices
+            sessions, attendance, assets, groups, archived, missionRequests, missionNotices,
+            assistantAlerts, assistantFollowUps
         )
         statePublisher.publish(state)
     }
@@ -240,6 +259,8 @@ class AppRepository(context: Context) {
         assets.clear()
         groups.clear()
         archived.clear()
+        assistantAlerts.clear()
+        assistantFollowUps.clear()
         wheel = WheelConfig()
 
         persistence.load()?.let { state ->
@@ -257,6 +278,8 @@ class AppRepository(context: Context) {
             assets += state.assets
             groups += state.groups
             archived += state.archived
+            assistantAlerts += state.assistantAlerts
+            assistantFollowUps += state.assistantFollowUps
         }
         statePublisher.publish(state)
     }

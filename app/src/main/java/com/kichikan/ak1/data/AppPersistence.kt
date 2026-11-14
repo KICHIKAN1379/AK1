@@ -2,6 +2,7 @@ package com.kichikan.ak1.data
 
 import android.content.Context
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.domain.assistant.*
 
 /**
  * Persistence boundary for the mentor app's local ring data.
@@ -29,11 +30,14 @@ internal class AppPersistence(context: Context) {
         groups: List<Group>,
         archived: List<ArchivedMember>,
         missionRequests: List<MissionRequest>,
-        missionNotices: List<MissionNotice>
+        missionNotices: List<MissionNotice>,
+        assistantAlerts: List<AssistantAlert>,
+        assistantFollowUps: List<AssistantFollowUp>
     ) {
         store.save(
             ring, members, history, shop, wheel, missions, missionCompletions,
-            sessions, attendance, assets, groups, archived, missionRequests, missionNotices
+            sessions, attendance, assets, groups, archived, missionRequests, missionNotices,
+            assistantAlerts, assistantFollowUps
         )
     }
 

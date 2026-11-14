@@ -50,10 +50,11 @@ internal class MemberRepository(
         val normalizedBirthDate = birthDate?.trim()?.takeIf { it.isNotEmpty() }
             ?.let { BirthdayRules.normalize(it, java.time.LocalDate.now()) }
 
+        val registeredAt = System.currentTimeMillis()
         val member = Member(
             newId("member"), app.ring!!.ringId, name.trim(), birthDate = normalizedBirthDate,
-            responsibility = responsibility.trim(),
-            registeredAtEpochMillis = System.currentTimeMillis()
+            responsibility = responsibility.trim(), registeredAtEpochMillis = registeredAt,
+            monitoringStartAtEpochMillis = registeredAt
         )
         app.members += member
         app.persist()
@@ -165,6 +166,8 @@ internal class MemberRepository(
     fun deleteMember(memberId: String) {
         app.members.removeAll { it.id == memberId }
         app.history.removeAll { it.memberId == memberId }
+        app.assistantAlerts.removeAll { it.memberId == memberId }
+        app.assistantFollowUps.removeAll { it.memberId == memberId }
         app.attendance.removeAll { it.memberId == memberId }
         app.sessions.removeAll { it.memberId == memberId }
         app.missionCompletions.indices.reversed().forEach { index ->
@@ -221,6 +224,8 @@ internal class MemberRepository(
         val removed = app.archived.any { it.member.id == memberId }
         if (!removed) return false
         app.archived.removeAll { it.member.id == memberId }
+        app.assistantAlerts.removeAll { it.memberId == memberId }
+        app.assistantFollowUps.removeAll { it.memberId == memberId }
         app.history.removeAll { it.memberId == memberId }
         app.attendance.removeAll { it.memberId == memberId }
         app.sessions.removeAll { it.memberId == memberId }
