@@ -236,6 +236,7 @@ private fun AssistantMemberSummary(member: Member, state: AssistantDataState, op
  val sessions = state.sessions.count { it.memberId == member.id }
  val missions = state.completions.count { member.id in it.memberIds }
  val history = state.history.count { it.memberId == member.id }
+ var reportOpen by remember(member.id) { mutableStateOf(false) }
  Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
   AkCard(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
    Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -243,13 +244,19 @@ private fun AssistantMemberSummary(member: Member, state: AssistantDataState, op
     Text(openAlerts.size.toString() + " هشدار باز", color = if (openAlerts.isEmpty()) Neon.Green else Neon.Magenta)
     Text("XP فعلی: " + member.economy.xp + " • سطح: " + member.economy.level)
     Text("مأموریت تکمیل‌شده: " + missions + " • جلسه فردی: " + sessions + " • کتاب تکمیل‌شده: " + member.readingBooks.size)
-    Text("رویدادهای ثبت‌شده: " + history, style = MaterialTheme.typography.bodySmall,
-     color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("رویدادهای ثبت‌شده: " + history, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
    }
   }
-  Text("گزارش نموداری و خروجی JPEG در مرحله D تکمیل می‌شود.", style = MaterialTheme.typography.bodySmall,
-   color = MaterialTheme.colorScheme.onSurfaceVariant)
+  AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+   Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text("کارنامه تحلیلی عضو", style = MaterialTheme.typography.titleMedium)
+    Text("گزارش بازه‌ای XP، امتیاز، الماس، مأموریت، نقشه کمال، کتاب‌خوانی و تغییر سطح همراه نمودار و خروجی تصویری.",
+     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Button(onClick = { reportOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("مشاهده و خروجی کارنامه") }
+   }
+  }
  }
+ if (reportOpen) AssistantMemberReportDialog(member, state) { reportOpen = false }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
