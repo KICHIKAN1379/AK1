@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.domain.model.HistoryType
+import com.kichikan.ak1.domain.model.Mission
+import com.kichikan.ak1.domain.model.MissionType
 import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.ui.theme.Neon
 
@@ -22,6 +24,7 @@ import com.kichikan.ak1.ui.theme.Neon
 internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit, openPuzzle: () -> Unit) {
     val observedDomainState = repo.missionsState.collectAsState().value
     var selected by remember { mutableIntStateOf(0) }
+    var completingMission by remember { mutableStateOf<Mission?>(null) }
     val now = System.currentTimeMillis()
     val missions = repo.missions.filter {
         it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now)
@@ -53,7 +56,6 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         if (selected == 0) {
             Text("عملیات در جریان", style = MaterialTheme.typography.titleLarge)
             if (missions.isEmpty()) EmptyState("فعلاً مأموریت فعالی تعریف نشده است.", "مربی می‌تواند از بخش تراشکاری مأموریت تازه بسازد.")
-            Button(onClick = manageMissions, modifier = Modifier.fillMaxWidth()) { Text("ورود به کارگاه مدیریت مأموریت‌ها  ↗") }
             OutlinedButton(onClick = openPuzzle, modifier = Modifier.fillMaxWidth()) { Text("پازل گروهی  ↗") }
             missions.forEach { mission ->
                 val participantCount = repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
@@ -71,10 +73,10 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                         }
                         LinearProgressIndicator(progress = { (participantCount.toFloat() / repo.members.size.coerceAtLeast(1)).coerceIn(0f, 1f) }, Modifier.fillMaxWidth(), color = Neon.Cyan)
                         Text("$participantCount از ${repo.members.size} عضو در این مأموریت مشارکت داشته‌اند", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                        Button(onClick = { completingMission = mission }, modifier = Modifier.fillMaxWidth(), enabled = repo.members.isNotEmpty()) { Text("ثبت مأموریت برای عضو") }
                     }
                 }
             }
-            MissionWorkflowPanel(repo)
         } else if (selected == 1) {
             Text("نشان‌های مسیر رشد", style = MaterialTheme.typography.titleLarge)
             Text("دستاوردها بر اساس داده‌های واقعی اعضا و نردبان رتبه AK1 محاسبه می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
