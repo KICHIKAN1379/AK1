@@ -84,6 +84,12 @@ class JalaliCalendarTest {
         assertEquals(JalaliDate(1403, 12, 30), JalaliCalendar.parse("1403/12/30"))
     }
 
+    @Test fun mapsGregorianWeekdaysToSaturdayFirstPersianLabels() {
+        assertEquals("ش", JalaliCalendar.weekdayShort(LocalDate.of(2026, 11, 14))) // Saturday
+        assertEquals("ی", JalaliCalendar.weekdayShort(LocalDate.of(2026, 11, 15))) // Sunday
+        assertEquals("ج", JalaliCalendar.weekdayShort(LocalDate.of(2026, 11, 20))) // Friday
+    }
+
     @Test fun formatsWithAsciiDigitsAndPadding() {
         assertEquals("1385/07/05", JalaliCalendar.format(JalaliDate(1385, 7, 5)))
         assertEquals("1385/07/05", JalaliDate(1385, 7, 5).toString())
