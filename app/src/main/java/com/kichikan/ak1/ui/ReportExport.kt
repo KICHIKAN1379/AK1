@@ -16,6 +16,7 @@ import com.kichikan.ak1.domain.service.RingReport
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -48,6 +49,42 @@ object ReportExport {
             .map { it.title }
         val jpeg = renderJpeg(result, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
         return jpeg to buildZip(context, repo, jpeg)
+    }
+
+    /** Build only the report image. Do not create a second in-memory ZIP for JPEG exports. */
+    fun jpeg(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): ByteArray {
+        val report = result(context, repo, kind, year, month, memberId)
+        val range = RingReport.range(kind, year, month)
+        val prizes = repo.history
+            .filter { (memberId == null || it.memberId == memberId) && it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= range.start && it.createdAtEpochMillis < range.end }
+            .map { it.title }
+        return renderJpeg(report, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
+    }
+
+    /** Stream the complete ring backup to the selected document instead of buffering a huge ZIP in RAM. */
+    fun writeFullRingZip(context: Context, repo: AppRepository, jpeg: ByteArray, output: OutputStream) {
+        ZipOutputStream(output).use { zip ->
+            fun putBytes(name: String, bytes: ByteArray) {
+                zip.putNextEntry(ZipEntry(name))
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+            fun putFile(name: String, file: File) {
+                zip.putNextEntry(ZipEntry(name))
+                file.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+            putBytes("report.jpg", jpeg)
+            putBytes("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
+            putBytes("settings.json", settingsJson(context).toByteArray(Charsets.UTF_8))
+            File(context.filesDir, "puzzle").listFiles()?.filter { it.isFile }?.forEach {
+                putFile("puzzle/${it.name}", it)
+            }
+            File(context.filesDir, "custom_assets").listFiles()?.filter { it.isFile }?.forEach {
+                putFile("custom_assets/${it.name}", it)
+            }
+            zip.finish()
+        }
     }
 
     private fun ringPhoto(context: Context): Bitmap? = runCatching {
