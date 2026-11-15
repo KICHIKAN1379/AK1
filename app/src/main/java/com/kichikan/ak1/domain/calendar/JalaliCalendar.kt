@@ -91,6 +91,10 @@ object JalaliCalendar {
     fun isValid(year: Int, month: Int, day: Int): Boolean =
         year in MIN_YEAR..MAX_YEAR && month in 1..12 && day in 1..daysInMonth(year, month)
 
+    /** Short Persian weekday label; Saturday is index zero. */
+    fun weekdayShort(date: LocalDate): String =
+        listOf("ش", "ی", "د", "س", "چ", "پ", "ج")[(date.dayOfWeek.value + 1) % 7]
+
     fun fromGregorian(date: LocalDate): JalaliDate {
         val gy = date.year
         val jdn = gregorianToDay(gy, date.monthValue, date.dayOfMonth)
