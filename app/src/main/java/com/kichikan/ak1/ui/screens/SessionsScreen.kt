@@ -303,7 +303,7 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 dateItems.forEach { date ->
                     val j = JalaliCalendar.fromGregorian(date)
-                    val dayName = listOf("ش", "ی", "د", "س", "چ", "پ", "ج")[date.dayOfWeek.value % 7]
+                    val dayName = listOf("ش", "ی", "د", "س", "چ", "پ", "ج")[(date.dayOfWeek.value + 1) % 7]
                     FilterChip(selected = selectedDate == date, onClick = { selectedDate = date },
                         label = { Text("$dayName\n${j.day}") })
                 }
