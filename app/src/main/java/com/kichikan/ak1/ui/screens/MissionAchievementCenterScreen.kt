@@ -143,6 +143,11 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
             }
         }
     }
+    completingMission?.let { mission ->
+        MissionCompletionDialog(repo, mission, close = { completingMission = null }) {
+            completingMission = null
+        }
+    }
 }
 
 private data class AchievementRow(val title: String, val description: String, val count: Int, val tint: Color)
@@ -169,105 +174,61 @@ private fun EmptyState(title: String, detail: String) {
 
 
 @Composable
-private fun MissionWorkflowPanel(repo: AppRepository) {
+private fun MissionCompletionDialog(
+    repo: AppRepository,
+    mission: Mission,
+    close: () -> Unit,
+    onCompleted: () -> Unit
+) {
     val observedDomainState = repo.missionsState.collectAsState().value
-    var memberMenu by remember { mutableStateOf(false) }
-    var missionMenu by remember { mutableStateOf(false) }
-    var selectedMemberId by remember { mutableStateOf(repo.members.firstOrNull()?.id.orEmpty()) }
-    var selectedMissionId by remember { mutableStateOf(repo.missions.firstOrNull { it.active && !it.hidden && it.type.name == "INDIVIDUAL" }?.id.orEmpty()) }
-    var feedback by remember { mutableStateOf<String?>(null) }
-    val requestable = repo.missions.filter { it.active && !it.hidden && it.type.name == "INDIVIDUAL" }
-    val pending = repo.missionRequests.filter { it.status == com.kichikan.ak1.domain.model.MissionRequestStatus.PENDING }
-        .sortedBy { it.requestedAt }
+    var selectedIds by remember(mission.id) { mutableStateOf(setOf<String>()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+    val completedIds = repo.missionCompletions
+        .filter { it.missionId == mission.id }
+        .flatMap { it.memberIds }
+        .toSet()
 
-    Text("درخواست انجام مأموریت", style = MaterialTheme.typography.titleLarge)
-    Text("عضو مأموریت را انتخاب می‌کند؛ پاداش فقط پس از تأیید مربی ثبت می‌شود.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-    if (repo.members.isEmpty() || requestable.isEmpty()) {
-        EmptyState("امکان ثبت درخواست وجود ندارد", "برای این بخش دست‌کم یک عضو و یک مأموریت فردی فعال لازم است.")
-    } else {
-        Box {
-            OutlinedButton(onClick = { memberMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("عضو: ${repo.members.firstOrNull { it.id == selectedMemberId }?.name ?: "انتخاب عضو"}")
-            }
-            DropdownMenu(expanded = memberMenu, onDismissRequest = { memberMenu = false }) {
+    AlertDialog(
+        onDismissRequest = close,
+        title = { Text("ثبت مأموریت: ${mission.title}") },
+        text = {
+            Column(
+                Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده را انتخاب کن:" else "عضوی را که مأموریت را انجام داده انتخاب کن:")
                 repo.members.forEach { member ->
-                    DropdownMenuItem(text = { Text(member.name) }, onClick = {
-                        selectedMemberId = member.id
-                        memberMenu = false
-                    })
+                    val completed = member.id in completedIds
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = member.id in selectedIds,
+                            onCheckedChange = { checked ->
+                                selectedIds = when {
+                                    mission.type == MissionType.INDIVIDUAL && checked -> setOf(member.id)
+                                    checked -> selectedIds + member.id
+                                    else -> selectedIds - member.id
+                                }
+                            },
+                            enabled = !completed && !submitting
+                        )
+                        Text(member.name + if (completed) " • قبلاً ثبت شده" else "")
+                    }
                 }
+                Text("پس از تأیید، پاداش مأموریت به عضو/اعضای انتخاب‌شده افزوده می‌شود.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
-        }
-        Box {
-            OutlinedButton(onClick = { missionMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("مأموریت: ${requestable.firstOrNull { it.id == selectedMissionId }?.title ?: "انتخاب مأموریت"}")
-            }
-            DropdownMenu(expanded = missionMenu, onDismissRequest = { missionMenu = false }) {
-                requestable.forEach { mission ->
-                    DropdownMenuItem(text = { Text(mission.title) }, onClick = {
-                        selectedMissionId = mission.id
-                        missionMenu = false
-                    })
-                }
-            }
-        }
-        Button(onClick = {
-            runCatching { repo.requestMission(selectedMemberId, selectedMissionId) }
-                .onSuccess { feedback = "درخواست ثبت شد و برای بررسی مربی در صف قرار گرفت." }
-                .onFailure { feedback = it.message ?: "ثبت درخواست انجام نشد." }
-        }, modifier = Modifier.fillMaxWidth(), enabled = selectedMemberId.isNotBlank() && selectedMissionId.isNotBlank()) {
-            Text("ارسال درخواست انجام")
-        }
-    }
-    feedback?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
-
-    Text("صف بررسی مربی • ${pending.size}", style = MaterialTheme.typography.titleLarge)
-    if (pending.isEmpty()) {
-        Text("درخواست در انتظاری وجود ندارد.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-    }
-    pending.forEach { request ->
-        val mission = repo.missions.firstOrNull { it.id == request.missionId }
-        val member = repo.members.firstOrNull { it.id == request.memberId }
-        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text(mission?.title ?: "مأموریت حذف‌شده", style = MaterialTheme.typography.titleMedium)
-                Text("درخواست‌دهنده: ${member?.name ?: "عضو حذف‌شده"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (request.message.isNotBlank()) Text(request.message)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        runCatching { repo.reviewMissionRequest(request.id, true) }
-                            .onSuccess { feedback = "درخواست تأیید شد و پاداش ثبت شد." }
-                            .onFailure { feedback = it.message ?: "تأیید انجام نشد." }
-                    }, modifier = Modifier.weight(1f)) { Text("تأیید و ثبت پاداش") }
-                    OutlinedButton(onClick = {
-                        runCatching { repo.reviewMissionRequest(request.id, false) }
-                            .onSuccess { feedback = "درخواست رد شد؛ پاداشی ثبت نشد." }
-                            .onFailure { feedback = it.message ?: "رد درخواست انجام نشد." }
-                    }, modifier = Modifier.weight(1f)) { Text("رد درخواست") }
-                }
-            }
-        }
-    }
-
-    Text("دفتر اعلان‌ها", style = MaterialTheme.typography.titleLarge)
-    var noticesRevision by remember { mutableIntStateOf(0) }
-    val notices = remember(noticesRevision) { repo.missionNotices.take(8).toList() }
-    if (notices.isEmpty()) {
-        Text("هنوز اعلانی ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-    } else {
-        notices.forEach { notice ->
-            ListItem(
-                headlineContent = { Text(notice.title) },
-                supportingContent = { Text(notice.message) },
-                trailingContent = { if (!notice.read) Text("جدید", color = Neon.Cyan, style = MaterialTheme.typography.labelSmall) }
-            )
-            HorizontalDivider()
-        }
-        TextButton(onClick = {
-            repo.markMissionNoticesRead()
-            noticesRevision++
-        }) {
-            Text("خواندن همه اعلان‌ها")
-        }
-    }
+        },
+        confirmButton = {
+            TextButton(enabled = selectedIds.isNotEmpty() && !submitting, onClick = {
+                submitting = true
+                runCatching { repo.completeMission(mission, selectedIds.toList()) }
+                    .onSuccess { onCompleted(); close() }
+                    .onFailure { error = it.message ?: "ثبت مأموریت انجام نشد"; submitting = false }
+            }) { Text("تأیید و ثبت پاداش") }
+        },
+        dismissButton = { TextButton(onClick = close, enabled = !submitting) { Text("انصراف") } }
+    )
 }
