@@ -220,7 +220,7 @@ internal fun GuideScreen() {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, Neon.Purple.copy(alpha = 0.32f)),
+            border = BorderStroke(1.dp, Neon.Violet.copy(alpha = 0.32f)),
             shape = RoundedCornerShape(22.dp)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
