@@ -33,7 +33,7 @@ object AssistantReportBuilder {
    Metric("reading","صفحات کتاب تکمیل‌شده",pages(cur).toDouble(),pages(prev).toDouble(),"صفحه"),
    Metric("levels","تغییر سطح ثبت‌شده",levels(cur).toDouble(),levels(prev).toDouble(),"بار"),
    Metric("books","کتاب تکمیل‌شده",books.count{inside(it.completedAtEpochMillis,cur)}.toDouble(),books.count{inside(it.completedAtEpochMillis,prev)}.toDouble(),"کتاب"))
-  val ranges=if(period.kind==PeriodKind.YEARLY)(1..12).map{m->JalaliCalendar.MONTH_NAMES[m-1] to RingReport.range(kind,period.year,m)}
+  val ranges=if(period.kind==PeriodKind.YEARLY)(1..12).map{m->JalaliCalendar.MONTH_NAMES[m-1] to RingReport.range(RingReport.Kind.MONTHLY,period.year,m)}
    else(0 until 5).mapNotNull{w->val s=cur.start+w*7L*86_400_000L;val e=minOf(cur.end,s+7L*86_400_000L);if(s<e)"هفته "+(w+1) to RingReport.Range(s,e)else null}
   val series=ranges.map{(label,r)->Bucket(label,net(r,HistoryType.XP_EARNED,HistoryType.XP_DECREASED),net(r,HistoryType.POINTS_EARNED,HistoryType.POINTS_DECREASED,HistoryType.POINTS_SPENT),net(r,HistoryType.DIAMONDS_EARNED,HistoryType.DIAMONDS_DECREASED,HistoryType.DIAMONDS_SPENT),missions(r),growth(r),pages(r),levels(r))}
   val title=if(period.kind==PeriodKind.MONTHLY)"کارنامه "+JalaliCalendar.MONTH_NAMES[period.month-1]+" "+period.year else "کارنامه سال "+period.year

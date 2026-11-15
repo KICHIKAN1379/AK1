@@ -25,4 +25,19 @@ class AssistantReportBuilderTest {
   val out=AssistantReportBuilder.build(m,emptyList(),listOf(completion),p,listOf(day),10)
   assertEquals(120.0,out.metrics.first{it.id=="reading"}.value,0.0);assertEquals(1.0,out.metrics.first{it.id=="missions"}.value,0.0);assertEquals(1,out.series.sumOf{it.growth})
  }
+
+ @Test fun yearlyReportBucketsAreMonthlyRatherThanRepeatedYearTotals(){
+  val j=JalaliCalendar.fromGregorian(LocalDate.of(2026,4,25))
+  val p=AssistantReportBuilder.Period(AssistantReportBuilder.PeriodKind.YEARLY,j.year,1)
+  val first=RingReport.range(RingReport.Kind.MONTHLY,j.year,1)
+  val second=RingReport.range(RingReport.Kind.MONTHLY,j.year,2)
+  val m=Member("m1","r","عضو")
+  val events=listOf(
+   HistoryEvent("jan","m1",HistoryType.XP_EARNED,10,"XP",createdAtEpochMillis=first.start+1000),
+   HistoryEvent("feb","m1",HistoryType.XP_EARNED,30,"XP",createdAtEpochMillis=second.start+1000))
+  val out=AssistantReportBuilder.build(m,events,emptyList(),p,emptyList(),0)
+  assertEquals(12,out.series.size)
+  assertEquals(10.0,out.series[0].xp,0.0)
+  assertEquals(30.0,out.series[1].xp,0.0)
+ }
 }
