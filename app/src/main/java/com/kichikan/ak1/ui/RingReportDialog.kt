@@ -37,7 +37,6 @@ fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () ->
     var year by remember { mutableIntStateOf(today.year) }
     var month by remember { mutableIntStateOf(today.month) }
     var pendingJpeg by remember { mutableStateOf<ByteArray?>(null) }
-    var pendingZip by remember { mutableStateOf<ByteArray?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
 
     val jpegSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/jpeg")) { uri ->
@@ -50,12 +49,13 @@ fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () ->
         }
     }
     val zipSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val bytes = pendingZip
-        if (uri != null && bytes != null) {
+        val image = pendingJpeg
+        if (uri != null && image != null) {
             message = runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-                "فایل کامل ZIP ذخیره شد"
-            }.getOrDefault("ذخیره نشد")
+                val output = context.contentResolver.openOutputStream(uri) ?: error("امکان بازکردن فایل مقصد وجود ندارد")
+                ReportExport.writeFullRingZip(context, repo, image, output)
+                "پشتیبان کامل حلقه به‌صورت ZIP ذخیره شد"
+            }.fold({ it }, { "ذخیره ZIP ناموفق بود: ${it.message ?: "خطای ناشناخته"}" })
         }
     }
 
@@ -99,15 +99,15 @@ fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () ->
                     }
                 }
                 Button(onClick = {
-                    val (jpeg, _) = ReportExport.build(context, repo, kind, year, month, memberId)
-                    pendingJpeg = jpeg
+                    pendingJpeg = ReportExport.jpeg(context, repo, kind, year, month, memberId)
                     jpegSaver.launch("کارنامه-$year-$month.jpg")
                 }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره‌ی تصویر JPEG") }
                 Button(onClick = {
-                    val (_, zip) = ReportExport.build(context, repo, kind, year, month, memberId)
-                    pendingZip = zip
+                    pendingJpeg = ReportExport.jpeg(context, repo, kind, year, month, memberId)
                     zipSaver.launch("AK1-کارنامه-$year-$month.zip")
-                }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره‌ی فایل کامل ZIP") }
+                }, modifier = Modifier.fillMaxWidth()) { Text("پشتیبان کامل حلقه (ZIP)") }
+                if (memberId != null) Text("توجه: فایل ZIP شامل پشتیبان کامل حلقه، تنظیمات و فایل‌های تصویری است؛ فقط محدود به این عضو نیست.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                else Text("فایل ZIP شامل تصویر کارنامه، داده‌های حلقه، تنظیمات و فایل‌های تصویری است.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
         },
