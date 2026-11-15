@@ -375,45 +375,51 @@ private fun AddWheelItemDialog(repo: AppRepository, changed: () -> Unit, close: 
 @Composable
 private fun CompleteMissionDialog(repo: AppRepository, mission: Mission, changed: () -> Unit, close: () -> Unit) {
     val observedDomainState = repo.progressState.collectAsState().value
-    var selected by remember { mutableStateOf(setOf<String>()) }
+    var selected by remember(mission.id) { mutableStateOf(setOf<String>()) }
     var reason by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var submitting by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = close,
         title = { Text("ثبت مأموریت: " + mission.title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 480.dp)) {
-                Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده در مأموریت گروهی را انتخاب کن:" else "اعضای انجام‌دهنده را انتخاب کن:")
-                LazyColumn(Modifier.weight(1f, fill = false)) {
-                    items(repo.members, key = { it.id }) { member ->
-                        Row(Modifier.fillMaxWidth().animateItem(), verticalAlignment = Alignment.CenterVertically) {
-                            val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
-                            Checkbox(
-                                member.id in selected,
-                                { selected = if (it) selected + member.id else selected - member.id },
-                                enabled = receivedAt == null
-                            )
-                            Text(member.name + (receivedAt?.let { "  • دریافت: " + shamsi(it) } ?: ""))
-                        }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())
+            ) {
+                Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده در مأموریت گروهی را انتخاب کن:" else "فقط عضو انجام‌دهنده را انتخاب کن:")
+                repo.members.forEach { member ->
+                    val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = member.id in selected,
+                            onCheckedChange = { checked ->
+                                selected = when {
+                                    mission.type == MissionType.INDIVIDUAL && checked -> setOf(member.id)
+                                    checked -> selected + member.id
+                                    else -> selected - member.id
+                                }
+                            },
+                            enabled = receivedAt == null && !submitting
+                        )
+                        Text(member.name + (receivedAt?.let { "  • دریافت: " + shamsi(it) + " • قفل‌شده" } ?: ""))
                     }
                 }
                 OutlinedTextField(reason, { reason = it }, label = { Text("توضیح ثبت (اختیاری)") }, modifier = Modifier.fillMaxWidth())
+                if (mission.hidden) Text("این مأموریت برای هر عضو فقط یک‌بار قابل ثبت است؛ پس از دریافت پاداش، انتخاب آن عضو قفل می‌شود.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
-            TextButton({
-                try {
-                    require(selected.isNotEmpty()) { "حداقل یک عضو را انتخاب کن" }
-                    repo.completeMission(mission, selected.toList(), reason.trim().takeIf { it.isNotEmpty() })
-                    changed()
-                    close()
-                } catch (e: Exception) {
-                    error = e.message ?: "ثبت مأموریت انجام نشد"
-                }
-            }) { Text("ثبت") }
+            TextButton(enabled = selected.isNotEmpty() && !submitting, onClick = {
+                submitting = true
+                runCatching { repo.completeMission(mission, selected.toList(), reason.trim().takeIf { it.isNotEmpty() }) }
+                    .onSuccess { changed(); close() }
+                    .onFailure { error = it.message ?: "ثبت مأموریت انجام نشد"; submitting = false }
+            }) { Text("تأیید و ثبت پاداش") }
         },
-        dismissButton = { TextButton(close) { Text("لغو") } }
+        dismissButton = { TextButton(onClick = close, enabled = !submitting) { Text("لغو") } }
     )
 }
 
