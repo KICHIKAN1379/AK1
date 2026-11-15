@@ -69,13 +69,7 @@ internal fun AssistantScreen(repo: AppRepository, padding: PaddingValues) {
       AssistantMemberRow(item, count, isMonitoringLocked(item)) { memberId = item.id }
      }
     }
-   } else AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-     Text("هوشمند", style = MaterialTheme.typography.titleLarge)
-     Text("گزارش‌گیری پرسش‌محور و پاسخ‌های آماده در مرحله E تکمیل می‌شود.",
-      style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-   }
+   } else AssistantSmartTab(state)
   }
  }
  val followUpTarget = followUpMember
