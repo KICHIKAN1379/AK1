@@ -184,11 +184,6 @@ private fun MissionCompletionDialog(
     var selectedIds by remember(mission.id) { mutableStateOf(setOf<String>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
-    val completedIds = repo.missionCompletions
-        .filter { it.missionId == mission.id }
-        .flatMap { it.memberIds }
-        .toSet()
-
     AlertDialog(
         onDismissRequest = close,
         title = { Text("ثبت مأموریت: ${mission.title}") },
@@ -199,7 +194,6 @@ private fun MissionCompletionDialog(
             ) {
                 Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده را انتخاب کن:" else "عضوی را که مأموریت را انجام داده انتخاب کن:")
                 repo.members.forEach { member ->
-                    val completed = member.id in completedIds
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = member.id in selectedIds,
@@ -210,9 +204,9 @@ private fun MissionCompletionDialog(
                                     else -> selectedIds - member.id
                                 }
                             },
-                            enabled = !completed && !submitting
+                            enabled = !submitting
                         )
-                        Text(member.name + if (completed) " • قبلاً ثبت شده" else "")
+                        Text(member.name)
                     }
                 }
                 Text("پس از تأیید، پاداش مأموریت به عضو/اعضای انتخاب‌شده افزوده می‌شود.",
