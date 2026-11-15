@@ -408,9 +408,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 }
             }
             "help" -> {
-                Text("راهنمای برنامه", style = MaterialTheme.typography.titleLarge)
-                Text("AK1 به‌صورت آفلاین کار می‌کند. اطلاعات حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات و حضور و غیاب روی دستگاه نگهداری می‌شوند.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                GuideScreen()
             }
             else -> Text("بخش تنظیمات پیدا نشد.", color = MaterialTheme.colorScheme.error)
         }
