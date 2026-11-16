@@ -182,7 +182,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
                 val itemId = RankSystem.badgeId(badge)
                 val item = app.shop.firstOrNull { it.id == itemId && it.active } ?: return@badgeLoop
                 val eventId = "level-badge-${member.id}-${badge.minLevel}"
-                if (app.history.any { it.id == eventId }) return@badgeLoop
+                if (app.history.any { it.id == eventId || (it.memberId == member.id && it.metadata["itemId"] == itemId) }) return@badgeLoop
                 val historicalLevelEvent = app.history.firstOrNull {
                     it.memberId == member.id && it.type == HistoryType.LEVEL_CHANGED &&
                         it.title.startsWith("رسیدن به سطح ") && it.amount == badge.minLevel

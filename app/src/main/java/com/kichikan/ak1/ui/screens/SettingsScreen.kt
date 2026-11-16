@@ -38,6 +38,9 @@ import com.kichikan.ak1.ui.ReportExport
 import com.kichikan.ak1.data.AutoArchive
 import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Icon + label used inside the wide settings buttons. */
 @Composable
@@ -53,6 +56,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
+    val scope = rememberCoroutineScope()
     var musicEnabled by remember { mutableStateOf(BackgroundMusic.enabled(context)) }
     var hasCustomMusic by remember { mutableStateOf(BackgroundMusic.hasCustomTrack(context)) }
     val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -115,12 +119,16 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     }
     val visualExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) {
-            val ok = runCatching {
-                val output = context.contentResolver.openOutputStream(uri)
-                    ?: throw IllegalStateException("فایل خروجی باز نشد")
-                ReportExport.writeVisualZip(context, output)
-            }.isSuccess
-            Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val output = context.contentResolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("فایل خروجی باز نشد")
+                        ReportExport.writeVisualZip(context, output)
+                    }.isSuccess
+                }
+                Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+            }
         }
     }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->

@@ -2,6 +2,7 @@ package com.kichikan.ak1.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +50,7 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected == 0, { selected = 0 }, label = { Text("مأموریت‌ها") })
             FilterChip(selected == 1, { selected = 1 }, label = { Text("دستاوردها") })
             FilterChip(selected == 2, { selected = 2 }, label = { Text("پازل گروهی") })

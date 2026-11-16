@@ -57,7 +57,7 @@ internal class EconomyRepository(private val app: AppRepository) {
             val itemId = RankSystem.badgeId(badge)
             val item = app.shop.firstOrNull { it.id == itemId && it.active } ?: return@forEach
             val eventId = "level-badge-$memberId-$level"
-            if (app.history.none { it.id == eventId }) {
+            if (app.history.none { it.id == eventId || (it.memberId == memberId && it.metadata["itemId"] == itemId) }) {
                 app.history += HistoryEvent(
                     id = eventId,
                     memberId = memberId,
