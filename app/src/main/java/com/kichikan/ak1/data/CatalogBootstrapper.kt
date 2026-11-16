@@ -178,11 +178,20 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
         var changed = false
         val now = System.currentTimeMillis()
         app.members.forEach { member ->
-            RankSystem.badgesUnlockedBetween(0, member.economy.level).forEach badgeLoop@ { badge ->
+            val highestReachedLevel = maxOf(
+                member.economy.level,
+                app.history.filter {
+                    it.memberId == member.id && it.type == HistoryType.LEVEL_CHANGED &&
+                        it.title.startsWith("رسیدن به سطح ")
+                }.maxOfOrNull { it.amount ?: 0 } ?: 0
+            )
+            RankSystem.badgesUnlockedBetween(0, highestReachedLevel).forEach badgeLoop@ { badge ->
                 val itemId = RankSystem.badgeId(badge)
                 val item = app.shop.firstOrNull { it.id == itemId && it.active } ?: return@badgeLoop
                 val eventId = "level-badge-${member.id}-${badge.minLevel}"
-                if (app.history.any { it.id == eventId || (it.memberId == member.id && it.metadata["itemId"] == itemId) }) return@badgeLoop
+                if (member.badgeItemId == itemId ||
+                    app.history.any { it.id == eventId || (it.memberId == member.id && it.metadata["itemId"] == itemId) }
+                ) return@badgeLoop
                 val historicalLevelEvent = app.history.firstOrNull {
                     it.memberId == member.id && it.type == HistoryType.LEVEL_CHANGED &&
                         it.title.startsWith("رسیدن به سطح ") && it.amount == badge.minLevel
