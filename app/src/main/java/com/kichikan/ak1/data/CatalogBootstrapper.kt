@@ -8,7 +8,7 @@ import com.kichikan.ak1.domain.service.RankArt
 import com.kichikan.ak1.domain.service.RankSystem
 
 /** Handles first-run catalog setup and synchronization of bundled profile/rank artwork. */
-internal class CatalogBootstrapper(private val app: AppRepository) {
+internal class CatalogBootstrapper(private val app: CatalogBootstrapperPort) {
     fun seedStarterCatalog(regenerate: Boolean) {
         val directory = java.io.File(app.appContext.filesDir, "custom_assets/starter_catalog")
         if (!directory.exists() && !directory.mkdirs()) return
