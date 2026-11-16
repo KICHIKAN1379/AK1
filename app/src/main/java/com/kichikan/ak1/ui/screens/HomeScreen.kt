@@ -209,7 +209,7 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                 }
             }
         }
-        Text("چیدمان میانبرها از بخش تنظیمات قابل تغییر است • نسخهٔ ۱.۱۶", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("چیدمان میانبرها از بخش تنظیمات قابل تغییر است • نسخهٔ ۱.۲۱", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (reportOpen) RingReportDialog(repo) { reportOpen = false }
     if (action) EconomyDialog(repo, changed) { action = false }
@@ -233,7 +233,7 @@ private fun HeroChip(text: String, accent: Color) {
 }
 
 @Composable
-private fun MentorAssistantDialog(repo: AppRepository, close: () -> Unit) {
+internal fun MentorAssistantDialog(repo: AppRepository, close: () -> Unit) {
     val report = remember(repo.members.size, repo.history.size, repo.attendance.size, repo.missionCompletions.size) {
         com.kichikan.ak1.domain.assistant.MentorAssistantAnalyzer.analyze(
             members = repo.members.toList(),

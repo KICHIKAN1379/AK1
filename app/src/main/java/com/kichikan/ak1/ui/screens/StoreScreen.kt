@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
 import com.kichikan.ak1.ui.theme.Neon
@@ -34,9 +37,12 @@ import com.kichikan.ak1.data.AppRepository
 private var lastStoreMemberId: String = ""
 
 @Composable
-internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: ShopItemType, changed: () -> Unit, back: () -> Unit) {
+internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: ShopItemType, changed: () -> Unit, back: () -> Unit, showCategoryTabs: Boolean = false) {
+    val observedDomainState = repo.catalogState.collectAsState().value
     var selectedMemberId by remember { mutableStateOf(lastStoreMemberId.takeIf { id -> repo.members.any { it.id == id } } ?: repo.members.firstOrNull()?.id ?: "") }
+    var selectedCategory by remember(showCategoryTabs) { mutableStateOf(filter) }
     var result by remember { mutableStateOf<String?>(null) }
+    var memberPickerOpen by remember { mutableStateOf(false) }
     var manualGrantItem by remember { mutableStateOf<ShopItem?>(null) }
     var exportItem by remember { mutableStateOf<ShopItem?>(null) }
     var expandedItemId by remember { mutableStateOf<String?>(null) }
@@ -58,29 +64,103 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
     }
     val member = repo.members.firstOrNull { it.id == selectedMemberId }
     val now = System.currentTimeMillis()
+    val weeklyPurchaseMission = repo.missions.firstOrNull {
+        it.active && !it.hidden && (it.startAt == null || it.startAt <= now) && (it.endAt == null || it.endAt >= now) &&
+            (it.title.contains("خرید") || it.description.contains("خرید"))
+    }
+    val weeklyPurchaseCompletions = weeklyPurchaseMission?.let { mission ->
+        repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
+    } ?: 0
     val memberAvatarPath = member?.let { m -> repo.shop.firstOrNull { it.id == m.avatarItemId }?.imagePath }
     val memberFramePath = member?.let { m -> repo.shop.firstOrNull { it.id == m.frameItemId }?.imagePath }
-    val title = when (filter) {
+    val title = if (showCategoryTabs) "فروشگاه" else when (filter) {
         ShopItemType.AVATAR -> "آواتارها"
         ShopItemType.FRAME -> "قاب‌ها"
         ShopItemType.BADGE -> "نشان‌ها"
         ShopItemType.REWARD -> "جوایز"
         else -> "فروشگاه"
     }
-    // The rewards tab is deliberately only the mentor-entered REWARD items. Avatars,
-    // frames, badges and profile-pack looks live in their own tabs and must never be
-    // mixed into "جوایز".
-    val shown = repo.shop.filter { it.active && it.type == filter }
+    // The rewards tab is deliberately only mentor-entered REWARD items. Avatars and frames
+    // are acquired through the store; level badges are automatic and managed in the treasure.
+    val requestedFilter = if (showCategoryTabs) selectedCategory else filter
+    // Military badges are earned automatically and selected from the member's treasure;
+    // they are not purchasable or manually claimable store inventory.
+    val activeFilter = if (requestedFilter == ShopItemType.BADGE) ShopItemType.REWARD else requestedFilter
+    val shown = repo.shop.filter { it.active && it.type == activeFilter && it.type != ShopItemType.BADGE }
     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeader(title, back, "فروشگاه")
-        member?.let { Text("${it.name} • سطح ${it.economy.level} • امتیاز ${it.economy.spendablePoints} • الماس ${it.economy.diamonds}", style = MaterialTheme.typography.bodyMedium) }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repo.members.forEach { m -> FilterChip(selectedMemberId == m.id, { selectedMemberId = m.id; lastStoreMemberId = m.id; result = null }, label = { Text(m.name) }) }
+        if (showCategoryTabs) {
+            Text("فروشگاه", style = MaterialTheme.typography.headlineMedium)
+            Text("موجودی عضو و آیتم‌های قابل دریافت", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall)
+        } else {
+            PageHeader(title, back, "فروشگاه")
+        }
+        member?.let { current ->
+            Text("${current.name} • سطح ${current.economy.level}", style = MaterialTheme.typography.bodyMedium)
+            if (showCategoryTabs) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Card(Modifier.weight(1f), accent = Neon.Gold) {
+                        Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelSmall)
+                            Text(current.economy.spendablePoints.toString(), color = Neon.Gold,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    Card(Modifier.weight(1f), accent = Neon.Cyan) {
+                        Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("الماس", style = MaterialTheme.typography.labelSmall)
+                            Text(current.economy.diamonds.toString(), color = Neon.Cyan,
+                                style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+            } else {
+                Text("امتیاز ${current.economy.spendablePoints} • الماس ${current.economy.diamonds}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (showCategoryTabs) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("موجودی برای: ${member?.name ?: "عضو انتخاب نشده"}",
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f))
+                TextButton(onClick = { memberPickerOpen = true }) { Text("تغییر عضو") }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repo.members.forEach { m -> FilterChip(selectedMemberId == m.id, { selectedMemberId = m.id; lastStoreMemberId = m.id; result = null }, label = { Text(m.name) }) }
+            }
+        }
+        if (showCategoryTabs) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf(
+                    ShopItemType.AVATAR to "آواتار",
+                    ShopItemType.FRAME to "قاب",
+                    ShopItemType.REWARD to "جوایز"
+                ).forEach { (category, label) ->
+                    FilterChip(selectedCategory == category, { selectedCategory = category }, label = { Text(label) })
+                }
+            }
         }
         result?.let { Text(it, color = Neon.Cyan) }
-        if (filter == ShopItemType.REWARD) {
+        weeklyPurchaseMission?.let { mission ->
+            Card(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+                Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppIcon(R.drawable.icon_workshop_store_rewards, 34.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("مأموریت مرتبط با خرید", color = Neon.Magenta, style = MaterialTheme.typography.labelSmall)
+                        Text(mission.title, style = MaterialTheme.typography.titleSmall)
+                        Text("${weeklyPurchaseCompletions} از ${repo.members.size} عضو",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        if (activeFilter == ShopItemType.REWARD) {
             Text(
-                "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار، قاب و نشان در بخش‌های خودشان هستند.",
+                "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار و قاب در گنجینه و نشان‌های سطحی به‌صورت خودکار دریافت می‌شوند.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -233,6 +313,28 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
             }
         }
     }
+    if (memberPickerOpen) {
+        AlertDialog(
+            onDismissRequest = { memberPickerOpen = false },
+            title = { Text("انتخاب عضو برای فروشگاه") },
+            text = {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repo.members.forEach { candidate ->
+                        TextButton(onClick = {
+                            selectedMemberId = candidate.id
+                            lastStoreMemberId = candidate.id
+                            result = null
+                            memberPickerOpen = false
+                        }, modifier = Modifier.fillMaxWidth()) {
+                            Text("${candidate.name} • سطح ${candidate.economy.level}")
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { memberPickerOpen = false }) { Text("بستن") } }
+        )
+    }
     manualGrantItem?.let { item ->
         ManualGrantDialog(repo, selectedMemberId, item, changed) { manualGrantItem = null }
     }
@@ -257,6 +359,7 @@ private fun StoreBadge(text: String, accent: Color, modifier: Modifier = Modifie
 
 @Composable
 private fun ManualGrantDialog(repo: AppRepository, memberId: String, item: ShopItem, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.catalogState.collectAsState().value
     var reason by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(

@@ -31,7 +31,7 @@ object AppBackground {
         val custom = File(File(context.filesDir, DIR), FILE)
         val bitmap = if (custom.exists()) BitmapFactory.decodeFile(custom.path)
         else BitmapFactory.decodeResource(context.resources, R.drawable.app_background)
-        return bitmap?.asImageBitmap()
+        return null
     }
 
     fun save(context: Context, uri: Uri): Boolean = runCatching {

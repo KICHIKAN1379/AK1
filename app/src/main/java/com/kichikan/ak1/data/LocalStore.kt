@@ -7,6 +7,7 @@ import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 import com.kichikan.ak1.domain.model.*
+import com.kichikan.ak1.domain.assistant.*
 
 class LocalStore(private val context: Context) {
     private val prefs = context.getSharedPreferences("ak1_local", Context.MODE_PRIVATE)
@@ -23,9 +24,15 @@ class LocalStore(private val context: Context) {
         attendance: List<Attendance>,
         assets: List<CustomAsset>,
         groups: List<Group>,
-        archived: List<ArchivedMember> = emptyList()
+        archived: List<ArchivedMember> = emptyList(),
+        missionRequests: List<MissionRequest> = emptyList(),
+        missionNotices: List<MissionNotice> = emptyList(),
+        assistantAlerts: List<AssistantAlert> = emptyList(),
+        assistantFollowUps: List<AssistantFollowUp> = emptyList()
     ) {
-        val root = JSONObject().put("schemaVersion", 8)
+        val existingBaseline = runCatching { JSONObject(prefs.getString("backup", null) ?: "{}").optLong("assistantLegacyMonitoringStartedAt", 0L) }.getOrDefault(0L)
+        val legacyBaseline = existingBaseline.takeIf { it > 0L } ?: System.currentTimeMillis()
+        val root = JSONObject().put("schemaVersion", 10).put("assistantLegacyMonitoringStartedAt", legacyBaseline)
         ring?.let {
             root.put("ringId", it.ringId).put("ringName", it.ringName)
                 .put("ringUsername", it.ringUsername).put("passwordRequired", it.passwordRequired)
@@ -41,6 +48,8 @@ class LocalStore(private val context: Context) {
                 .put("frame", it.frameItemId ?: JSONObject.NULL)
                 .put("badge", it.badgeItemId ?: JSONObject.NULL)
                 .put("readingAwardedPoints", it.readingAwardedPoints)
+                .put("registeredAtEpochMillis", it.registeredAtEpochMillis)
+                .put("monitoringStartAtEpochMillis", it.monitoringStartAtEpochMillis ?: JSONObject.NULL)
                 .put("readingBooks", readingBooksJson(it.readingBooks))
                 .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL).put("privateNotes", it.privateNotes).put("responsibility", it.responsibility))
         }
@@ -56,6 +65,8 @@ class LocalStore(private val context: Context) {
                 .put("frame", it.frameItemId ?: JSONObject.NULL)
                 .put("badge", it.badgeItemId ?: JSONObject.NULL)
                 .put("readingAwardedPoints", it.readingAwardedPoints)
+                .put("registeredAtEpochMillis", it.registeredAtEpochMillis)
+                .put("monitoringStartAtEpochMillis", it.monitoringStartAtEpochMillis ?: JSONObject.NULL)
                 .put("readingBooks", readingBooksJson(it.readingBooks))
                 .put("birthDate", it.birthDate ?: JSONObject.NULL).put("groupId", it.groupId ?: JSONObject.NULL)
                 .put("privateNotes", it.privateNotes).put("responsibility", it.responsibility)
@@ -130,6 +141,47 @@ class LocalStore(private val context: Context) {
                 .put("reason", it.reason ?: JSONObject.NULL))
         }
         root.put("missionCompletions", completionsJson)
+
+        val requestsJson = JSONArray()
+        missionRequests.forEach {
+            requestsJson.put(JSONObject().put("id", it.id).put("missionId", it.missionId)
+                .put("memberId", it.memberId).put("message", it.message).put("requestedAt", it.requestedAt)
+                .put("status", it.status.name).put("reviewedAt", it.reviewedAt ?: JSONObject.NULL)
+                .put("mentorNote", it.mentorNote ?: JSONObject.NULL))
+        }
+        root.put("missionRequests", requestsJson)
+        val noticesJson = JSONArray()
+        missionNotices.forEach {
+            noticesJson.put(JSONObject().put("id", it.id).put("title", it.title)
+                .put("message", it.message).put("createdAt", it.createdAt)
+                .put("requestId", it.requestId ?: JSONObject.NULL).put("read", it.read))
+        }
+        root.put("missionNotices", noticesJson)
+
+        val assistantAlertsJson = JSONArray()
+        assistantAlerts.forEach { alert ->
+            assistantAlertsJson.put(JSONObject()
+                .put("id", alert.id).put("memberId", alert.memberId).put("tab", alert.tab.name)
+                .put("ruleKey", alert.ruleKey).put("title", alert.title).put("message", alert.message)
+                .put("severity", alert.severity).put("status", alert.status.name)
+                .put("createdAt", alert.createdAtEpochMillis)
+                .put("completedAt", alert.completedAtEpochMillis ?: JSONObject.NULL)
+                .put("sourceRecordIds", JSONArray(alert.sourceRecordIds))
+                .put("conditionFingerprint", alert.conditionFingerprint)
+                .put("lastEvaluatedAt", alert.lastEvaluatedAtEpochMillis))
+        }
+        root.put("assistantAlerts", assistantAlertsJson)
+        val assistantFollowUpsJson = JSONArray()
+        assistantFollowUps.forEach { item ->
+            assistantFollowUpsJson.put(JSONObject()
+                .put("id", item.id).put("memberId", item.memberId).put("title", item.title)
+                .put("description", item.description).put("dueAt", item.dueAtEpochMillis)
+                .put("status", item.status.name).put("createdAt", item.createdAtEpochMillis)
+                .put("completedAt", item.completedAtEpochMillis ?: JSONObject.NULL)
+                .put("sourceType", item.sourceType.name)
+                .put("sourceReference", item.sourceReference ?: JSONObject.NULL))
+        }
+        root.put("assistantFollowUps", assistantFollowUpsJson)
 
         val sessionsJson = JSONArray()
         sessions.forEach {
@@ -228,7 +280,7 @@ class LocalStore(private val context: Context) {
             throw IllegalArgumentException("ساختار فایل پشتیبان معتبر نیست", e)
         }
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..8) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..10) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         // Validate the entire backup before accepting it. If parsing any nested record fails,
         // restore the previous saved data instead of leaving the app with a broken backup.
@@ -247,8 +299,15 @@ class LocalStore(private val context: Context) {
     fun load(): LoadedState? {
         val raw = prefs.getString("backup", null) ?: return null
         val root = JSONObject(raw)
+        // Assign legacy members one stable monitoring baseline on first schema-10 load.
+        // Their historical registration date remains unknown (registeredAtEpochMillis = 0).
+        if (!root.has("assistantLegacyMonitoringStartedAt")) {
+            root.put("assistantLegacyMonitoringStartedAt", System.currentTimeMillis())
+            prefs.edit().putString("backup", root.toString()).commit()
+        }
+        val legacyMonitoringStart = root.optLong("assistantLegacyMonitoringStartedAt", System.currentTimeMillis())
         val version = root.optInt("schemaVersion", 0)
-        require(version in 1..8) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
+        require(version in 1..10) { "نسخه پشتیبان پشتیبانی نمی‌شود" }
 
         val ring = if (root.has("ringId")) RingAccount(
             root.getString("ringId"), root.getString("ringName"),
@@ -273,7 +332,9 @@ class LocalStore(private val context: Context) {
                 o.optString("responsibility", ""),
                 o.optString("badge").takeIf { it.isNotEmpty() && it != "null" },
                 parseReadingBooks(o),
-                o.optInt("readingAwardedPoints", 0)
+                o.optInt("readingAwardedPoints", 0),
+                o.optLong("registeredAtEpochMillis", 0L),
+                if (o.isNull("monitoringStartAtEpochMillis")) o.optLong("registeredAtEpochMillis", 0L).takeIf { it > 0L } ?: legacyMonitoringStart else o.optLong("monitoringStartAtEpochMillis")
             )
         }
 
@@ -296,7 +357,9 @@ class LocalStore(private val context: Context) {
                     o.optString("responsibility", ""),
                     o.optString("badge").takeIf { it.isNotEmpty() && it != "null" },
                     parseReadingBooks(o),
-                    o.optInt("readingAwardedPoints", 0)
+                    o.optInt("readingAwardedPoints", 0),
+                    o.optLong("registeredAtEpochMillis", 0L),
+                    if (o.isNull("monitoringStartAtEpochMillis")) o.optLong("registeredAtEpochMillis", 0L).takeIf { it > 0L } ?: legacyMonitoringStart else o.optLong("monitoringStartAtEpochMillis")
                 ),
                 o.optLong("archivedAt", 0L)
             )
@@ -407,6 +470,63 @@ class LocalStore(private val context: Context) {
             )
         }
 
+
+        val missionRequests = mutableListOf<MissionRequest>()
+        val requestsJson = root.optJSONArray("missionRequests") ?: JSONArray()
+        for (i in 0 until requestsJson.length()) {
+            val o = requestsJson.getJSONObject(i)
+            missionRequests += MissionRequest(
+                o.getString("id"), o.getString("missionId"), o.getString("memberId"),
+                o.optString("message", ""), o.optLong("requestedAt", 0L),
+                runCatching { MissionRequestStatus.valueOf(o.optString("status", MissionRequestStatus.PENDING.name)) }.getOrDefault(MissionRequestStatus.PENDING),
+                if (o.isNull("reviewedAt")) null else o.optLong("reviewedAt"),
+                o.optString("mentorNote").takeIf { it.isNotBlank() && it != "null" }
+            )
+        }
+        val missionNotices = mutableListOf<MissionNotice>()
+        val noticesJson = root.optJSONArray("missionNotices") ?: JSONArray()
+        for (i in 0 until noticesJson.length()) {
+            val o = noticesJson.getJSONObject(i)
+            missionNotices += MissionNotice(
+                o.getString("id"), o.getString("title"), o.getString("message"),
+                o.optLong("createdAt", 0L),
+                o.optString("requestId").takeIf { it.isNotBlank() && it != "null" },
+                o.optBoolean("read", false)
+            )
+        }
+
+        val assistantAlerts = mutableListOf<AssistantAlert>()
+        val alertArray = root.optJSONArray("assistantAlerts") ?: JSONArray()
+        for (i in 0 until alertArray.length()) {
+            val o = alertArray.getJSONObject(i)
+            val sourceIds = o.optJSONArray("sourceRecordIds") ?: JSONArray()
+            assistantAlerts += AssistantAlert(
+                id = o.getString("id"), memberId = o.getString("memberId"),
+                tab = AssistantAlertTab.valueOf(o.getString("tab")), ruleKey = o.getString("ruleKey"),
+                title = o.getString("title"), message = o.optString("message", ""), severity = o.optInt("severity", 0),
+                status = AssistantRecordStatus.valueOf(o.optString("status", AssistantRecordStatus.OPEN.name)),
+                createdAtEpochMillis = o.optLong("createdAt", 0L),
+                completedAtEpochMillis = if (o.isNull("completedAt")) null else o.optLong("completedAt"),
+                sourceRecordIds = (0 until sourceIds.length()).map { sourceIds.getString(it) },
+                conditionFingerprint = o.optString("conditionFingerprint", ""),
+                lastEvaluatedAtEpochMillis = o.optLong("lastEvaluatedAt", 0L)
+            )
+        }
+        val assistantFollowUps = mutableListOf<AssistantFollowUp>()
+        val followUpArray = root.optJSONArray("assistantFollowUps") ?: JSONArray()
+        for (i in 0 until followUpArray.length()) {
+            val o = followUpArray.getJSONObject(i)
+            assistantFollowUps += AssistantFollowUp(
+                id = o.getString("id"), memberId = o.getString("memberId"), title = o.getString("title"),
+                description = o.optString("description", ""), dueAtEpochMillis = o.optLong("dueAt", 0L),
+                status = AssistantRecordStatus.valueOf(o.optString("status", AssistantRecordStatus.OPEN.name)),
+                createdAtEpochMillis = o.optLong("createdAt", 0L),
+                completedAtEpochMillis = if (o.isNull("completedAt")) null else o.optLong("completedAt"),
+                sourceType = AssistantFollowUpSource.valueOf(o.optString("sourceType", AssistantFollowUpSource.MANUAL.name)),
+                sourceReference = o.optString("sourceReference").takeIf { it.isNotBlank() && it != "null" }
+            )
+        }
+
         val sessions = mutableListOf<Session>()
         val sessionsJson = root.optJSONArray("sessions") ?: JSONArray()
         for (i in 0 until sessionsJson.length()) {
@@ -443,7 +563,7 @@ class LocalStore(private val context: Context) {
             )
         }
 
-        return LoadedState(ring, members, history, shop, wheel, missions, completions, sessions, attendance, assets, groups, archived)
+        return LoadedState(ring, members, history, shop, wheel, missions, completions, sessions, attendance, assets, groups, archived, missionRequests, missionNotices, assistantAlerts, assistantFollowUps)
     }
 }
 
@@ -459,5 +579,9 @@ data class LoadedState(
     val attendance: List<Attendance> = emptyList(),
     val assets: List<CustomAsset> = emptyList(),
     val groups: List<Group> = emptyList(),
-    val archived: List<ArchivedMember> = emptyList()
+    val archived: List<ArchivedMember> = emptyList(),
+    val missionRequests: List<MissionRequest> = emptyList(),
+    val missionNotices: List<MissionNotice> = emptyList(),
+    val assistantAlerts: List<AssistantAlert> = emptyList(),
+    val assistantFollowUps: List<AssistantFollowUp> = emptyList()
 )

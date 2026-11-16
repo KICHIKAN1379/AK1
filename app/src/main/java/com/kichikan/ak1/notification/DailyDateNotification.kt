@@ -10,13 +10,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.kichikan.ak1.MainActivity
 import com.kichikan.ak1.R
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
@@ -27,8 +27,9 @@ import java.time.LocalTime
 object DailyDateNotification {
     private const val CHANNEL_ID = "ak1_daily_date_v2"
     private const val OLD_CHANNEL_ID = "ak1_daily_date"
-    private const val NOTIFICATION_ID = 6201
-    private const val OLD_NOTIFICATION_ID = 6101
+    // Keep one stable ID across upgrades so the daily-date notification is replaced, never duplicated.
+    private const val NOTIFICATION_ID = 6101
+    private const val OLD_NOTIFICATION_ID = 6201
     private const val REQUEST_CODE = 6101
     private const val ACTION_UPDATE = "com.kichikan.ak1.UPDATE_DAILY_DATE"
 
@@ -53,6 +54,7 @@ object DailyDateNotification {
     fun show(context: Context) {
         // Clear the stale notification from earlier builds first, even when we cannot post a new one.
         NotificationManagerCompat.from(context).cancel(OLD_NOTIFICATION_ID)
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).deleteNotificationChannel(OLD_CHANNEL_ID)
         }
@@ -68,12 +70,11 @@ object DailyDateNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val season = JalaliSeason.forMonth(date.month)
-        // Status bar renders alpha only, so it gets the white day digits; the expanded
-        // notification shows the filled, season-coloured badge as its large icon.
-        // The small icon is the square tile for today's day number (ic_day_1..ic_day_31).
+        // The date artwork is the actual notification identity. Avoid a large icon,
+        // which duplicates the tile and leaves the launcher diamond as the visible identity.
         val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(if (dayRes != 0) IconCompat.createWithResource(context, dayRes) else IconCompat.createWithResource(context, R.mipmap.ic_launcher))
+            .setSmallIcon(if (dayRes != 0) dayRes else R.mipmap.ic_launcher)
             .setSubText(season.label)
             .setContentTitle("امروز • ${date.day} ${JalaliCalendar.MONTH_NAMES[date.month - 1]} ${date.year}")
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")
@@ -119,5 +120,35 @@ class DailyDateNotificationBootReceiver : BroadcastReceiver() {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
             DailyDateNotification.start(context)
         }
+    }
+}
+
+
+/** Independent local notification channel for mission requests and mentor decisions. */
+object MissionNotifications {
+    private const val CHANNEL_ID = "ak1_mission_updates"
+    fun post(context: Context, title: String, message: String, notificationId: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            manager.createNotificationChannel(android.app.NotificationChannel(
+                CHANNEL_ID, "درخواست‌ها و مأموریت‌ها", android.app.NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = "درخواست انجام مأموریت و نتیجه بررسی مربی" })
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
+        if (!androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val openApp = android.app.PendingIntent.getActivity(
+            context, 7301, android.content.Intent(context, MainActivity::class.java),
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.ic_launcher_art))
+            .setContentTitle(title).setContentText(message)
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
+            .setContentIntent(openApp).setAutoCancel(true)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT).build()
+        androidx.core.app.NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
 }

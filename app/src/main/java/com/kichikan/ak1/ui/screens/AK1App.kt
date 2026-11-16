@@ -41,10 +41,11 @@ import com.kichikan.ak1.ui.theme.Neon
 @Composable
 internal fun AK1App(repo: AppRepository) {
     var tab by remember { mutableStateOf(Tab.HOME) }
-    var refresh by remember { mutableIntStateOf(0) }
     var ringReady by remember { mutableStateOf(repo.ring != null) }
     var growthMemberId by remember { mutableStateOf<String?>(null) }
-    fun changed() { refresh++ }
+    var settingsFocus by remember { mutableStateOf("appearance") }
+    val memberState by repo.membersState.collectAsState()
+    fun changed() {}
     if (!ringReady) { WelcomeScreen(repo) { ringReady = true }; return }
     androidx.activity.compose.BackHandler(enabled = tab != Tab.HOME) { tab = parentOf(tab) }
     Scaffold(
@@ -56,15 +57,17 @@ internal fun AK1App(repo: AppRepository) {
             transitionSpec = { tabTransition(initialState, targetState) },
             label = "ak1-screen"
         ) { targetTab ->
-            key(refresh) {
-                when (targetTab) {
-                    Tab.HOME -> HomeScreen(repo, padding, { tab = Tab.MEMBERS }, { changed() }) { tab = it }
+            when (targetTab) {
+                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
+                    Tab.ASSISTANT -> AssistantScreen(repo, padding)
+                    Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
+                    Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.WORKSHOP }
                     Tab.MEMBERS -> MembersScreen(repo, padding, { changed() }) { member ->
                         growthMemberId = member.id
                         tab = Tab.GROWTH
                     }
                     Tab.GROWTH -> {
-                        val growthMember = repo.members.firstOrNull { it.id == growthMemberId }
+                        val growthMember = memberState.members.firstOrNull { it.id == growthMemberId }
                         if (growthMember != null) {
                             GrowthMapPage(repo, growthMember, padding) { tab = Tab.MEMBERS }
                         } else {
@@ -73,30 +76,31 @@ internal fun AK1App(repo: AppRepository) {
                             }
                         }
                     }
-                    Tab.SERVICES -> ServicesScreen(padding) { tab = it }
-                    Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SERVICES }
+                    Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
+                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }, { tab = Tab.WORKSHOP_MISSIONS }) { changed() }
+                    Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SETTINGS }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
-                    Tab.STORE -> StoreHub(padding, { tab = it }) { tab = Tab.SERVICES }
+                    Tab.STORE -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }, { tab = Tab.HOME }, true)
                     Tab.READING -> ReadingScreen(repo, padding, { changed() }) { tab = Tab.SERVICES }
-                    Tab.SESSIONS -> SessionsHub(padding, { tab = it }) { tab = Tab.SERVICES }
+                    Tab.SESSIONS -> SessionsHub(padding, repo, { tab = it }) { tab = Tab.SERVICES }
                     Tab.WORKSHOP_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 0, { tab = Tab.WORKSHOP }) { tab = if (it == 4) Tab.WORKSHOP_HIDDEN_MISSIONS else Tab.WORKSHOP_MISSIONS }
                     Tab.WORKSHOP_HIDDEN_MISSIONS -> WorkshopScreen(repo, padding, { changed() }, 4, { tab = Tab.WORKSHOP_MISSIONS }) { tab = Tab.WORKSHOP_MISSIONS }
-                    Tab.WORKSHOP_PUZZLE -> GroupPuzzlePage(repo, padding, { changed() }) { tab = Tab.WORKSHOP }
+                    Tab.WORKSHOP_PUZZLE -> GroupPuzzlePage(repo, padding, { changed() }) { tab = Tab.MISSION_ACHIEVEMENTS }
                     Tab.WORKSHOP_PRIZES -> WorkshopScreen(repo, padding, { changed() }, 1, { tab = Tab.WORKSHOP })
                     Tab.WORKSHOP_ASSETS -> WorkshopScreen(repo, padding, { changed() }, 2, { tab = Tab.WORKSHOP })
                     Tab.WORKSHOP_WHEEL -> WorkshopScreen(repo, padding, { changed() }, 3, { tab = Tab.WORKSHOP })
                     Tab.WHEEL -> SpinWheelPage(repo, padding)
                     Tab.RANK_MEMBERS -> RankingScreen(repo, padding, false) { tab = Tab.RANKING }
                     Tab.RANK_GROUPS -> RankingScreen(repo, padding, true) { tab = Tab.RANKING }
-                    Tab.STORE_AVATARS -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.BADGE, { changed() }) { tab = Tab.STORE }
-                    Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }) { tab = Tab.STORE }
+                    Tab.STORE_AVATARS -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }, { tab = Tab.STORE }, false)
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }
-                    Tab.SETTINGS -> SettingsScreen(repo, padding, { changed() }) { tab = Tab.ARCHIVE }
+                    Tab.SETTINGS -> SettingsHubScreen(padding, { focus -> settingsFocus = focus; tab = Tab.SETTINGS_GENERAL }, { tab = Tab.WORKSHOP })
+                    Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.SETTINGS }, settingsFocus)
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
-                }
             }
         }
     }
@@ -127,12 +131,12 @@ private fun tabTransition(from: Tab, to: Tab): ContentTransform {
 /** 0 = root tab, 1 = section, 2 = sub-page of a section. */
 private val Tab.depth: Int
     get() = when (this) {
-        Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.SETTINGS -> 0
-        Tab.GROWTH, Tab.ARCHIVE -> 1
+        Tab.HOME, Tab.MEMBERS, Tab.SERVICES, Tab.STORE, Tab.SETTINGS -> 0
+        Tab.GROWTH, Tab.ARCHIVE, Tab.MISSION_ACHIEVEMENTS, Tab.WEEKLY_PULSE, Tab.SETTINGS_GENERAL, Tab.ASSISTANT -> 1
         Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.WORKSHOP_PUZZLE,
         Tab.RANK_MEMBERS, Tab.RANK_GROUPS,
         Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS,
-        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE -> 2
+        Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.GROWTH_SETTINGS, Tab.WORKSHOP_PUZZLE -> 2
         else -> 1
     }
 
@@ -141,7 +145,8 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     val items = listOf(
         Tab.HOME to "خانه",
         Tab.MEMBERS to "اعضا",
-        Tab.SERVICES to "خدمات",
+        Tab.SERVICES to "پیشرفت",
+        Tab.STORE to "فروشگاه",
         Tab.SETTINGS to "تنظیمات"
     )
     Box(
@@ -175,7 +180,10 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp)) {
                 items.forEach { (target, label) ->
                     val selected = current == target ||
-                        (target == Tab.SERVICES && current !in listOf(Tab.HOME, Tab.MEMBERS, Tab.SETTINGS))
+                        (target == Tab.SERVICES && current in listOf(Tab.SERVICES, Tab.MISSION_ACHIEVEMENTS, Tab.WHEEL, Tab.READING, Tab.SESSIONS, Tab.RANKING, Tab.RANK_MEMBERS, Tab.RANK_GROUPS, Tab.SESSIONS_LIST, Tab.SESSIONS_ATTENDANCE, Tab.WEEKLY_PULSE, Tab.WORKSHOP_PUZZLE)) ||
+                        (target == Tab.MEMBERS && current == Tab.GROWTH) ||
+                        (target == Tab.STORE && current in listOf(Tab.STORE, Tab.STORE_AVATARS, Tab.STORE_FRAMES, Tab.STORE_BADGES, Tab.STORE_REWARDS)) ||
+                        (target == Tab.SETTINGS && current in listOf(Tab.SETTINGS, Tab.ARCHIVE, Tab.WORKSHOP, Tab.WORKSHOP_MISSIONS, Tab.WORKSHOP_HIDDEN_MISSIONS, Tab.WORKSHOP_PRIZES, Tab.WORKSHOP_ASSETS, Tab.WORKSHOP_WHEEL, Tab.GROWTH_SETTINGS, Tab.SETTINGS_GENERAL))
                     val iconScale by animateFloatAsState(
                         targetValue = if (selected) 1f else 0.92f,
                         animationSpec = Motion.Selection,
@@ -205,6 +213,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                                 Tab.HOME -> R.drawable.icon_nav_home
                                 Tab.MEMBERS -> R.drawable.icon_nav_members
                                 Tab.SERVICES -> R.drawable.icon_nav_services
+                                Tab.STORE -> R.drawable.icon_services_store
                                 else -> R.drawable.icon_nav_settings
                             },
                             size = 26.dp,

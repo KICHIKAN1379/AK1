@@ -16,6 +16,7 @@ import com.kichikan.ak1.domain.service.RingReport
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -48,6 +49,71 @@ object ReportExport {
             .map { it.title }
         val jpeg = renderJpeg(result, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
         return jpeg to buildZip(context, repo, jpeg)
+    }
+
+    /** Build only the report image. Do not create a second in-memory ZIP for JPEG exports. */
+    fun jpeg(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): ByteArray {
+        val report = result(context, repo, kind, year, month, memberId)
+        val range = RingReport.range(kind, year, month)
+        val prizes = repo.history
+            .filter { (memberId == null || it.memberId == memberId) && it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= range.start && it.createdAtEpochMillis < range.end }
+            .map { it.title }
+        return renderJpeg(report, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
+    }
+
+    private const val PROFILE_IMAGE_MARKER = "__AK1_ZIP_PROFILE_IMAGE__"
+    private const val BANNER_IMAGE_MARKER = "__AK1_ZIP_BANNER_IMAGE__"
+
+    private fun putDirectory(zip: ZipOutputStream, directory: File, prefix: String) {
+        if (!directory.exists()) return
+        directory.walkTopDown().filter { it.isFile }.forEach { file ->
+            val relative = file.relativeTo(directory).invariantSeparatorsPath
+            zip.putNextEntry(ZipEntry("$prefix/$relative"))
+            file.inputStream().use { it.copyTo(zip) }
+            zip.closeEntry()
+        }
+    }
+
+    private fun putRingImages(context: Context, put: (String, ByteArray) -> Unit): Set<String> {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val copied = mutableSetOf<String>()
+        listOf(
+            "ring_profile_image" to "ring/profile_image",
+            "ring_home_banner" to "ring/home_banner"
+        ).forEach { (key, entry) ->
+            val raw = prefs.getString(key, null)?.takeIf { it.isNotBlank() } ?: return@forEach
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(raw))?.use { stream ->
+                    put(entry, stream.readBytes())
+                    copied += key
+                }
+            }
+        }
+        return copied
+    }
+
+    /** Stream the complete ring backup to the selected document instead of buffering a huge ZIP in RAM. */
+    fun writeFullRingZip(context: Context, repo: AppRepository, jpeg: ByteArray, output: OutputStream) {
+        ZipOutputStream(output).use { zip ->
+            fun putBytes(name: String, bytes: ByteArray) {
+                zip.putNextEntry(ZipEntry(name))
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+            fun putFile(name: String, file: File) {
+                zip.putNextEntry(ZipEntry(name))
+                file.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+            putBytes("report.jpg", jpeg)
+            putBytes("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
+            putDirectory(zip, File(context.filesDir, "puzzle"), "puzzle")
+            putDirectory(zip, File(context.filesDir, "custom_assets"), "custom_assets")
+            putDirectory(zip, File(context.filesDir, "background"), "background")
+            val copiedRingImages = putRingImages(context, ::putBytes)
+            putBytes("settings.json", settingsJson(context, copiedRingImages).toByteArray(Charsets.UTF_8))
+            zip.finish()
+        }
     }
 
     private fun ringPhoto(context: Context): Bitmap? = runCatching {
@@ -151,15 +217,16 @@ object ReportExport {
             }
             put("report.jpg", jpeg)
             put("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
-            put("settings.json", settingsJson(context).toByteArray(Charsets.UTF_8))
-            File(context.filesDir, "puzzle").listFiles()?.forEach { put("puzzle/${it.name}", it.readBytes()) }
-            // Visual data: custom avatars, frames, badges and item pictures.
-            File(context.filesDir, "custom_assets").listFiles()?.forEach { put("custom_assets/${it.name}", it.readBytes()) }
+            putDirectory(zip, File(context.filesDir, "puzzle"), "puzzle")
+            putDirectory(zip, File(context.filesDir, "custom_assets"), "custom_assets")
+            putDirectory(zip, File(context.filesDir, "background"), "background")
+            val copiedRingImages = putRingImages(context, ::put)
+            put("settings.json", settingsJson(context, copiedRingImages).toByteArray(Charsets.UTF_8))
         }
         return bos.toByteArray()
     }
 
-    private fun settingsJson(context: Context): String {
+    private fun settingsJson(context: Context, copiedRingImages: Set<String> = emptySet()): String {
         val arr = JSONArray()
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.forEach { (k, v) ->
             val o = JSONObject().put("k", k)
@@ -168,7 +235,14 @@ object ReportExport {
                 is Int -> o.put("t", "i").put("v", v)
                 is Long -> o.put("t", "l").put("v", v)
                 is Float -> o.put("t", "f").put("v", v.toDouble())
-                is String -> o.put("t", "s").put("v", v)
+                is String -> {
+                    val portable = when {
+                        k == "ring_profile_image" -> if (k in copiedRingImages) PROFILE_IMAGE_MARKER else ""
+                        k == "ring_home_banner" -> if (k in copiedRingImages) BANNER_IMAGE_MARKER else ""
+                        else -> v
+                    }
+                    o.put("t", "s").put("v", portable)
+                }
                 is Set<*> -> o.put("t", "set").put("v", JSONArray(v.map { it.toString() }))
                 else -> return@forEach
             }
@@ -178,16 +252,23 @@ object ReportExport {
     }
 
     /** Only the visual data: custom avatars, frames, item pictures, puzzle pictures and the background. */
-    fun visualZip(context: Context): ByteArray {
-        val bos = ByteArrayOutputStream()
-        ZipOutputStream(bos).use { zip ->
+    /** Streaming visual archive; avoids allocating the whole ZIP in memory on the UI thread. */
+    fun writeVisualZip(context: Context, output: OutputStream) {
+        ZipOutputStream(output).use { zip ->
             fun put(name: String, bytes: ByteArray) {
                 zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
             }
-            File(context.filesDir, "custom_assets").listFiles()?.forEach { put("custom_assets/${it.name}", it.readBytes()) }
-            File(context.filesDir, "puzzle").listFiles()?.forEach { put("puzzle/${it.name}", it.readBytes()) }
-            File(File(context.filesDir, "background"), "custom.jpg").takeIf { it.exists() }?.let { put("background/custom.jpg", it.readBytes()) }
+            putDirectory(zip, File(context.filesDir, "custom_assets"), "custom_assets")
+            putDirectory(zip, File(context.filesDir, "puzzle"), "puzzle")
+            putDirectory(zip, File(context.filesDir, "background"), "background")
+            putRingImages(context, ::put)
         }
+    }
+
+    /** Compatibility helper for callers that explicitly need an in-memory archive. */
+    fun visualZip(context: Context): ByteArray {
+        val bos = ByteArrayOutputStream()
+        writeVisualZip(context, bos)
         return bos.toByteArray()
     }
 
@@ -197,6 +278,7 @@ object ReportExport {
         var settings: String? = null
         val puzzle = mutableMapOf<String, ByteArray>()
         val assets = mutableMapOf<String, ByteArray>()
+        val ringImages = mutableMapOf<String, ByteArray>()
         var background: ByteArray? = null
         val opened = context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
@@ -206,7 +288,12 @@ object ReportExport {
                         e.name == "backup.json" -> backup = zip.readBytes().toString(Charsets.UTF_8)
                         e.name == "settings.json" -> settings = zip.readBytes().toString(Charsets.UTF_8)
                         e.name.startsWith("puzzle/") -> puzzle[File(e.name).name] = zip.readBytes()
-                        e.name.startsWith("custom_assets/") -> assets[File(e.name).name] = zip.readBytes()
+                        e.name.startsWith("custom_assets/") -> {
+                            val relative = e.name.removePrefix("custom_assets/")
+                            if (relative.split('/').all { it.isNotBlank() && it != "." && it != ".." }) assets[relative] = zip.readBytes()
+                        }
+                        e.name == "ring/profile_image" -> ringImages["ring_profile_image"] = zip.readBytes()
+                        e.name == "ring/home_banner" -> ringImages["ring_home_banner"] = zip.readBytes()
                         e.name == "background/custom.jpg" -> background = zip.readBytes()
                     }
                     zip.closeEntry()
@@ -217,16 +304,25 @@ object ReportExport {
         } ?: false
         if (!opened) return false
         val data = backup
-        if (data == null && assets.isEmpty() && puzzle.isEmpty() && background == null) return false
+        if (data == null && assets.isEmpty() && puzzle.isEmpty() && ringImages.isEmpty() && background == null) return false
         background?.let { bytes ->
             File(context.filesDir, "background").apply { mkdirs() }.let { File(it, "custom.jpg").writeBytes(bytes) }
             com.kichikan.ak1.ui.theme.AppBackground.reload()
         }
         // Pictures come back into this phone's folder; the saved paths are rewritten to match.
         val assetDir = File(context.filesDir, "custom_assets").apply { mkdirs() }
-        assets.forEach { (name, bytes) -> File(assetDir, name).writeBytes(bytes) }
+        assets.forEach { (name, bytes) ->
+            File(assetDir, name).apply { parentFile?.mkdirs() }.writeBytes(bytes)
+        }
+        ringImages.forEach { (key, bytes) ->
+            val fileName = if (key == "ring_profile_image") "ring_profile_image" else "ring_home_banner"
+            val file = File(assetDir, fileName).apply { parentFile?.mkdirs() }
+            file.writeBytes(bytes)
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(key, Uri.fromFile(file).toString()).apply()
+        }
         if (data != null) {
-            val fixed = Regex("""[^"]*/custom_assets/([^"/]+)""").replace(data) { m -> File(assetDir, m.groupValues[1]).absolutePath }
+            val fixed = Regex("""[^"]*/custom_assets/([^"]+)""").replace(data) { m -> File(assetDir, m.groupValues[1]).absolutePath }
             repo.importBackup(fixed)
         }
         settings?.let { restoreSettings(context, it) }
@@ -246,7 +342,17 @@ object ReportExport {
                 "i" -> ed.putInt(k, o.getInt("v"))
                 "l" -> ed.putLong(k, o.getLong("v"))
                 "f" -> ed.putFloat(k, o.getDouble("v").toFloat())
-                "s" -> ed.putString(k, o.getString("v"))
+                "s" -> {
+                    val raw = o.getString("v")
+                    val portable = when {
+                        k == "ring_profile_image" && raw == PROFILE_IMAGE_MARKER ->
+                            Uri.fromFile(File(context.filesDir, "custom_assets/ring_profile_image")).toString()
+                        k == "ring_home_banner" && raw == BANNER_IMAGE_MARKER ->
+                            Uri.fromFile(File(context.filesDir, "custom_assets/ring_home_banner")).toString()
+                        else -> raw
+                    }
+                    ed.putString(k, portable)
+                }
                 "set" -> {
                     val s = o.getJSONArray("v")
                     ed.putStringSet(k, (0 until s.length()).map { s.getString(it) }.toSet())

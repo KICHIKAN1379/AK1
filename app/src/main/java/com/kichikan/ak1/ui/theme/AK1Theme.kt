@@ -50,11 +50,11 @@ object Neon {
     val Deep = Color(0xFF0A0420)
 
     val Cyan = Color(0xFF00F0FF)
-    val Magenta = Color(0xFFFF2BD6)
-    val Violet = Color(0xFFA86BFF)
+    val Magenta = Color(0xFFEC4899)
+    val Violet = Color(0xFF6B5CF5)
     val Sky = Color(0xFF4DA3FF)
     val Lime = Color(0xFFB6FF3B)
-    val Green = Color(0xFF2BFF9E)
+    val Green = Color(0xFF00E5A3)
     val Gold = Color(0xFFFFD43B)
     val Orange = Color(0xFFFF8A1F)
     val Coral = Color(0xFFFF4D6D)
@@ -74,7 +74,7 @@ object Neon {
     /** Fun multi-colour set for wheels, confetti and charts. */
     val Party = listOf(Cyan, Magenta, Lime, Gold, Violet, Orange, Sky, Green)
 
-    val BackgroundBrush = Brush.verticalGradient(listOf(Color(0xFF0D0628), Color(0xFF1B0A45), Deep))
+    val BackgroundBrush = Brush.verticalGradient(listOf(Color(0xFF071A36), Color(0xFF0B2B50), Color(0xFF06152E)))
 }
 
 private val NeonScheme = darkColorScheme(
@@ -156,8 +156,8 @@ private val AmoledScheme = NeonScheme.copy(
 
 /** Midnight: same accents over a calmer blue-night backdrop. */
 private val MidnightScheme = NeonScheme.copy(
-    background = Color(0xFF040B24),
-    surface = Color(0xFF0B1840),
+    background = Color(0xFF06152E),
+    surface = Color(0xFF0B2344),
     outline = Color(0xFF3F5A9E),
     outlineVariant = Color(0xFF1E2E60),
     surfaceContainerLowest = Color(0xFF020616),
@@ -169,15 +169,15 @@ private val MidnightScheme = NeonScheme.copy(
 
 private val ArcadeBackground = Brush.verticalGradient(listOf(Color(0xFF1A0526), Color(0xFF2E0A3E), Color(0xFF12031C)))
 private val AmoledBackground = Brush.verticalGradient(listOf(Color.Black, Color(0xFF050505), Color.Black))
-private val MidnightBackground = Brush.verticalGradient(listOf(Color(0xFF040B24), Color(0xFF0A1A4A), Color(0xFF020616)))
+private val MidnightBackground = Brush.verticalGradient(listOf(Color(0xFF06152E), Color(0xFF0B2B50), Color(0xFF030D20)))
 
 /** The three drifting light sources and the retro grid colour of a [ThemeMode]. */
 private data class Aurora(val first: Color, val second: Color, val third: Color, val grid: Color)
 
 private fun auroraFor(mode: ThemeMode): Aurora? = when (mode) {
-    ThemeMode.NEON -> Aurora(Neon.Magenta, Neon.Cyan, Neon.Violet, Neon.Magenta)
-    ThemeMode.ARCADE -> Aurora(Neon.Orange, Neon.Magenta, Neon.Gold, Neon.Gold)
-    ThemeMode.MIDNIGHT -> Aurora(Neon.Sky, Neon.Violet, Neon.Cyan, Neon.Cyan)
+    ThemeMode.NEON -> Aurora(Neon.Gold, Neon.Cyan, Neon.Sky, Neon.Gold)
+    ThemeMode.ARCADE -> Aurora(Neon.Gold, Neon.Orange, Neon.Cyan, Neon.Gold)
+    ThemeMode.MIDNIGHT -> Aurora(Neon.Sky, Neon.Cyan, Neon.Gold, Neon.Cyan)
     ThemeMode.AMOLED -> null
 }
 
@@ -324,7 +324,7 @@ fun AK1Theme(content: @Composable () -> Unit) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(Color(0x77000000), Color(0x44000000), Color(0x99000000))))
+                        .background(Brush.verticalGradient(listOf(Color(0xC9000618), Color(0xB8000824), Color(0xD9000618))))
                 )
             }
             CompositionLocalProvider(

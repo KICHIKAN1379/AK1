@@ -19,6 +19,13 @@ class RankSystemTest {
         assertEquals("اسطوره جاودان", RankSystem.forLevel(70).name)
     }
 
+    @Test fun badges_are_awarded_only_for_newly_crossed_level_gates() {
+        assertEquals(listOf(2, 3, 4), RankSystem.badgesUnlockedBetween(1, 4).map { it.minLevel })
+        assertTrue(RankSystem.badgesUnlockedBetween(4, 4).isEmpty())
+        assertTrue(RankSystem.badgesUnlockedBetween(7, 3).isEmpty())
+        assertEquals(listOf(21), RankSystem.badgesUnlockedBetween(20, 80).map { it.minLevel })
+    }
+
     @Test fun military_badges_cover_soldier_to_general() {
         assertEquals(21, RankSystem.badges.size)
         assertEquals("سرباز سوم", RankSystem.badgeForLevel(0).name)

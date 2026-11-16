@@ -104,6 +104,11 @@ object RankSystem {
         return badges.lastOrNull { safe >= it.minLevel } ?: badges.first()
     }
 
+    /** Badges earned by crossing level gates; level decreases never revoke past awards. */
+    fun badgesUnlockedBetween(previousLevel: Int, newLevel: Int): List<MilitaryBadge> =
+        if (newLevel <= previousLevel) emptyList()
+        else badges.filter { it.minLevel > previousLevel && it.minLevel <= newLevel }
+
     fun forIndex(index: Int): RankTier = tiers.getOrElse(index.coerceIn(1, tiers.size) - 1) { tiers.first() }
 
     fun next(tier: RankTier): RankTier? = tiers.getOrNull(tier.index)

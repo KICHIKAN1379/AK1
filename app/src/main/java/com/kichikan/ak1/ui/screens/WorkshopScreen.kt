@@ -29,6 +29,7 @@ import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
 @Composable
 internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, section: Int, back: () -> Unit, openSection: (Int) -> Unit = {}) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val context = LocalContext.current
     var addMission by remember { mutableStateOf(false) }; var editMission by remember { mutableStateOf<Mission?>(null) }; var completeMission by remember { mutableStateOf<Mission?>(null) }; var addWheel by remember { mutableStateOf(false) }; var editWheelConfig by remember { mutableStateOf(false) }; var editWheel by remember { mutableStateOf<WheelItem?>(null) }; var addShop by remember { mutableStateOf(false) }; var editShop by remember { mutableStateOf<ShopItem?>(null) }
     var assetKind by remember { mutableStateOf<String?>(null) }; var assetMessage by remember { mutableStateOf<String?>(null) }
@@ -50,7 +51,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
     }
     val importAsset = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) try { val mime=context.contentResolver.getType(uri)?:"image/png"; require(mime.startsWith("image/")){"فقط فایل تصویری قابل ثبت است"}; val o=BitmapFactory.Options().also{it.inJustDecodeBounds=true}; context.contentResolver.openInputStream(uri)?.use{BitmapFactory.decodeStream(it,null,o)}; val frame=assetKind=="FRAME"; val size=if(frame)288 else 256; require(o.outWidth==size&&o.outHeight==size){"ابعاد ${if(frame)"قاب" else "آواتار"} باید ${size}×${size} باشد"}; val id="asset-"+System.currentTimeMillis(); val ext=when{mime.equals("image/jpeg",true)->".jpg";mime.equals("image/webp",true)->".webp";mime.equals("image/gif",true)->".gif";else->".png"}; val target=java.io.File(context.filesDir,"custom_assets/$id$ext");target.parentFile?.mkdirs();context.contentResolver.openInputStream(uri)?.use{input->target.outputStream().use{out->input.copyTo(out)}};val assetName=if(frame)"قاب سفارشی" else "آواتار سفارشی";repo.addAsset(CustomAsset(id,assetName,if(frame)AssetType.FRAME else AssetType.AVATAR,target.absolutePath,mime,size,size));repo.addShopItem(ShopItem(id=id,name=assetName,type=if(frame)ShopItemType.FRAME else ShopItemType.AVATAR,imagePath=target.absolutePath,currency=Currency.NONE,methods=setOf(AcquisitionMethod.MANUAL),description="دارایی سفارشی مربی؛ برای دریافت باید مربی آن را هدیه کند."));assetMessage="ثبت شد و به فهرست آواتار/قاب اضافه شد";changed()}catch(ex:Exception){assetMessage=ex.message} }
     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-        PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در تراشکاری")
+        PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در پالایشگاه")
         WorkshopSummary(repo, if (section == 4) 0 else section)
         if(section==0||section==4){
         if(section==0) OutlinedButton({ openSection(4) }, Modifier.fillMaxWidth()) { Text("مأموریت‌های مخفی (${repo.missions.count { it.hidden }})") }
@@ -140,6 +141,7 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
 
 @Composable
 private fun WorkshopSummary(repo: AppRepository, section: Int) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val accent = when (section) { 0 -> Neon.Cyan; 1 -> Neon.Gold; 2 -> Neon.Violet; else -> Neon.Sky }
     Card(Modifier.fillMaxWidth(), accent = accent) {
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,6 +191,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 }
 
 @Composable private fun MissionEditDialog(repo: AppRepository, item: Mission?, changed: () -> Unit, hiddenDefault: Boolean = false, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     val context = LocalContext.current
     var title by remember { mutableStateOf(item?.title ?: "") }
     var desc by remember { mutableStateOf(item?.description ?: "") }
@@ -264,6 +267,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 }
 
 @Composable private fun WheelEditDialog(repo: AppRepository, item: WheelItem?, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var title by remember { mutableStateOf(item?.title ?: "") }
     var amount by remember { mutableStateOf((item?.amount ?: 0).toString()) }
     var weight by remember { mutableStateOf((item?.weight ?: 1).toString()) }
@@ -339,6 +343,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
 
 @Composable
 private fun AddWheelItemDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var title by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(WheelRewardType.CUSTOM) }
     var amount by remember { mutableStateOf("0") }
@@ -369,45 +374,52 @@ private fun AddWheelItemDialog(repo: AppRepository, changed: () -> Unit, close: 
 
 @Composable
 private fun CompleteMissionDialog(repo: AppRepository, mission: Mission, changed: () -> Unit, close: () -> Unit) {
-    var selected by remember { mutableStateOf(setOf<String>()) }
+    val observedDomainState = repo.progressState.collectAsState().value
+    var selected by remember(mission.id) { mutableStateOf(setOf<String>()) }
     var reason by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var submitting by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = close,
         title = { Text("ثبت مأموریت: " + mission.title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 480.dp)) {
-                Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده در مأموریت گروهی را انتخاب کن:" else "اعضای انجام‌دهنده را انتخاب کن:")
-                LazyColumn(Modifier.weight(1f, fill = false)) {
-                    items(repo.members, key = { it.id }) { member ->
-                        Row(Modifier.fillMaxWidth().animateItem(), verticalAlignment = Alignment.CenterVertically) {
-                            val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
-                            Checkbox(
-                                member.id in selected,
-                                { selected = if (it) selected + member.id else selected - member.id },
-                                enabled = receivedAt == null
-                            )
-                            Text(member.name + (receivedAt?.let { "  • دریافت: " + shamsi(it) } ?: ""))
-                        }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())
+            ) {
+                Text(if (mission.type == MissionType.GROUP) "اعضای شرکت‌کننده در مأموریت گروهی را انتخاب کن:" else "فقط عضو انجام‌دهنده را انتخاب کن:")
+                repo.members.forEach { member ->
+                    val receivedAt = if (mission.hidden) repo.hiddenReceivedAt(member.id, mission.id) else null
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = member.id in selected,
+                            onCheckedChange = { checked ->
+                                selected = when {
+                                    mission.type == MissionType.INDIVIDUAL && checked -> setOf(member.id)
+                                    checked -> selected + member.id
+                                    else -> selected - member.id
+                                }
+                            },
+                            enabled = receivedAt == null && !submitting
+                        )
+                        Text(member.name + (receivedAt?.let { "  • دریافت: " + shamsi(it) + " • قفل‌شده" } ?: ""))
                     }
                 }
                 OutlinedTextField(reason, { reason = it }, label = { Text("توضیح ثبت (اختیاری)") }, modifier = Modifier.fillMaxWidth())
+                if (mission.hidden) Text("این مأموریت برای هر عضو فقط یک‌بار قابل ثبت است؛ پس از دریافت پاداش، انتخاب آن عضو قفل می‌شود.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
-            TextButton({
-                try {
-                    require(selected.isNotEmpty()) { "حداقل یک عضو را انتخاب کن" }
-                    repo.completeMission(mission, selected.toList(), reason.trim().takeIf { it.isNotEmpty() })
-                    changed()
-                    close()
-                } catch (e: Exception) {
-                    error = e.message ?: "ثبت مأموریت انجام نشد"
-                }
-            }) { Text("ثبت") }
+            TextButton(enabled = selected.isNotEmpty() && !submitting, onClick = {
+                submitting = true
+                runCatching { repo.completeMission(mission, selected.toList(), reason.trim().takeIf { it.isNotEmpty() }) }
+                    .onSuccess { changed(); close() }
+                    .onFailure { error = it.message ?: "ثبت مأموریت انجام نشد"; submitting = false }
+            }) { Text("تأیید و ثبت پاداش") }
         },
-        dismissButton = { TextButton(close) { Text("لغو") } }
+        dismissButton = { TextButton(onClick = close, enabled = !submitting) { Text("لغو") } }
     )
 }
 
@@ -423,6 +435,7 @@ private enum class EconomyOp(val label: String, val isLevelTarget: Boolean = fal
 }
 
 @Composable internal fun EconomyDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var step by remember { mutableIntStateOf(0) }; var op by remember { mutableStateOf<EconomyOp?>(null) }; var memberId by remember { mutableStateOf(repo.members.firstOrNull()?.id?:"") }; var amount by remember { mutableStateOf("") }; var reason by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }; val member=repo.members.firstOrNull{it.id==memberId}
     fun submit(){val m=member?:run{error="عضو انتخاب نشده";return};val n=amount.toIntOrNull()?:run{error="مقدار را وارد کنید";return};if(n<=0){error="مقدار باید بیشتر از صفر باشد";return};if(op==EconomyOp.LEVEL_DOWN&&n>=m.economy.level){error="سطح مقصد باید کمتر از سطح فعلی باشد";return};if(reason.isBlank()){error="دلیل اجباری است";return};try{when(op){EconomyOp.XP_ADD->repo.recordXp(m.id,n,reason,"mentor");EconomyOp.XP_SUB->repo.decreaseXp(m.id,n,reason,"mentor");EconomyOp.POINTS_ADD->repo.recordPoints(m.id,n,reason,"mentor");EconomyOp.POINTS_SUB->repo.recordPoints(m.id,-n,reason,"mentor");EconomyOp.DIAMONDS_ADD->repo.recordDiamonds(m.id,n,reason,"mentor");EconomyOp.DIAMONDS_SUB->repo.recordDiamonds(m.id,-n,reason,"mentor");EconomyOp.LEVEL_DOWN->repo.decreaseLevel(m.id,n,reason,"mentor");null->Unit};changed();close()}catch(ex:IllegalArgumentException){error=ex.message}}
     AlertDialog(onDismissRequest=close,title={Text(if(step==0)"شناسنامه" else "ثبت ${op?.label}")},text={
@@ -433,6 +446,7 @@ private enum class EconomyOp(val label: String, val isLevelTarget: Boolean = fal
 }
 
 @Composable private fun WheelConfigDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
+    val observedDomainState = repo.progressState.collectAsState().value
     var mode by remember { mutableStateOf(repo.wheel.mode) }; var points by remember { mutableStateOf(repo.wheel.spinCostPoints.toString()) }; var diamonds by remember { mutableStateOf(repo.wheel.spinCostDiamonds.toString()) }; var repeat by remember { mutableStateOf(repo.wheel.allowRepeatAfterWin) }
     AlertDialog(onDismissRequest=close,title={Text("تنظیمات گردونه")},text={Column(verticalArrangement=Arrangement.spacedBy(7.dp)){Row(Modifier.horizontalScroll(rememberScrollState())){WheelMode.values().forEach{m->FilterChip(mode==m,{mode=m},label={Text(m.name)})}};OutlinedTextField(points,{points=it.filter(Char::isDigit)},label={Text("هزینه امتیاز")});OutlinedTextField(diamonds,{diamonds=it.filter(Char::isDigit)},label={Text("هزینه الماس")});Row(verticalAlignment=Alignment.CenterVertically){Checkbox(repeat,{repeat=it});Text("تکرار جایزه بعد از برد")}}},confirmButton={TextButton({repo.setWheel(repo.wheel.copy(mode=mode,spinCostPoints=points.toIntOrNull()?:0,spinCostDiamonds=diamonds.toIntOrNull()?:0,freeSpin=mode==WheelMode.FREE,allowRepeatAfterWin=repeat));changed();close()}){Text("ذخیره")}},dismissButton={TextButton(close){Text("لغو")}})
 }

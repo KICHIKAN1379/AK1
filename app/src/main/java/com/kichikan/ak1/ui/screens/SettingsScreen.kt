@@ -33,12 +33,14 @@ import com.kichikan.ak1.ui.theme.ThemeState
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.audio.BackgroundMusic
 import com.kichikan.ak1.data.AppRepository
-import com.kichikan.ak1.ui.GrowthItemsManagerDialog
 import com.kichikan.ak1.ui.FactoryResetDialog
 import com.kichikan.ak1.ui.ReportExport
 import com.kichikan.ak1.data.AutoArchive
 import com.kichikan.ak1.data.DailyQuotes
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Icon + label used inside the wide settings buttons. */
 @Composable
@@ -49,39 +51,34 @@ private fun ActionLabel(icon: Int, text: String) {
     }
 }
 
-private data class SettingsTool(val icon: Int, val label: String, val onClick: () -> Unit)
-
-/** Phone-menu style tile: big icon with the label underneath. */
 @Composable
-private fun SettingsTile(tool: SettingsTool, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = tool.onClick,
-        modifier = modifier.heightIn(min = 96.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = Color.White.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.25f))
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            AppIcon(tool.icon, 34.dp)
-            Text(
-                tool.label,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
-        }
-    }
-}
-
-@Composable
-internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, openArchive: () -> Unit) {
+internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, openArchive: () -> Unit, backToHub: () -> Unit, focus: String) {
+    val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
+    val scope = rememberCoroutineScope()
     var musicEnabled by remember { mutableStateOf(BackgroundMusic.enabled(context)) }
+    var hasCustomMusic by remember { mutableStateOf(BackgroundMusic.hasCustomTrack(context)) }
+    val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            try {
+                val size = context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)
+                    ?.use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null }
+                require(size != null && size > 0L) { "حجم فایل قابل تشخیص نیست" }
+                require(size <= 20L * 1024L * 1024L) { "حجم موزیک نباید بیشتر از ۲۰ مگابایت باشد" }
+                val mime = context.contentResolver.getType(uri)
+                require(mime == null || mime.startsWith("audio/")) { "فایل انتخاب‌شده صوتی نیست" }
+                context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                BackgroundMusic.setCustomTrack(context, uri)
+                hasCustomMusic = true
+                Toast.makeText(context, "موزیک انتخابی ذخیره شد", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: "انتخاب موزیک انجام نشد", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    var ringNameInput by remember(repo.ring?.ringName) { mutableStateOf(repo.ring?.ringName ?: "") }
+    var ringUsernameInput by remember(repo.ring?.ringUsername) { mutableStateOf(repo.ring?.ringUsername ?: "") }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
             try {
@@ -113,8 +110,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
     var quotesOpen by remember { mutableStateOf(false) }
     var newQuote by remember { mutableStateOf("") }
     val quotes = remember { mutableStateListOf<String>().apply { addAll(DailyQuotes.list(context)) } }
-    var profileOpen by remember { mutableStateOf(false) }
-    var growthManagerOpen by remember { mutableStateOf(false) }
     var factoryOpen by remember { mutableStateOf(false) }
     val backgroundPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -122,14 +117,19 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, if (ok) "پس‌زمینه تغییر کرد" else "این تصویر خوانده نشد", Toast.LENGTH_SHORT).show()
         }
     }
-    var visualBytes by remember { mutableStateOf<ByteArray?>(null) }
     val visualExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val bytes = visualBytes
-        if (uri != null && bytes != null) {
-            val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
-            Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+        if (uri != null) {
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val output = context.contentResolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("فایل خروجی باز نشد")
+                        ReportExport.writeVisualZip(context, output)
+                    }.isSuccess
+                }
+                Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
+            }
         }
-        visualBytes = null
     }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -148,15 +148,40 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, "تصویر پروفایل حلقه ذخیره شد", Toast.LENGTH_SHORT).show()
         }
     }
+    val profilePreview = remember(profileImageUri) {
+        profileImageUri?.let { raw ->
+            AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 256)?.asImageBitmap()
+        }
+    }
+    var bannerUri by remember { mutableStateOf(prefs.getString("ring_home_banner", null)) }
+    val bannerPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            bannerUri = uri.toString()
+            prefs.edit().putString("ring_home_banner", uri.toString()).apply()
+            changed()
+            Toast.makeText(context, "تصویر بنر خانه ذخیره شد", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val bannerPreview = remember(bannerUri) {
+        bannerUri?.let { raw ->
+            AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 960)?.asImageBitmap()
+        }
+    }
     val shortcutPrefs = prefs
     val shortcutLabels = listOf(
-        "home_identity" to "شناسنامه", "home_members" to "مدیریت اعضا",
-        "home_assistant" to "دستیار مربی", "home_workshop" to "تراشکاری",
-        "home_sessions" to "جلسات", "home_ranking" to "رقابت",
-        "home_store" to "فروشگاه", "home_wheel" to "گردونه"
+        "home_assistant" to "دستیار مربی",
+        "home_sessions" to "جلسات",
+        "home_ranking" to "رقابت",
+        "home_workshop" to "پالایشگاه",
+        "home_reports" to "گزارش‌ها",
+        "home_missions" to "مأموریت‌ها",
+        "home_quotes" to "جمله‌های روز"
     )
     val shortcutStates = remember { mutableStateMapOf<String, Boolean>().apply {
-        shortcutLabels.forEach { (key, _) -> put(key, shortcutPrefs.getBoolean(key, key in listOf("home_identity", "home_members", "home_assistant"))) }
+        shortcutLabels.forEach { (key, _) ->
+            put(key, shortcutPrefs.getBoolean(key, key in listOf("home_assistant", "home_sessions", "home_ranking", "home_workshop")))
+        }
     } }
     val weekdayLabels = listOf(6 to "شنبه", 0 to "یکشنبه", 1 to "دوشنبه", 2 to "سه‌شنبه", 3 to "چهارشنبه", 4 to "پنجشنبه", 5 to "جمعه")
     val activeWeekdays = remember { mutableStateListOf<Int>().apply {
@@ -188,149 +213,229 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 )
             }
         }
+        val focusTitle = when (focus) {
+            "profile" -> "ویرایش پروفایل"
+            "appearance" -> "تم و صدا"
+            "quotes" -> "جمله‌های روز"
+            "schedule" -> "روزهای کلاس"
+            "shortcuts" -> "میانبرهای خانه"
+            "backup" -> "ورودی و خروجی"
+            "reset" -> "تنظیمات کارخانه"
+            "help" -> "راهنما"
+            else -> "تنظیمات"
+        }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(musicEnabled, { on ->
-                musicEnabled = on
-                BackgroundMusic.setEnabled(context, on)
-            })
-            Text("پخش موسیقی پس‌زمینه")
+            TextButton(onClick = backToHub) { Text("← بازگشت به تنظیمات") }
+            Spacer(Modifier.weight(1f))
+            Text(focusTitle, color = Neon.Cyan, style = MaterialTheme.typography.labelMedium)
         }
-        Text("ظاهر برنامه", style = MaterialTheme.typography.titleMedium)
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ThemeMode.entries.forEach { mode ->
-                FilterChip(
-                    selected = ThemeState.mode == mode,
-                    onClick = { ThemeState.set(context, mode) },
-                    label = { Text(mode.label) }
-                )
-            }
-        }
-        Text(
-            "تم انتخابی بلافاصله اعمال و ذخیره می‌شود.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            "هر بار که از برنامه خارج می‌شوی، یک نسخه‌ی پشتیبان با تاریخ شمسی در پوشه‌ی ${AutoArchive.folderLabel()} ذخیره می‌شود (۱۲ نسخه‌ی آخر نگه داشته می‌شود). اگر اجازهٔ دسترسی به حافظه داده نشود، پوشه در Download/MRT ساخته می‌شود.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (android.os.Build.VERSION.SDK_INT >= 30 && !android.os.Environment.isExternalStorageManager()) {
-            OutlinedButton(onClick = {
-                runCatching {
-                    context.startActivity(
-                        android.content.Intent(
-                            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                            android.net.Uri.parse("package:${context.packageName}")
-                        )
-                    )
-                }.onFailure {
-                    runCatching {
-                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        when (focus) {
+            "profile" -> {
+                Text("پروفایل حلقه", style = MaterialTheme.typography.titleLarge)
+                Text("نام حلقه، نام کاربری مربی و تصویر هویت حلقه را ویرایش کن.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(modifier = Modifier.size(116.dp), shape = androidx.compose.foundation.shape.CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = androidx.compose.foundation.BorderStroke(2.dp, Neon.Cyan)) {
+                            if (profilePreview != null) {
+                                Image(bitmap = profilePreview, contentDescription = "تصویر پروفایل حلقه",
+                                    modifier = Modifier.fillMaxSize())
+                            } else {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("K1", style = MaterialTheme.typography.headlineMedium, color = Neon.Cyan)
+                                }
+                            }
+                        }
+                        Text("تصویر حلقه", style = MaterialTheme.typography.titleMedium)
+                        Text("در بالای خانه کنار نام حلقه نمایش داده می‌شود.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(onClick = { profileImagePicker.launch(arrayOf("image/*")) },
+                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر حلقه") }
+                        OutlinedTextField(ringNameInput, { ringNameInput = it },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام حلقه") })
+                        OutlinedTextField(ringUsernameInput, { ringUsernameInput = it },
+                            modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام کاربری حلقه") })
+                        Text("تصویر بنر خانه", style = MaterialTheme.typography.titleMedium)
+                        Surface(modifier = Modifier.fillMaxWidth().height(132.dp),
+                            shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                            if (bannerPreview != null) {
+                                Image(bitmap = bannerPreview, contentDescription = "بنر خانه",
+                                    modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                            } else {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("هنوز بنری انتخاب نشده است", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        OutlinedButton(onClick = { bannerPicker.launch(arrayOf("image/*")) },
+                            modifier = Modifier.fillMaxWidth()) { Text("انتخاب یا تغییر بنر خانه") }
+                        OutlinedButton(onClick = {
+                            bannerUri = null
+                            prefs.edit().remove("ring_home_banner").apply()
+                            changed()
+                        }, modifier = Modifier.fillMaxWidth()) { Text("حذف بنر خانه") }
+                        Button(onClick = {
+                            runCatching { repo.updateRingProfile(ringNameInput, ringUsernameInput) }
+                                .onSuccess {
+                                    changed()
+                                    Toast.makeText(context, "پروفایل حلقه ذخیره شد", Toast.LENGTH_SHORT).show()
+                                }
+                                .onFailure { Toast.makeText(context, it.message ?: "ذخیره پروفایل انجام نشد", Toast.LENGTH_LONG).show() }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("ذخیره") }
                     }
                 }
-            }, modifier = Modifier.fillMaxWidth()) {
-                ActionLabel(R.drawable.icon_settings_backup, "اجازهٔ دسترسی به حافظهٔ اصلی (پوشه MRT)")
             }
-        }
-        Text("ابزارها", style = MaterialTheme.typography.titleMedium)
-        val tools = listOf(
-            SettingsTool(R.drawable.icon_settings_backup, "خروجی اطلاعات") { export.launch("AK1-backup.json") },
-            SettingsTool(R.drawable.icon_settings_restore, "ورود پشتیبان") { import.launch(arrayOf("application/json", "text/plain")) },
-            SettingsTool(R.drawable.icon_settings_edit_profile, "ویرایش پروفایل") { profileOpen = true },
-            SettingsTool(R.drawable.icon_settings_growth_map, "نقشه کمال") { growthManagerOpen = true },
-            SettingsTool(R.drawable.icon_home_member_management, "بایگانی") { openArchive() },
-            SettingsTool(R.drawable.icon_settings_shortcuts, "میانبرها") { shortcutsOpen = true }
-        )
-        tools.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { tool -> SettingsTile(tool, Modifier.weight(1f)) }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-        Card(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("جملهٔ روز", style = MaterialTheme.typography.titleMedium)
+            "appearance" -> {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(musicEnabled, { on ->
+                        musicEnabled = on
+                        BackgroundMusic.setEnabled(context, on)
+                    })
+                    Text("پخش موسیقی پس‌زمینه")
+                }
+                OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) },
+                    modifier = Modifier.fillMaxWidth()) { Text("اضافه کردن موزیک") }
                 Text(
-                    if (quotes.isEmpty()) "هنوز جمله‌ای ثبت نشده است. هر تعداد جمله بنویس تا هر روز یکی بالای صفحهٔ خانه بیاید."
-                    else "${quotes.size} جمله ثبت شده • امروز: «${DailyQuotes.today(context) ?: ""}»",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (hasCustomMusic) "موزیک شخصی مربی فعال است • حداکثر حجم: ۲۰ مگابایت"
+                    else "می‌توانی فایل صوتی دلخواهت را انتخاب کنی • حداکثر حجم: ۲۰ مگابایت",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
                 )
-                Button(onClick = { quotesOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("مدیریت جمله‌های روز") }
+                if (hasCustomMusic) {
+                    TextButton(onClick = {
+                        BackgroundMusic.clearCustomTrack(context)
+                        hasCustomMusic = false
+                        Toast.makeText(context, "موزیک پیش‌فرض برنامه فعال شد", Toast.LENGTH_SHORT).show()
+                    }) { Text("بازگشت به موزیک پیش‌فرض") }
+                }
+                Text("ظاهر برنامه", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ThemeMode.entries.forEach { mode ->
+                        FilterChip(selected = ThemeState.mode == mode,
+                            onClick = { ThemeState.set(context, mode) }, label = { Text(mode.label) })
+                    }
+                }
+                Text("تم انتخابی بلافاصله اعمال و ذخیره می‌شود.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = { backgroundPicker.launch(arrayOf("image/*")) },
+                    modifier = Modifier.fillMaxWidth()) { Text("تغییر پس‌زمینه‌ی برنامه") }
+                OutlinedButton(onClick = {
+                    com.kichikan.ak1.ui.theme.AppBackground.reset(context)
+                    Toast.makeText(context, "پس‌زمینه‌ی پیش‌فرض برگشت", Toast.LENGTH_SHORT).show()
+                }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به پس‌زمینه‌ی پیش‌فرض") }
             }
-        }
-        HorizontalDivider()
-        Text("روزهای برگزاری کلاس", style = MaterialTheme.typography.titleMedium)
-        Text("هر زمان برنامه تغییر کرد، روزهای کلاس را از اینجا به‌روزرسانی کن. روز حذف‌شده در حضور و غیاب هفتگی نمایش داده نمی‌شود.")
-        OutlinedButton(onClick = { scheduleOpen = true; periodError = null; startDigits = JalaliCalendar.fromGregorian(java.time.LocalDate.now()).let { "%04d%02d%02d".format(it.year, it.month, it.day) }; endDigits = ""; periodDays.clear(); periodDays.addAll(activeWeekdays) }, modifier = Modifier.fillMaxWidth()) { Text("مدیریت بازه‌های زمانی برنامه هفتگی") }
-        weekdayLabels.forEach { (day, label) ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = activeWeekdays.contains(day), onCheckedChange = { checked ->
-                    if (checked) { if (!activeWeekdays.contains(day)) activeWeekdays.add(day) }
-                    else activeWeekdays.remove(day)
-                    shortcutPrefs.edit().putStringSet("class_weekdays", activeWeekdays.map { it.toString() }.toSet()).apply()
-                })
-                Text(label)
+            "quotes" -> {
+                Card(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("جملهٔ روز", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            if (quotes.isEmpty()) "هنوز جمله‌ای ثبت نشده است. جمله‌ها را اضافه کن تا هر روز یکی در خانه نمایش داده شود."
+                            else "${quotes.size} جمله ثبت شده • امروز: «${DailyQuotes.today(context) ?: ""}»",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(onClick = { quotesOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("مدیریت جمله‌های روز")
+                        }
+                    }
+                }
             }
+            "schedule" -> {
+                Text("روزهای برگزاری کلاس", style = MaterialTheme.typography.titleLarge)
+                Text("روزهای فعال در تقویم و حضور و غیاب هفتگی استفاده می‌شوند.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = {
+                    scheduleOpen = true
+                    periodError = null
+                    startDigits = JalaliCalendar.fromGregorian(java.time.LocalDate.now()).let { "%04d%02d%02d".format(it.year, it.month, it.day) }
+                    endDigits = ""
+                    periodDays.clear()
+                    periodDays.addAll(activeWeekdays)
+                }, modifier = Modifier.fillMaxWidth()) { Text("مدیریت بازه‌های زمانی برنامه هفتگی") }
+                weekdayLabels.forEach { (day, label) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = activeWeekdays.contains(day), onCheckedChange = { checked ->
+                            if (checked) { if (!activeWeekdays.contains(day)) activeWeekdays.add(day) }
+                            else activeWeekdays.remove(day)
+                            shortcutPrefs.edit().putStringSet("class_weekdays", activeWeekdays.map { it.toString() }.toSet()).apply()
+                        })
+                        Text(label)
+                    }
+                }
+            }
+            "shortcuts" -> {
+                Text("میانبرهای صفحه خانه", style = MaterialTheme.typography.titleLarge)
+                Text("میانبرهای موردنیاز را انتخاب کن تا فقط همان‌ها در بخش دسترسی سریع خانه نمایش داده شوند.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Button(onClick = { shortcutsOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("مدیریت میانبرها")
+                }
+            }
+            "backup" -> {
+                Text("پشتیبان‌گیری و بازیابی", style = MaterialTheme.typography.titleLarge)
+                Text("نسخه‌های خودکار در پوشهٔ ${AutoArchive.folderLabel()} نگهداری می‌شوند؛ ۱۲ نسخهٔ آخر باقی می‌ماند.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                if (android.os.Build.VERSION.SDK_INT >= 30 && !android.os.Environment.isExternalStorageManager()) {
+                    OutlinedButton(onClick = {
+                        runCatching {
+                            context.startActivity(android.content.Intent(
+                                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                android.net.Uri.parse("package:${context.packageName}")))
+                        }.onFailure {
+                            runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+                        }
+                    }, modifier = Modifier.fillMaxWidth()) {
+                        ActionLabel(R.drawable.icon_settings_backup, "اجازهٔ دسترسی به حافظهٔ اصلی (پوشه MRT)")
+                    }
+                }
+                OutlinedButton(onClick = { export.launch("AK1-backup.json") }, modifier = Modifier.fillMaxWidth()) {
+                    Text("خروجی پشتیبان JSON")
+                }
+                OutlinedButton(onClick = { import.launch(arrayOf("application/json", "text/plain")) },
+                    modifier = Modifier.fillMaxWidth()) { Text("ورود پشتیبان JSON") }
+                OutlinedButton(onClick = {
+                    visualExporter.launch("AK1-اطلاعات-تصویری.zip")
+                }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
+                OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) },
+                    modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
+                OutlinedButton(onClick = openArchive, modifier = Modifier.fillMaxWidth()) {
+                    Text("بایگانی اعضا")
+                }
+            }
+            "reset" -> {
+                Text("بازنشانی برنامه", style = MaterialTheme.typography.titleLarge)
+                Text("این عملیات تنظیمات و داده‌های برنامه را به وضعیت اولیه برمی‌گرداند. پیش از ادامه از اطلاعات نسخهٔ پشتیبان بگیر.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("بازگشت به تنظیمات اولیه")
+                }
+            }
+            "help" -> {
+                GuideScreen()
+            }
+            else -> Text("بخش تنظیمات پیدا نشد.", color = MaterialTheme.colorScheme.error)
         }
-        OutlinedButton(onClick = { backgroundPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Text("تغییر پس‌زمینه‌ی برنامه") }
-        OutlinedButton(onClick = {
-            com.kichikan.ak1.ui.theme.AppBackground.reset(context)
-            Toast.makeText(context, "پس‌زمینه‌ی پیش‌فرض برگشت", Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به پس‌زمینه‌ی پیش‌فرض") }
-        OutlinedButton(onClick = {
-            visualBytes = com.kichikan.ak1.ui.ReportExport.visualZip(context)
-            visualExporter.launch("AK1-اطلاعات-تصویری.zip")
-        }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
-        OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) { Text("ورود فایل کامل ZIP") }
-        OutlinedButton(onClick = { factoryOpen = true }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به تنظیمات اولیه") }
-        Text("این نسخه کاملاً آفلاین است. پشتیبان شامل حلقه، اعضا، اقتصاد، تاریخچه، فروشگاه، گردونه، مأموریت‌ها، جلسات، حضور و غیاب و دارایی‌های ثبت‌شده است.")
     }
     if (factoryOpen) FactoryResetDialog { factoryOpen = false }
-    if (growthManagerOpen) GrowthItemsManagerDialog(prefs, { changed() }) { growthManagerOpen = false }
-    if (profileOpen) {
-        val preview = remember(profileImageUri) {
-            profileImageUri?.let { raw ->
-                AvatarRender.decodeSampled(context, android.net.Uri.parse(raw), 256)?.asImageBitmap()
-            }
-        }
-        AlertDialog(
-            onDismissRequest = { profileOpen = false },
-            title = { Text("ویرایش پروفایل حلقه") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(modifier = Modifier.size(112.dp), shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)) {
-                        if (preview != null) Image(bitmap = preview, contentDescription = "پیش‌نمایش تصویر حلقه", modifier = Modifier.fillMaxSize())
-                        else Box(contentAlignment = Alignment.Center) { Text("K1", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary) }
-                    }
-                    Text(repo.ring?.ringName ?: "حلقه", style = MaterialTheme.typography.titleMedium)
-                    Text("تصویر در بالای صفحه خانه کنار نام حلقه نمایش داده می‌شود.", style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(onClick = { profileImagePicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Text("انتخاب تصویر") }
-                }
-            },
-            confirmButton = { TextButton(onClick = { profileOpen = false }) { Text("انجام شد") } },
-            dismissButton = { TextButton(onClick = {
-                profileImageUri = null
-                prefs.edit().remove("ring_profile_image").apply()
-                changed()
-                profileOpen = false
-            }) { Text("حذف تصویر") } }
-        )
-    }
     if (shortcutsOpen) {
         AlertDialog(
             onDismissRequest = { shortcutsOpen = false },
             title = { Text("میانبرهای خانه") },
             text = {
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("هر میانبری که تیک بخورد در خانه نمایش داده می‌شود.")
+                    Text("${shortcutStates.values.count { it }} از ۴ میانبر انتخاب شده • حداکثر ۴ میانبر")
+                    Text("هر میانبری که انتخاب شود در خانه نمایش داده می‌شود.")
                     shortcutLabels.forEach { (key, label) ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = shortcutStates[key] == true, onCheckedChange = { shortcutStates[key] = it })
+                            Checkbox(checked = shortcutStates[key] == true, onCheckedChange = { checked ->
+                                val selectedCount = shortcutStates.values.count { it }
+                                if (!checked || selectedCount < 4) shortcutStates[key] = checked
+                            })
                             Text(label)
                         }
                     }
@@ -349,7 +454,7 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             dismissButton = {
                 TextButton(onClick = {
                     shortcutLabels.forEach { (key, _) ->
-                        shortcutStates[key] = shortcutPrefs.getBoolean(key, key in listOf("home_identity", "home_members", "home_assistant"))
+                        shortcutStates[key] = shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking"))
                     }
                     shortcutsOpen = false
                 }) { Text("انصراف") }
