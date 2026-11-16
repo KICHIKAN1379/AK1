@@ -6,7 +6,7 @@ import com.kichikan.ak1.domain.calendar.BirthdayRules
 import com.kichikan.ak1.domain.calendar.JalaliCalendar
 
 /** Durable CRUD boundary for assistant alerts and mentor follow-ups. */
-internal class AssistantRepository(private val app: AppRepository, private val newId: (String) -> String) {
+internal class AssistantRepository(private val app: AssistantRepositoryPort, private val newId: (String) -> String) {
     fun evaluate(now: Long = System.currentTimeMillis()) {
         val zone = ZoneId.systemDefault()
         val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
