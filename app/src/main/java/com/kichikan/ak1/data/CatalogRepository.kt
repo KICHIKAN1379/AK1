@@ -4,7 +4,7 @@ import com.kichikan.ak1.domain.model.*
 import com.kichikan.ak1.domain.service.ShopService
 
 /** Owns catalog items, custom assets, acquisition, equipment and member look selection. */
-internal class CatalogRepository(private val app: AppRepository) {
+internal class CatalogRepository(private val app: CatalogRepositoryPort) {
     fun grantShopItem(memberId: String, itemId: String, reason: String): Boolean {
         require(reason.isNotBlank()) { "دلیل هدیه الزامی است" }
         val item = app.shop.firstOrNull { it.id == itemId && it.active } ?: error("آیتم فعال پیدا نشد")
