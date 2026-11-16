@@ -181,7 +181,7 @@ The offline data layer now uses an incremental ports-and-adapters boundary:
 - `AppRepository` remains the compatibility facade used by existing screens and application flows.
 - `RepositoryState` owns the in-memory ring collections; domain repositories do not own duplicate copies.
 - `AppPersistence` remains the serialization boundary and delegates to `LocalStore`, preserving the existing backup schema and migration behavior.
-- `AppStatePublisher` publishes screen-oriented state snapshots after persistence.
+- `AppStatePublisher` publishes screen-oriented state snapshots after persistence; Compose state collection is scoped to the page that needs it rather than the root navigation composable where possible.
 - Member, economy, mission, session, catalog, wheel, assistant, and catalog-bootstrap operations depend on focused internal port interfaces rather than the concrete `AppRepository` class.
 - Cross-domain mutations are exposed as explicit economy commands on the ports that need them; repositories no longer call methods on the concrete facade.
 
