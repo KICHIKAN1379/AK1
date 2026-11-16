@@ -33,6 +33,16 @@ object DailyDateNotification {
     private const val REQUEST_CODE = 6101
     private const val ACTION_UPDATE = "com.kichikan.ak1.UPDATE_DAILY_DATE"
 
+    /** Today's day-of-month artwork (falls back to the launcher icon if it is missing). */
+    fun daySmallIcon(context: Context): Int {
+        val day = JalaliCalendar.fromGregorian(LocalDate.now(ZoneId.systemDefault())).day
+        val res = context.resources.getIdentifier("ic_day_$day", "drawable", context.packageName)
+        return if (res != 0) res else R.mipmap.ic_launcher
+    }
+
+    /** The app artwork shown as the main (large) notification icon. */
+    fun appArt(context: Context): Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_launcher_art)
+
     fun start(context: Context) {
         createChannel(context)
         show(context)
@@ -70,11 +80,10 @@ object DailyDateNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val season = JalaliSeason.forMonth(date.month)
-        // The date artwork is the actual notification identity. Avoid a large icon,
-        // which duplicates the tile and leaves the launcher diamond as the visible identity.
-        val dayRes = context.resources.getIdentifier("ic_day_${date.day}", "drawable", context.packageName)
+        // Main icon = app artwork (large icon); the day-of-month artwork is the small icon beside it.
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(if (dayRes != 0) dayRes else R.mipmap.ic_launcher)
+            .setSmallIcon(daySmallIcon(context))
+            .setLargeIcon(appArt(context))
             .setSubText(season.label)
             .setContentTitle("امروز • ${date.day} ${JalaliCalendar.MONTH_NAMES[date.month - 1]} ${date.year}")
             .setContentText("روز ${date.day} • ساعت ${now.hour.toString().padStart(2, '0')}:${now.minute.toString().padStart(2, '0')}")
@@ -143,8 +152,8 @@ object MissionNotifications {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
         val notification = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.ic_launcher_art))
+            .setSmallIcon(DailyDateNotification.daySmallIcon(context))
+            .setLargeIcon(DailyDateNotification.appArt(context))
             .setContentTitle(title).setContentText(message)
             .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(openApp).setAutoCancel(true)
