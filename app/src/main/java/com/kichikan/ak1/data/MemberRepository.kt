@@ -15,7 +15,7 @@ import java.time.ZoneId
  * operations are moved behind domain-specific boundaries.
  */
 internal class MemberRepository(
-    private val app: AppRepository,
+    private val app: MemberRepositoryPort,
     private val newId: (String) -> String
 ) {
     fun createRing(name: String, username: String): RingAccount {
@@ -29,7 +29,7 @@ internal class MemberRepository(
             username.trim(),
             false
         )
-        app.ring = account
+        app.setRingState(account)
         app.persist()
         return account
     }
@@ -39,7 +39,7 @@ internal class MemberRepository(
         require(username.isNotBlank()) { "نام کاربری حلقه الزامی است" }
         val current = app.ring ?: throw IllegalStateException("حلقه پیدا نشد")
         val updated = current.copy(ringName = name.trim(), ringUsername = username.trim())
-        app.ring = updated
+        app.setRingState(updated)
         app.persist()
         return updated
     }
