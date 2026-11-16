@@ -44,7 +44,6 @@ internal fun AK1App(repo: AppRepository) {
     var ringReady by remember { mutableStateOf(repo.ring != null) }
     var growthMemberId by remember { mutableStateOf<String?>(null) }
     var settingsFocus by remember { mutableStateOf("appearance") }
-    val memberState by repo.membersState.collectAsState()
     fun changed() {}
     if (!ringReady) { WelcomeScreen(repo) { ringReady = true }; return }
     androidx.activity.compose.BackHandler(enabled = tab != Tab.HOME) { tab = parentOf(tab) }
@@ -66,16 +65,7 @@ internal fun AK1App(repo: AppRepository) {
                         growthMemberId = member.id
                         tab = Tab.GROWTH
                     }
-                    Tab.GROWTH -> {
-                        val growthMember = memberState.members.firstOrNull { it.id == growthMemberId }
-                        if (growthMember != null) {
-                            GrowthMapPage(repo, growthMember, padding) { tab = Tab.MEMBERS }
-                        } else {
-                            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                                Text("عضو پیدا نشد.")
-                            }
-                        }
-                    }
+                    Tab.GROWTH -> GrowthMemberContent(repo, growthMemberId, padding) { tab = Tab.MEMBERS }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
                     Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }, { tab = Tab.WORKSHOP_MISSIONS }) { changed() }
                     Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SETTINGS }
@@ -102,6 +92,26 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.SETTINGS_GENERAL -> SettingsScreen(repo, padding, { changed() }, { tab = Tab.ARCHIVE }, { tab = Tab.SETTINGS }, settingsFocus)
                     Tab.ARCHIVE -> MemberArchivePage(repo, padding) { tab = Tab.SETTINGS }
             }
+        }
+    }
+}
+
+@Composable
+private fun GrowthMemberContent(
+    repo: AppRepository,
+    memberId: String?,
+    padding: PaddingValues,
+    onBack: () -> Unit
+) {
+    // Subscribe only while the growth page is composed; unrelated member updates no longer
+    // invalidate the root navigation composable on every persistence cycle.
+    val memberState by repo.membersState.collectAsState()
+    val member = memberState.members.firstOrNull { it.id == memberId }
+    if (member != null) {
+        GrowthMapPage(repo, member, padding, onBack)
+    } else {
+        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Text("عضو پیدا نشد.")
         }
     }
 }
