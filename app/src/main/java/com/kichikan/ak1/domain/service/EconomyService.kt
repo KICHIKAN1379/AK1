@@ -15,7 +15,8 @@ object EconomyService {
     ): EconomyChange {
         require(amount > 0)
         val oldLevel = economy.level
-        val next = economy.copy(xp = economy.xp + amount)
+        val nextXp = Math.addExact(economy.xp, amount)
+        val next = economy.copy(xp = nextXp)
         val gainedLevels = if (next.level > oldLevel) (oldLevel + 1)..next.level else IntRange.EMPTY
 
         val events = mutableListOf(
@@ -33,8 +34,9 @@ object EconomyService {
             )
         }
 
+        val levelDiamonds = Math.multiplyExact(gainedLevels.count(), 10)
         return EconomyChange(
-            next.copy(diamonds = next.diamonds + gainedLevels.count() * 10),
+            next.copy(diamonds = Math.addExact(next.diamonds, levelDiamonds)),
             events
         )
     }
@@ -60,7 +62,7 @@ object EconomyService {
             )
             // Every positive point is worth 0.5 diamond. Two half-diamond units are
             // carried into a whole (spendable) diamond; at most one unit stays pending.
-            val units = economy.halfDiamondUnits + amount
+            val units = Math.addExact(economy.halfDiamondUnits, amount)
             val wholeDiamonds = units / 2
             val events = mutableListOf<HistoryEvent>()
             events += xpChange.events
@@ -73,18 +75,18 @@ object EconomyService {
             }
             return EconomyChange(
                 xpChange.economy.copy(
-                    spendablePoints = economy.spendablePoints + amount,
-                    diamonds = xpChange.economy.diamonds + wholeDiamonds,
+                    spendablePoints = Math.addExact(economy.spendablePoints, amount),
+                    diamonds = Math.addExact(xpChange.economy.diamonds, wholeDiamonds),
                     halfDiamondUnits = units % 2
                 ),
                 events
             )
         }
 
-        val decrease = -amount
+        val decrease = Math.negateExact(amount)
         require(economy.spendablePoints >= decrease) { "امتیاز کافی نیست" }
         return EconomyChange(
-            economy.copy(spendablePoints = economy.spendablePoints - decrease),
+            economy.copy(spendablePoints = Math.subtractExact(economy.spendablePoints, decrease)),
             listOf(
                 HistoryEvent(
                     "points-down-$now", "", HistoryType.POINTS_DECREASED, decrease,
@@ -113,7 +115,7 @@ object EconomyService {
         require(amount != 0)
         if (amount > 0) {
             return EconomyChange(
-                economy.copy(diamonds = economy.diamonds + amount),
+                economy.copy(diamonds = Math.addExact(economy.diamonds, amount)),
                 listOf(
                     HistoryEvent(
                         "diamond-$now", "", HistoryType.DIAMONDS_EARNED, amount,
@@ -123,10 +125,10 @@ object EconomyService {
             )
         }
 
-        val decrease = -amount
+        val decrease = Math.negateExact(amount)
         require(economy.diamonds >= decrease) { "الماس کافی نیست" }
         return EconomyChange(
-            economy.copy(diamonds = economy.diamonds - decrease),
+            economy.copy(diamonds = Math.subtractExact(economy.diamonds, decrease)),
             listOf(
                 HistoryEvent(
                     "diamond-down-$now", "", HistoryType.DIAMONDS_DECREASED, decrease,
@@ -162,10 +164,7 @@ object EconomyService {
             events += HistoryEvent(
                 "level-down-xp-$now", "", HistoryType.LEVEL_CHANGED, nextLevel,
                 "کاهش سطح به $nextLevel", reason, now, actor,
-                mapOf(
-                    "previousLevel" to oldLevel.toString(),
-                    "newLevel" to nextLevel.toString()
-                )
+                mapOf("previousLevel" to oldLevel.toString(), "newLevel" to nextLevel.toString())
             )
         }
 
@@ -181,7 +180,7 @@ object EconomyService {
     ): EconomyChange {
         require(amount > 0 && economy.spendablePoints >= amount)
         return EconomyChange(
-            economy.copy(spendablePoints = economy.spendablePoints - amount),
+            economy.copy(spendablePoints = Math.subtractExact(economy.spendablePoints, amount)),
             listOf(
                 HistoryEvent(
                     "spend-$now", "", HistoryType.POINTS_SPENT, amount,
