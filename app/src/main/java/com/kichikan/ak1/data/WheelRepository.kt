@@ -4,12 +4,12 @@ import com.kichikan.ak1.domain.model.*
 import com.kichikan.ak1.domain.service.WheelService
 
 /** Owns wheel configuration, eligibility, weighted selection, costs and prize application. */
-internal class WheelRepository(private val app: AppRepository) {
+internal class WheelRepository(private val app: WheelRepositoryPort) {
     fun updateWheelItem(item: WheelItem) { setWheel(app.wheel.copy(items = app.wheel.items.map { if (it.id == item.id) item else it })) }
     fun deleteWheelItem(itemId: String) { setWheel(app.wheel.copy(items = app.wheel.items.filterNot { it.id == itemId })) }
 
     fun setWheel(config: WheelConfig) {
-        app.wheel = config
+        app.setWheelState(config)
         app.persist()
     }
 
