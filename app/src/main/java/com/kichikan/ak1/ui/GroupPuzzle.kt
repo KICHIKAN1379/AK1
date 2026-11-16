@@ -226,6 +226,39 @@ internal fun ResetPuzzleDialog(onConfirm: () -> Unit, close: () -> Unit) {
     )
 }
 
+/** Embedded third tab in the missions and achievements center. */
+@Composable
+internal fun GroupPuzzleTab(repo: AppRepository, changed: () -> Unit) {
+    val observedDomainState = repo.membersState.collectAsState().value
+    val context = LocalContext.current
+    var resetOpen by remember { mutableStateOf(false) }
+    var version by remember { mutableIntStateOf(0) }
+    Column(
+        Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("پازل گروهی", style = MaterialTheme.typography.titleLarge)
+        Text("با بازشدن تدریجی تکه‌ها، مسیر پیشرفت هر گروه را نمایش بده.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (repo.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.", style = MaterialTheme.typography.bodyMedium)
+        key(version) {
+            repo.groups.forEach { group -> GroupPuzzleCard(group) { changed() } }
+        }
+        Button(onClick = { resetOpen = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("ریست پازل همه‌ی گروه‌ها")
+        }
+    }
+    if (resetOpen) ResetPuzzleDialog(
+        onConfirm = {
+            repo.groups.forEach { GroupPuzzle.setMask(context, it.id, 0) }
+            resetOpen = false
+            version++
+            changed()
+        },
+        close = { resetOpen = false }
+    )
+}
+
 /** The puzzle page: every group's puzzle, and one reset that clears all of them. */
 @Composable
 fun GroupPuzzlePage(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, back: () -> Unit) {

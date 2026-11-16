@@ -98,9 +98,10 @@ class AppRepository(context: Context) {
         // PNGs dropped into assets/art/profiles become giftable avatars/frames (see ProfilePack).
         runCatching { syncProfilePack() }
         runCatching { seedDefaultHiddenMissions() }
-        // The fifteen-rank pack is copied out of the APK and registered as manual claims.
+        // Rank avatars/frames remain manual choices; level badges are earned automatically and selected in the treasure.
         runCatching { RankArt.ensure(appContext) }
         runCatching { syncRankPack() }
+        runCatching { bootstrapper.syncLevelBadgeOwnership() }
         runCatching { syncGroupPack() }
         runCatching { upgradeStarterLooks() }
         runCatching { migrateNoFreeLooks() }

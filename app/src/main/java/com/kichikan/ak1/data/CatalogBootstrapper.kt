@@ -105,10 +105,10 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
     }
 
     /**
-     * Registers the fifteen avatars/frames plus the twenty-one military badges. Reaching a
-     * gate only *unlocks* the item; the member still has to claim it manually from the store.
-     * No item is equipped automatically. Existing prices/methods are preserved if the mentor
-     * edited them.
+     * Registers the rank avatars/frames and twenty-one military badges. Avatar/frame level
+     * gates remain manual choices; military badges are automatically recorded as owned when
+     * a member reaches the corresponding level. No appearance item is auto-equipped.
+     * Existing prices/methods are preserved if the mentor edited them.
      */
     fun syncRankPack() {
         val prefs = app.appContext.getSharedPreferences("ak1_rank_pack", Context.MODE_PRIVATE)
@@ -167,6 +167,41 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
             }
         }
         prefs.edit().putInt("version", RankArt.VERSION).apply()
+    }
+
+    /**
+     * Backfills automatic badge ownership for levels already reached before this rule existed.
+     * Existing level-up timestamps are reused; when legacy history has no timestamp, the
+     * migration explicitly records that the exact award date was unavailable.
+     */
+    fun syncLevelBadgeOwnership() {
+        var changed = false
+        val now = System.currentTimeMillis()
+        app.members.forEach { member ->
+            RankSystem.badgesUnlockedBetween(0, member.economy.level).forEach badgeLoop@ { badge ->
+                val itemId = RankSystem.badgeId(badge)
+                val item = app.shop.firstOrNull { it.id == itemId && it.active } ?: return@badgeLoop
+                val eventId = "level-badge-${member.id}-${badge.minLevel}"
+                if (app.history.any { it.id == eventId }) return@badgeLoop
+                val historicalLevelEvent = app.history.firstOrNull {
+                    it.memberId == member.id && it.type == HistoryType.LEVEL_CHANGED &&
+                        it.title.startsWith("رسیدن به سطح ") && it.amount == badge.minLevel
+                }
+                app.history += HistoryEvent(
+                    id = eventId,
+                    memberId = member.id,
+                    type = HistoryType.REWARD_RECEIVED,
+                    title = "نشان ${badge.name} به دست آمد",
+                    reason = historicalLevelEvent?.reason
+                        ?: "همگام‌سازی نشان سطح فعلی؛ تاریخ دقیق ارتقا در سوابق قدیمی موجود نبود.",
+                    createdAtEpochMillis = historicalLevelEvent?.createdAtEpochMillis ?: now,
+                    createdBy = "system",
+                    metadata = mapOf("itemId" to item.id, "type" to "BADGE", "acquisition" to "LEVEL_AUTO")
+                )
+                changed = true
+            }
+        }
+        if (changed) app.persist()
     }
 
     /** A separate group heraldic set. Prices are intentionally left for the mentor to configure. */

@@ -19,9 +19,10 @@ import com.kichikan.ak1.domain.model.Mission
 import com.kichikan.ak1.domain.model.MissionType
 import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.ui.theme.Neon
+import com.kichikan.ak1.ui.GroupPuzzleTab
 
 @Composable
-internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit, openPuzzle: () -> Unit) {
+internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: PaddingValues, back: () -> Unit, manageMissions: () -> Unit, changed: () -> Unit) {
     val observedDomainState = repo.missionsState.collectAsState().value
     var selected by remember { mutableIntStateOf(0) }
     var completingMission by remember { mutableStateOf<Mission?>(null) }
@@ -51,12 +52,12 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected == 0, { selected = 0 }, label = { Text("مأموریت‌ها") })
             FilterChip(selected == 1, { selected = 1 }, label = { Text("دستاوردها") })
-            FilterChip(selected == 2, { selected = 2 }, label = { Text("گزارش") })
+            FilterChip(selected == 2, { selected = 2 }, label = { Text("پازل گروهی") })
+            FilterChip(selected == 3, { selected = 3 }, label = { Text("گزارش") })
         }
         if (selected == 0) {
             Text("عملیات در جریان", style = MaterialTheme.typography.titleLarge)
-            if (missions.isEmpty()) EmptyState("فعلاً مأموریت فعالی تعریف نشده است.", "مربی می‌تواند از بخش تراشکاری مأموریت تازه بسازد.")
-            OutlinedButton(onClick = openPuzzle, modifier = Modifier.fillMaxWidth()) { Text("پازل گروهی  ↗") }
+            if (missions.isEmpty()) EmptyState("فعلاً مأموریت فعالی تعریف نشده است.", "مربی می‌تواند از مدیریت مأموریت‌ها، مأموریت تازه تعریف کند.")
             missions.forEach { mission ->
                 val participantCount = repo.missionCompletions.filter { it.missionId == mission.id }.flatMap { it.memberIds }.distinct().size
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = .22f))) {
@@ -103,6 +104,8 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                 }
             }
             Text("نردبان افتخار", style = MaterialTheme.typography.titleLarge)
+        } else if (selected == 2) {
+            GroupPuzzleTab(repo, changed)
         } else {
             Text("جدول عملکرد اعضا", style = MaterialTheme.typography.titleLarge)
             val leaderboard = repo.members.map { member ->

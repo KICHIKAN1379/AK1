@@ -61,9 +61,10 @@ fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, c
     val events = remember(tick, repo.history.size) { repo.history.filter { it.memberId == memberId }.sortedByDescending { it.createdAtEpochMillis } }
     var category by remember { mutableIntStateOf(0) }
     val rewardEvents = events.filter {
-        it.type == com.kichikan.ak1.domain.model.HistoryType.REWARD_RECEIVED ||
+        (it.type == com.kichikan.ak1.domain.model.HistoryType.REWARD_RECEIVED ||
             it.type == com.kichikan.ak1.domain.model.HistoryType.WHEEL_REWARD ||
-            it.type == com.kichikan.ak1.domain.model.HistoryType.BIRTHDAY_REWARD
+            it.type == com.kichikan.ak1.domain.model.HistoryType.BIRTHDAY_REWARD) &&
+            it.metadata["type"] != "BADGE"
     }
     val filteredEvents = events.filter { event ->
         when (category) {
@@ -125,7 +126,6 @@ fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, c
                     FilterChip(tab == 2, { tab = 2 }, label = { Text("قاب‌ها (${frames.size})") })
                     FilterChip(tab == 4, { tab = 4 }, label = { Text("نشان‌ها (${badges.size})") })
                     FilterChip(tab == 3, { tab = 3 }, label = { Text("جوایز دریافتی (${rewardEvents.size})") })
-                    FilterChip(tab == 0, { tab = 0 }, label = { Text("سوابق") })
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {

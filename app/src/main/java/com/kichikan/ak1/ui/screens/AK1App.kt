@@ -77,7 +77,7 @@ internal fun AK1App(repo: AppRepository) {
                         }
                     }
                     Tab.SERVICES -> ServicesScreen(padding, repo) { tab = it }
-                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }, { tab = Tab.WORKSHOP_MISSIONS }) { tab = Tab.WORKSHOP_PUZZLE }
+                    Tab.MISSION_ACHIEVEMENTS -> MissionAchievementCenterScreen(repo, padding, { tab = Tab.SERVICES }, { tab = Tab.WORKSHOP_MISSIONS }) { changed() }
                     Tab.WORKSHOP -> WorkshopHub(padding, repo, { changed() }, { tab = it }) { tab = Tab.SETTINGS }
                     Tab.RANKING -> RankingHub(padding, { tab = it }) { tab = Tab.SERVICES }
                     Tab.STORE -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }, { tab = Tab.HOME }, true)
@@ -94,7 +94,7 @@ internal fun AK1App(repo: AppRepository) {
                     Tab.RANK_GROUPS -> RankingScreen(repo, padding, true) { tab = Tab.RANKING }
                     Tab.STORE_AVATARS -> StoreScreen(repo, padding, ShopItemType.AVATAR, { changed() }, { tab = Tab.STORE }, false)
                     Tab.STORE_FRAMES -> StoreScreen(repo, padding, ShopItemType.FRAME, { changed() }, { tab = Tab.STORE }, false)
-                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.BADGE, { changed() }, { tab = Tab.STORE }, false)
+                    Tab.STORE_BADGES -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }, { tab = Tab.STORE }, false)
                     Tab.STORE_REWARDS -> StoreScreen(repo, padding, ShopItemType.REWARD, { changed() }, { tab = Tab.STORE }, false)
                     Tab.SESSIONS_LIST -> SessionsScreen(padding, repo, { changed() }, false) { tab = Tab.SESSIONS }
                     Tab.SESSIONS_ATTENDANCE -> SessionsScreen(padding, repo, { changed() }, true) { tab = Tab.SESSIONS }

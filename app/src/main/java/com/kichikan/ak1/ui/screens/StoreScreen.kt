@@ -80,11 +80,13 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
         ShopItemType.REWARD -> "جوایز"
         else -> "فروشگاه"
     }
-    // The rewards tab is deliberately only the mentor-entered REWARD items. Avatars,
-    // frames, badges and profile-pack looks live in their own tabs and must never be
-    // mixed into "جوایز".
-    val activeFilter = if (showCategoryTabs) selectedCategory else filter
-    val shown = repo.shop.filter { it.active && it.type == activeFilter }
+    // The rewards tab is deliberately only mentor-entered REWARD items. Avatars and frames
+    // are acquired through the store; level badges are automatic and managed in the treasure.
+    val requestedFilter = if (showCategoryTabs) selectedCategory else filter
+    // Military badges are earned automatically and selected from the member's treasure;
+    // they are not purchasable or manually claimable store inventory.
+    val activeFilter = if (requestedFilter == ShopItemType.BADGE) ShopItemType.REWARD else requestedFilter
+    val shown = repo.shop.filter { it.active && it.type == activeFilter && it.type != ShopItemType.BADGE }
     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (showCategoryTabs) {
             Text("فروشگاه", style = MaterialTheme.typography.headlineMedium)
@@ -135,7 +137,6 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                 listOf(
                     ShopItemType.AVATAR to "آواتار",
                     ShopItemType.FRAME to "قاب",
-                    ShopItemType.BADGE to "نشان‌ها",
                     ShopItemType.REWARD to "جوایز"
                 ).forEach { (category, label) ->
                     FilterChip(selectedCategory == category, { selectedCategory = category }, label = { Text(label) })
@@ -159,7 +160,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
         }
         if (activeFilter == ShopItemType.REWARD) {
             Text(
-                "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار، قاب و نشان در بخش‌های خودشان هستند.",
+                "این بخش فقط جوایز ثبت‌شده توسط مربی را نشان می‌دهد؛ آواتار و قاب در گنجینه و نشان‌های سطحی به‌صورت خودکار دریافت می‌شوند.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

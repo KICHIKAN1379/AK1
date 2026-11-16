@@ -113,14 +113,15 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             Toast.makeText(context, if (ok) "پس‌زمینه تغییر کرد" else "این تصویر خوانده نشد", Toast.LENGTH_SHORT).show()
         }
     }
-    var visualBytes by remember { mutableStateOf<ByteArray?>(null) }
     val visualExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val bytes = visualBytes
-        if (uri != null && bytes != null) {
-            val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
+        if (uri != null) {
+            val ok = runCatching {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: throw IllegalStateException("فایل خروجی باز نشد")
+                ReportExport.writeVisualZip(context, output)
+            }.isSuccess
             Toast.makeText(context, if (ok) "اطلاعات تصویری خروجی گرفته شد" else "خروجی گرفته نشد", Toast.LENGTH_LONG).show()
         }
-        visualBytes = null
     }
     val zipRestorer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -390,7 +391,6 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                 OutlinedButton(onClick = { import.launch(arrayOf("application/json", "text/plain")) },
                     modifier = Modifier.fillMaxWidth()) { Text("ورود پشتیبان JSON") }
                 OutlinedButton(onClick = {
-                    visualBytes = com.kichikan.ak1.ui.ReportExport.visualZip(context)
                     visualExporter.launch("AK1-اطلاعات-تصویری.zip")
                 }, modifier = Modifier.fillMaxWidth()) { Text("خروجی فایل ZIP اطلاعات تصویری") }
                 OutlinedButton(onClick = { zipRestorer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) },
