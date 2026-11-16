@@ -44,7 +44,8 @@ object BirthdayReminderScheduler {
             context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
         ) return
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(com.kichikan.ak1.notification.DailyDateNotification.daySmallIcon(context))
+            .setLargeIcon(com.kichikan.ak1.notification.DailyDateNotification.appArt(context))
             .setContentTitle(title)
             .setContentText(text)
             .setAutoCancel(true)
