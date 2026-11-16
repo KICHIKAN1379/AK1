@@ -6,7 +6,7 @@ import com.kichikan.ak1.domain.service.EconomyService
 import com.kichikan.ak1.domain.service.RankSystem
 
 /** Owns XP, spendable-point, diamond and level mutations with their ledger events. */
-internal class EconomyRepository(private val app: AppRepository) {
+internal class EconomyRepository(private val app: EconomyRepositoryPort) {
     fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
         mutate(memberId) {
             EconomyService.addXp(it, amount, reason, actor, System.currentTimeMillis())
