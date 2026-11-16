@@ -19,9 +19,17 @@ import com.kichikan.ak1.notification.MissionNotifications
 import java.time.Instant
 import java.time.ZoneId
 
-class AppRepository(context: Context) {
+internal class AppRepository(context: Context) :
+    MemberRepositoryPort,
+    EconomyRepositoryPort,
+    MissionRepositoryPort,
+    SessionRepositoryPort,
+    CatalogRepositoryPort,
+    WheelRepositoryPort,
+    AssistantRepositoryPort,
+    CatalogBootstrapperPort {
     private fun newId(prefix: String): String = "$prefix-${java.util.UUID.randomUUID()}"
-    internal val appContext = context.applicationContext
+    override val appContext = context.applicationContext
     private val persistence = AppPersistence(appContext)
 
     private val state = RepositoryState()
@@ -35,27 +43,30 @@ class AppRepository(context: Context) {
     internal val progressState get() = statePublisher.progress
     internal val assistantState get() = statePublisher.assistant
 
-    var ring: RingAccount?
+    override var ring: RingAccount?
         get() = state.ring
         internal set(value) { state.ring = value }
 
-    val members: MutableList<Member> get() = state.members
-    val history: MutableList<HistoryEvent> get() = state.history
-    val shop: MutableList<ShopItem> get() = state.shop
-    val missions: MutableList<Mission> get() = state.missions
-    val missionCompletions: MutableList<MissionCompletion> get() = state.missionCompletions
-    val missionRequests: MutableList<MissionRequest> get() = state.missionRequests
-    val missionNotices: MutableList<MissionNotice> get() = state.missionNotices
-    val sessions: MutableList<Session> get() = state.sessions
-    val attendance: MutableList<Attendance> get() = state.attendance
-    val assets: MutableList<CustomAsset> get() = state.assets
-    val groups: MutableList<Group> get() = state.groups
-    val archived: MutableList<ArchivedMember> get() = state.archived
-    internal val assistantAlerts: MutableList<AssistantAlert> get() = state.assistantAlerts
-    internal val assistantFollowUps: MutableList<AssistantFollowUp> get() = state.assistantFollowUps
+    override val members: MutableList<Member> get() = state.members
+    override val history: MutableList<HistoryEvent> get() = state.history
+    override val shop: MutableList<ShopItem> get() = state.shop
+    override val missions: MutableList<Mission> get() = state.missions
+    override val missionCompletions: MutableList<MissionCompletion> get() = state.missionCompletions
+    override val missionRequests: MutableList<MissionRequest> get() = state.missionRequests
+    override val missionNotices: MutableList<MissionNotice> get() = state.missionNotices
+    override val sessions: MutableList<Session> get() = state.sessions
+    override val attendance: MutableList<Attendance> get() = state.attendance
+    override val assets: MutableList<CustomAsset> get() = state.assets
+    override val groups: MutableList<Group> get() = state.groups
+    override val archived: MutableList<ArchivedMember> get() = state.archived
+    override val assistantAlerts: MutableList<AssistantAlert> get() = state.assistantAlerts
+    override val assistantFollowUps: MutableList<AssistantFollowUp> get() = state.assistantFollowUps
+    override fun setRingState(value: RingAccount?) { ring = value }
+    override fun setWheelState(value: WheelConfig) { wheel = value }
+
     private val assistantDomain by lazy(LazyThreadSafetyMode.NONE) { AssistantRepository(this, ::newId) }
 
-    var wheel: WheelConfig
+    override var wheel: WheelConfig
         get() = state.wheel
         internal set(value) { state.wheel = value }
 
@@ -139,7 +150,7 @@ class AppRepository(context: Context) {
     fun archiveMember(memberId: String): Boolean = memberDomain.archiveMember(memberId)
     fun restoreArchivedMember(memberId: String): Boolean = memberDomain.restoreArchivedMember(memberId)
     fun purgeArchivedMember(memberId: String): Boolean = memberDomain.purgeArchivedMember(memberId)
-    fun updateMember(member: Member) = memberDomain.updateMember(member)
+    override fun updateMember(member: Member) = memberDomain.updateMember(member)
     fun readingProgressFor(member: Member): ReadingProgress = memberDomain.readingProgressFor(member)
     fun readingProgressFor(memberId: String): ReadingProgress? = memberDomain.readingProgressFor(memberId)
     fun addReadingBook(
@@ -151,15 +162,15 @@ class AppRepository(context: Context) {
     fun updateGroupProfile(groupId: String, description: String, profileImagePath: String?) =
         memberDomain.updateGroupProfile(groupId, description, profileImagePath)
 
-    fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
+    override fun recordXp(memberId: String, amount: Int, reason: String, actor: String?) =
         economyDomain.recordXp(memberId, amount, reason, actor)
-    fun recordPoints(memberId: String, amount: Int, reason: String, actor: String? = null) =
+    override fun recordPoints(memberId: String, amount: Int, reason: String, actor: String?) =
         economyDomain.recordPoints(memberId, amount, reason, actor)
-    fun recordDiamonds(memberId: String, amount: Int, reason: String, actor: String? = null) =
+    override fun recordDiamonds(memberId: String, amount: Int, reason: String, actor: String?) =
         economyDomain.recordDiamonds(memberId, amount, reason, actor)
     fun decreaseXp(memberId: String, amount: Int, reason: String, actor: String? = null) =
         economyDomain.decreaseXp(memberId, amount, reason, actor)
-    fun spendPoints(memberId: String, amount: Int, reason: String, actor: String? = null) =
+    override fun spendPoints(memberId: String, amount: Int, reason: String, actor: String?) =
         economyDomain.spendPoints(memberId, amount, reason, actor)
     fun decreaseLevel(memberId: String, targetLevel: Int, reason: String, actor: String? = null) =
         economyDomain.decreaseLevel(memberId, targetLevel, reason, actor)
@@ -218,7 +229,7 @@ class AppRepository(context: Context) {
         assistantDomain.markAlertDone(id, completedAtEpochMillis)
     fun evaluateAssistantAlerts(now: Long = System.currentTimeMillis()) = assistantDomain.evaluate(now)
 
-    fun persist() {
+    override fun persist() {
         normaliseHistoryIds()
         persistence.save(
             ring, members, history, shop, wheel, missions, missionCompletions,
