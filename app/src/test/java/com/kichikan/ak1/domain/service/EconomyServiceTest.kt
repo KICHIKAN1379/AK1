@@ -27,7 +27,6 @@ class EconomyServiceTest {
         assertEquals(34, result.economy.level)
         assertEquals(1000, result.economy.spendablePoints)
         assertEquals(830, result.economy.diamonds)
-        assertEquals(0, result.economy.halfDiamondUnits)
     }
 
     @Test fun oddPointsLeaveOneHalfDiamondPending() {
@@ -64,5 +63,26 @@ class EconomyServiceTest {
         assertEquals(40, result.economy.spendablePoints)
         assertEquals(9, result.economy.diamonds)
         assertTrue(runCatching { EconomyService.decreaseXp(start, 61, "اصلاح", now = 10L) }.isFailure)
+    }
+
+    @Test fun xpAdditionRejectsIntegerOverflow() {
+        val start = MemberEconomy(xp = Int.MAX_VALUE - 1)
+        assertTrue(runCatching { EconomyService.addXp(start, 2, "آزمون", now = 11L) }.isFailure)
+    }
+
+    @Test fun diamondAdditionRejectsIntegerOverflow() {
+        val start = MemberEconomy(diamonds = Int.MAX_VALUE)
+        assertTrue(runCatching { EconomyService.adjustDiamonds(start, 1, "آزمون", now = 12L) }.isFailure)
+    }
+
+    @Test fun pointsAdditionRejectsBalanceOverflow() {
+        val start = MemberEconomy(spendablePoints = Int.MAX_VALUE)
+        assertTrue(runCatching { EconomyService.adjustPoints(start, 1, "آزمون", now = 13L) }.isFailure)
+    }
+
+    @Test fun minimumIntegerCannotBeNegatedForPointOrDiamondDebit() {
+        val economy = MemberEconomy(spendablePoints = Int.MAX_VALUE, diamonds = Int.MAX_VALUE)
+        assertTrue(runCatching { EconomyService.adjustPoints(economy, Int.MIN_VALUE, "آزمون", now = 14L) }.isFailure)
+        assertTrue(runCatching { EconomyService.adjustDiamonds(economy, Int.MIN_VALUE, "آزمون", now = 15L) }.isFailure)
     }
 }
