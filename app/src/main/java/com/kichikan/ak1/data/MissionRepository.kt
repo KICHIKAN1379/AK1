@@ -7,7 +7,7 @@ import com.kichikan.ak1.notification.MissionNotifications
 
 /** Owns mission definitions, completion, hidden-mission rules and request/notice workflow. */
 internal class MissionRepository(
-    private val app: AppRepository,
+    private val app: MissionRepositoryPort,
     private val newId: (String) -> String
 ) {
     fun updateMission(mission: Mission) { val i = app.missions.indexOfFirst { it.id == mission.id }; if (i >= 0) { app.missions[i] = mission; app.persist() } }
