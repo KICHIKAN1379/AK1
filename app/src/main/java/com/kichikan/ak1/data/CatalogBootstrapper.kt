@@ -161,7 +161,7 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
                         id = RankSystem.badgeId(badge), name = "نشان ${badge.name}", type = ShopItemType.BADGE,
                         imagePath = path, price = 0, currency = Currency.NONE, minimumLevel = badge.minLevel,
                         methods = setOf(AcquisitionMethod.LEVEL_UNLOCK), active = true,
-                        description = "نشان درجه ${badge.name}؛ از سطح ${badge.minLevel} باز می‌شود و دریافت آن دستی است."
+                        description = "نشان درجه ${badge.name}؛ با رسیدن به سطح ${badge.minLevel} خودکار به گنجینه اضافه می‌شود و فعال‌سازی با انتخاب مربی است."
                     )
                 )
             }
@@ -177,6 +177,18 @@ internal class CatalogBootstrapper(private val app: AppRepository) {
     fun syncLevelBadgeOwnership() {
         var changed = false
         val now = System.currentTimeMillis()
+        RankSystem.badges.forEach { badge ->
+            val itemId = RankSystem.badgeId(badge)
+            val index = app.shop.indexOfFirst { it.id == itemId }
+            if (index >= 0) {
+                val current = app.shop[index]
+                val description = "نشان درجه ${badge.name}؛ با رسیدن به سطح ${badge.minLevel} خودکار به گنجینه اضافه می‌شود و فعال‌سازی با انتخاب مربی است."
+                if (current.description != description) {
+                    app.shop[index] = current.copy(description = description)
+                    changed = true
+                }
+            }
+        }
         app.members.forEach { member ->
             val highestReachedLevel = maxOf(
                 member.economy.level,
