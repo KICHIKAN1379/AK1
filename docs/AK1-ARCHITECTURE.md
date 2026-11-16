@@ -172,3 +172,34 @@ Online:
 - mentor sees only their own ring
 
 Exports must be versioned for future migrations.
+
+
+## 11. Repository boundaries — 2026-11-16
+
+The offline data layer now uses an incremental ports-and-adapters boundary:
+
+- `AppRepository` remains the compatibility facade used by existing screens and application flows.
+- `RepositoryState` owns the in-memory ring collections; domain repositories do not own duplicate copies.
+- `AppPersistence` remains the serialization boundary and delegates to `LocalStore`, preserving the existing backup schema and migration behavior.
+- `AppStatePublisher` publishes screen-oriented state snapshots after persistence.
+- Member, economy, mission, session, catalog, wheel, assistant, and catalog-bootstrap operations depend on focused internal port interfaces rather than the concrete `AppRepository` class.
+- Cross-domain mutations are exposed as explicit economy commands on the ports that need them; repositories no longer call methods on the concrete facade.
+
+### Compatibility and invariants
+
+This migration intentionally preserves:
+
+- Existing facade method names and call signatures used by UI code.
+- Existing domain repository behavior and persistence timing.
+- The current local JSON/backup format and migration rules.
+- Existing member monitoring, birthday, mission, economy, and reward rules.
+- Existing navigation and approved UX decisions.
+
+The mutable collection surface is retained temporarily for compatibility. New code should use repository operations rather than mutating collections directly. A later migration can replace these collection ports with read-only query snapshots and command methods after call sites have been inventoried and covered by tests.
+
+### Next hardening steps
+
+1. Move startup catalog synchronization and first-run orchestration out of the `AppRepository` constructor into an explicit initializer.
+2. Replace mutable collection access with read-only query snapshots and transactional commands.
+3. Define persistence failure handling and serialization ownership for multi-domain mutations.
+4. Add repository contract tests and exercise the complete offline import/export path.
