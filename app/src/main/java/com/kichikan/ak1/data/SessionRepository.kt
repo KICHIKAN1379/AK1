@@ -6,7 +6,7 @@ import java.time.ZoneId
 
 /** Owns session lifecycle and attendance records. */
 internal class SessionRepository(
-    private val app: AppRepository,
+    private val app: SessionRepositoryPort,
     private val newId: (String) -> String
 ) {
     fun addSession(memberId: String, title: String, topic: String = "", location: String? = null): Session {
