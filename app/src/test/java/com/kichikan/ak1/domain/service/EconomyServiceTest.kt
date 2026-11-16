@@ -27,6 +27,7 @@ class EconomyServiceTest {
         assertEquals(34, result.economy.level)
         assertEquals(1000, result.economy.spendablePoints)
         assertEquals(830, result.economy.diamonds)
+        assertEquals(0, result.economy.halfDiamondUnits)
     }
 
     @Test fun oddPointsLeaveOneHalfDiamondPending() {
