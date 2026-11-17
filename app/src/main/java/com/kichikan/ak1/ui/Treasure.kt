@@ -53,7 +53,7 @@ import com.kichikan.ak1.ui.theme.Neon
  * combination; the preview always shows the avatar *inside* the chosen frame.
  */
 @Composable
-fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, close: () -> Unit) {
+internal fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, close: () -> Unit) {
     val context = LocalContext.current
     var tick by remember { mutableIntStateOf(0) }
     var tab by remember { mutableIntStateOf(1) }
