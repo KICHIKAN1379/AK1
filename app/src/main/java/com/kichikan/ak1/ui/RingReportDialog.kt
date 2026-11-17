@@ -30,7 +30,7 @@ import java.time.LocalDate
 
 /** Choose monthly or yearly report and a Jalali month or year, then save the image or the full ZIP. */
 @Composable
-fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () -> Unit) {
+internal fun RingReportDialog(repo: AppRepository, memberId: String? = null, close: () -> Unit) {
     val context = LocalContext.current
     val today = JalaliCalendar.fromGregorian(LocalDate.now())
     var kind by remember { mutableStateOf(RingReport.Kind.MONTHLY) }
