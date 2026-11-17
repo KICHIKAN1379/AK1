@@ -29,7 +29,7 @@ object ReportExport {
     private const val PREFS = "ak1_settings"
 
     /** The numbers of one report; [memberId] limits them to one member, null means the whole ring. */
-    fun result(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): RingReport.Result {
+    internal fun result(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): RingReport.Result {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val itemsPerMember = GrowthStore.knowledge(prefs).size + GrowthStore.skills(prefs).size + GrowthStore.characters(prefs).size
         val zone = ZoneId.systemDefault()
@@ -41,7 +41,7 @@ object ReportExport {
         return RingReport.compute(kind, year, month, members, history, growthMillis, itemsPerMember)
     }
 
-    fun build(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): Pair<ByteArray, ByteArray> {
+    internal fun build(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): Pair<ByteArray, ByteArray> {
         val result = result(context, repo, kind, year, month, memberId)
         val cur = RingReport.range(kind, year, month)
         val prizes = repo.history
@@ -52,7 +52,7 @@ object ReportExport {
     }
 
     /** Build only the report image. Do not create a second in-memory ZIP for JPEG exports. */
-    fun jpeg(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): ByteArray {
+    internal fun jpeg(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): ByteArray {
         val report = result(context, repo, kind, year, month, memberId)
         val range = RingReport.range(kind, year, month)
         val prizes = repo.history
@@ -93,7 +93,7 @@ object ReportExport {
     }
 
     /** Stream the complete ring backup to the selected document instead of buffering a huge ZIP in RAM. */
-    fun writeFullRingZip(context: Context, repo: AppRepository, jpeg: ByteArray, output: OutputStream) {
+    internal fun writeFullRingZip(context: Context, repo: AppRepository, jpeg: ByteArray, output: OutputStream) {
         ZipOutputStream(output).use { zip ->
             fun putBytes(name: String, bytes: ByteArray) {
                 zip.putNextEntry(ZipEntry(name))
@@ -273,7 +273,7 @@ object ReportExport {
     }
 
     /** Restores a ZIP made by [build] or [visualZip]. Returns false when nothing in it is recognised. */
-    fun restoreZip(context: Context, repo: AppRepository, uri: Uri): Boolean {
+    internal fun restoreZip(context: Context, repo: AppRepository, uri: Uri): Boolean {
         var backup: String? = null
         var settings: String? = null
         val puzzle = mutableMapOf<String, ByteArray>()
