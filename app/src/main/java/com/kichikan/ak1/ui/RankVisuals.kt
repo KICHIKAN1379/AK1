@@ -204,7 +204,7 @@ fun RankedAvatar(
 }
 
 @Composable
-fun GroupCrest(crestItemId: String?, repo: com.kichikan.ak1.data.AppRepository, size: Dp, modifier: Modifier = Modifier) {
+internal fun GroupCrest(crestItemId: String?, repo: com.kichikan.ak1.data.AppRepository, size: Dp, modifier: Modifier = Modifier) {
     val path = remember(crestItemId) {
         crestItemId?.let { id -> repo.shop.firstOrNull { it.id == id }?.imagePath }
     }
