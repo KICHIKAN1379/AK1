@@ -134,7 +134,7 @@ internal fun shamsi(epochDay: Long): String {
  * Every item is unlocked manually by the mentor, one by one, and shows its unlock date.
  */
 @Composable
-fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, back: () -> Unit) {
+internal fun GrowthMapPage(repo: AppRepository, member: Member, padding: PaddingValues, back: () -> Unit) {
     val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
