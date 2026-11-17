@@ -41,7 +41,7 @@ import com.kichikan.ak1.ui.theme.Neon
  * so the mentor can bring back a member (with the whole ledger) or remove them permanently.
  */
 @Composable
-fun MemberArchivePage(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
+internal fun MemberArchivePage(repo: AppRepository, padding: PaddingValues, back: () -> Unit) {
     val observedDomainState = repo.membersState.collectAsState().value
     var message by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableIntStateOf(0) }
