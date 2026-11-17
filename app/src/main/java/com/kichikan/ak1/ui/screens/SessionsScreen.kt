@@ -235,6 +235,21 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
     var reasonMember by remember { mutableStateOf<com.kichikan.ak1.domain.model.Member?>(null) }
     var reasonStatus by remember { mutableStateOf<AttendanceStatus?>(null) }
     var reasonText by remember { mutableStateOf("") }
+    val exportContext = LocalContext.current
+    val exportJalali = JalaliCalendar.fromGregorian(selectedDate)
+    val xlsxExporter = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ) { uri ->
+        if (uri != null) {
+            val bytes = com.kichikan.ak1.domain.service.XlsxWriter.write(
+                "حضور و غیاب",
+                com.kichikan.ak1.domain.service.AttendanceSheet.rows(repo.members, repo.attendance, exportJalali.year, exportJalali.month, zone),
+            )
+            runCatching { exportContext.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }
+                .onSuccess { Toast.makeText(exportContext, "فایل Excel ذخیره شد", Toast.LENGTH_SHORT).show() }
+                .onFailure { Toast.makeText(exportContext, "ذخیره فایل ناموفق بود", Toast.LENGTH_LONG).show() }
+        }
+    }
 
     val weekStart = today.plusWeeks(weekOffset.toLong())
         .minusDays(((today.plusWeeks(weekOffset.toLong()).dayOfWeek.value + 1) % 7).toLong())
@@ -298,6 +313,10 @@ private fun AttendanceCalendarScreen(repo: AppRepository, changed: () -> Unit) {
             FilterChip(selected = weeklyMode, onClick = { weeklyMode = true }, label = { Text("هفتگی") }, modifier = Modifier.weight(1f))
             FilterChip(selected = !weeklyMode, onClick = { weeklyMode = false }, label = { Text("ماهانه") }, modifier = Modifier.weight(1f))
         }
+        OutlinedButton(
+            onClick = { xlsxExporter.launch("AK1-attendance-${exportJalali.year}-${exportJalali.month.toString().padStart(2, '0')}.xlsx") },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("خروجی Excel حضور و غیاب ${JalaliCalendar.MONTH_NAMES[exportJalali.month - 1]} ${exportJalali.year}") }
         Card(Modifier.fillMaxWidth(), accent = Neon.Violet) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -475,7 +494,7 @@ private fun AttendanceCalendarDialog(repo: AppRepository, session: Session, chan
                                                 changed()
                                             },
                                             modifier = Modifier.width(52.dp).height(50.dp)
-                                        ) { Text("${day.dayOfMonth}\\n$label") }
+                                        ) { Text("${day.dayOfMonth}\n$label") }
                                     }
                                 }
                             }
