@@ -226,7 +226,7 @@ object Exports {
         if (line.isNotEmpty()) canvas.drawText(line, centerX, y, paint)
     }
 
-    fun memberCard(repo: AppRepository, member: Member, context: Context): Bitmap {
+    internal fun memberCard(repo: AppRepository, member: Member, context: Context): Bitmap {
         val w = 1200
         val h = 1680
         val tier = RankSystem.forLevel(member.economy.level)
@@ -432,7 +432,7 @@ object Exports {
     }
 
     /** Poster-style card for a shop item: picture, how to get it, price and description. */
-    fun shopItemCard(repo: AppRepository, item: ShopItem): Bitmap {
+    internal fun shopItemCard(repo: AppRepository, item: ShopItem): Bitmap {
         val w = 1200
         val h = 1560
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
