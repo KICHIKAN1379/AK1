@@ -261,7 +261,7 @@ internal fun GroupPuzzleTab(repo: AppRepository, changed: () -> Unit) {
 
 /** The puzzle page: every group's puzzle, and one reset that clears all of them. */
 @Composable
-fun GroupPuzzlePage(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, back: () -> Unit) {
+internal fun GroupPuzzlePage(repo: AppRepository, padding: PaddingValues, changed: () -> Unit, back: () -> Unit) {
     val observedDomainState = repo.membersState.collectAsState().value
     val context = LocalContext.current
     var resetOpen by remember { mutableStateOf(false) }
