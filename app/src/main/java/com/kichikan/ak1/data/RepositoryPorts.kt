@@ -12,10 +12,10 @@ import com.kichikan.ak1.domain.model.*
  * These ports are internal migration seams, not public app APIs.
  */
 internal interface EconomyMutationPort {
-    fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null)
-    fun recordPoints(memberId: String, amount: Int, reason: String, actor: String? = null)
-    fun recordDiamonds(memberId: String, amount: Int, reason: String, actor: String? = null)
-    fun spendPoints(memberId: String, amount: Int, reason: String, actor: String? = null)
+    fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null): Member
+    fun recordPoints(memberId: String, amount: Int, reason: String, actor: String? = null): Member
+    fun recordDiamonds(memberId: String, amount: Int, reason: String, actor: String? = null): Member
+    fun spendPoints(memberId: String, amount: Int, reason: String, actor: String? = null): Member
 }
 
 internal interface MemberRepositoryPort : EconomyMutationPort {
