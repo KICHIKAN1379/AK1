@@ -71,7 +71,7 @@ private fun planFromClock(): SpinPlan {
  * spins depends on the phone's current seconds, so every spin feels different.
  */
 @Composable
-fun SpinWheelPage(repo: AppRepository, padding: PaddingValues) {
+internal fun SpinWheelPage(repo: AppRepository, padding: PaddingValues) {
     val observedDomainState = repo.catalogState.collectAsState().value
     var tick by remember { mutableIntStateOf(0) }
     var memberId by remember(repo.members.size) { mutableStateOf(repo.members.firstOrNull()?.id ?: "") }
