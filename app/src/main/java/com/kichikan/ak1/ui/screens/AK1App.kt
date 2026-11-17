@@ -58,7 +58,7 @@ internal fun AK1App(repo: AppRepository) {
             label = "ak1-screen"
         ) { targetTab ->
             when (targetTab) {
-                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
+                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }, { changed() }) { tab = it }
                     Tab.ASSISTANT -> AssistantScreen(repo, padding)
                     Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
                     Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.WORKSHOP }

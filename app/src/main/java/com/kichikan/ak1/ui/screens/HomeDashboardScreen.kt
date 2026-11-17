@@ -48,20 +48,21 @@ import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
 import com.kichikan.ak1.ui.theme.Motion
 import com.kichikan.ak1.ui.theme.Neon
+import androidx.compose.runtime.setValue
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-
-private data class HomeShortcut(val key: String, val title: String, val icon: Int, val target: Tab)
 
 @Composable
 internal fun HomeDashboardScreen(
     repo: AppRepository,
     padding: PaddingValues,
     openMembers: () -> Unit,
+    changed: () -> Unit,
     open: (Tab) -> Unit
 ) {
     val data by repo.homeState.collectAsState()
+    var identityOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val photoUri = remember { prefs.getString("ring_profile_image", null) }
@@ -75,17 +76,10 @@ internal fun HomeDashboardScreen(
     val today = LocalDate.now()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val quickShortcuts = listOf(
-        HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.ASSISTANT),
-        HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
-        HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
-        HomeShortcut("home_workshop", "پالایشگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
-    ).filter { shortcut ->
-        prefs.getBoolean(shortcut.key, shortcut.key != "home_sessions")
-    }
+    val quickShortcuts = HomeShortcutCatalog.all.filter { HomeShortcutCatalog.isEnabled(prefs, it) }
 
     Column(
-        Modifier.fillMaxSize().padding(padding).padding(horizontal = 10.dp, vertical = 7.dp),
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         HomeIdentityHero(
@@ -113,7 +107,7 @@ internal fun HomeDashboardScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("دسترسی سریع", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.weight(1f))
-                Text("حداکثر ۴ میانبر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${quickShortcuts.size} میانبر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             quickShortcuts.chunked(2).forEach { rowItems ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -121,16 +115,31 @@ internal fun HomeDashboardScreen(
                         QuickLaunchItem(
                             shortcut.title,
                             shortcut.icon,
-                            if (shortcut.key == "home_assistant") Neon.Magenta else Neon.Cyan,
-                            { open(shortcut.target) },
+                            when (shortcut.section) {
+                                ShortcutSection.GENERAL -> Neon.Magenta
+                                ShortcutSection.PROGRESS -> Neon.Cyan
+                                ShortcutSection.REFINERY -> Neon.Gold
+                            },
+                            {
+                                when {
+                                    shortcut.key == "home_members" -> openMembers()
+                                    shortcut.key == "home_identity" -> identityOpen = true
+                                    shortcut.target != null -> open(shortcut.target)
+                                }
+                            },
                             Modifier.weight(1f)
                         )
                     }
                     repeat(2 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+            if (quickShortcuts.isEmpty()) {
+                Text("هنوز میانبری انتخاب نشده؛ از تنظیمات › میانبرهای خانه فعالش کن.", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
+    if (identityOpen) EconomyDialog(repo, changed) { identityOpen = false }
 }
 
 @Composable
@@ -509,5 +518,11 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
                 }
             }
         }
+
+        Text("کارنامه حلقه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        AkCard(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+            com.kichikan.ak1.ui.ReportPanel(repo, null, Modifier.fillMaxWidth().padding(14.dp))
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }

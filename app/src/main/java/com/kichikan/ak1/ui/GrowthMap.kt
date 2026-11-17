@@ -266,7 +266,12 @@ private fun ExpandableSection(
 
 @Composable
 private fun GrowthItemRow(name: String, unlockedDay: Long?, accent: UiColor, onToggle: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), accent = if (unlockedDay != null) accent else null) {
+    Card(
+        Modifier.fillMaxWidth(),
+        accent = if (unlockedDay != null) accent else null,
+        // Locked rows used the bright default glass edge (grey, glaring); use a dark, low-contrast edge instead.
+        border = if (unlockedDay != null) null else BorderStroke(1.dp, UiColor(0xFF26325E))
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
