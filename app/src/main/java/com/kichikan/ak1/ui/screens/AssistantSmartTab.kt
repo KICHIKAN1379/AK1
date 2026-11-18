@@ -5,6 +5,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -25,8 +26,12 @@ internal fun AssistantSmartTab(state: AssistantDataState) {
     var selected by remember { mutableStateOf<AssistantQueryEngine.Query?>(null) }
     var result by remember { mutableStateOf<AssistantQueryEngine.Result?>(null) }
     var confirm by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
+    val listState = rememberLazyListState()
+    // Bring the answer into view as soon as a query has run (it sits below the intro cards).
+    LaunchedEffect(result) { if (result != null) listState.animateScrollToItem(RESULT_ITEM_INDEX) }
+    LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("پرسش از داده‌های حلقه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text("یک پرسش آماده را انتخاب کن؛ پس از تأیید، پاسخ از سوابق همین برنامه استخراج می‌شود.",
@@ -34,16 +39,16 @@ internal fun AssistantSmartTab(state: AssistantDataState) {
                 Text("کاملاً آفلاین • فقط خواندنی • بدون تحلیل روان‌شناختی",
                     style = MaterialTheme.typography.labelSmall, color = Neon.Cyan)
             }
-        }
-        Text("پرسش‌های آماده", style = MaterialTheme.typography.titleMedium)
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        } }
+        item { Text("پرسش‌های آماده", style = MaterialTheme.typography.titleMedium) }
+        item { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistantQueryEngine.Query.entries.forEach { query ->
                 FilterChip(selected == query, { selected = query; result = null },
                     label = { Text(query.shortTitle()) })
             }
-        }
-        selected?.let { query ->
+        } }
+        item { selected?.let { query ->
             AkCard(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text(query.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -57,13 +62,13 @@ internal fun AssistantSmartTab(state: AssistantDataState) {
         } ?: AkCard(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
             Text("برای شروع، یکی از پرسش‌های بالا را انتخاب کن.", Modifier.padding(16.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        } }
         result?.let { answer ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("نتیجه پرسش", style = MaterialTheme.typography.titleMedium)
                 TextButton(onClick = { result = null }) { Text("پاک‌کردن نتیجه") }
-            }
-            AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
+            } }
+            item { AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(answer.query.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(answer.summary, style = MaterialTheme.typography.bodyMedium)
@@ -74,10 +79,12 @@ internal fun AssistantSmartTab(state: AssistantDataState) {
                             style = MaterialTheme.typography.labelSmall, color = Neon.Gold)
                     }
                 }
-            }
-            if (answer.rows.isNotEmpty()) {
-                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 12.dp)) {
+            } }
+            if (answer.rows.isEmpty()) {
+                item { Text("موردی برای نمایش پیدا نشد.", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            } else {
+                run {
                     items(answer.rows, key = { it.memberId + ":" + it.detail }) { row ->
                         AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
                             Row(Modifier.fillMaxWidth().padding(12.dp),
@@ -116,6 +123,8 @@ internal fun AssistantSmartTab(state: AssistantDataState) {
         )
     }
 }
+
+private const val RESULT_ITEM_INDEX = 4
 
 private fun AssistantQueryEngine.Query.shortTitle(): String = when (this) {
     AssistantQueryEngine.Query.SESSIONS_DUE -> "جلسه سه‌ماهه"
