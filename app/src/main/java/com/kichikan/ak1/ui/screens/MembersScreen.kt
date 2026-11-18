@@ -192,13 +192,14 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
             }
         } else if (page == 1) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Button({ addGroup = true }) { Text("+ گروه") } }
-            if (repo.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.")
+            if (observedDomainState.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.")
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(repo.groups, key = { it.id }) { g ->
-                    val leader = repo.members.firstOrNull { it.id == g.leaderMemberId }
-                    val leaderAvatar = repo.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
-                    val leaderFrame = repo.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath
-                    val crestPath = repo.shop.firstOrNull { it.id == g.crestItemId }?.imagePath
+                items(observedDomainState.groups, key = { it.id }) { g ->
+                    val live = observedDomainState
+                    val leader = live.members.firstOrNull { it.id == g.leaderMemberId }
+                    val leaderAvatar = live.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
+                    val leaderFrame = live.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath
+                    val crestPath = live.shop.firstOrNull { it.id == g.crestItemId }?.imagePath
                     val crestBitmap = remember(crestPath) { crestPath?.let { AvatarRender.decodeSampled(it, 192)?.asImageBitmap() } }
                     val profileBitmap = remember(g.profileImagePath) { g.profileImagePath?.let { AvatarRender.decodeSampled(it, 192)?.asImageBitmap() } }
                     Card(
@@ -294,10 +295,11 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     reportMemberId?.let { id -> com.kichikan.ak1.ui.RingReportDialog(repo, id) { reportMemberId = null } }
     if (addGroup) GroupDialog(repo, null, changed) { addGroup = false }
     groupEditing?.let { GroupDialog(repo, it, changed) { groupEditing = null } }
-    scoreGroup?.let { GroupScoreDialog(repo, it, changed) { scoreGroup = null } }
+    scoreGroup?.let { sg -> GroupScoreDialog(repo, observedDomainState.groups.firstOrNull { it.id == sg.id } ?: sg, changed) { scoreGroup = null } }
     editing?.let { MemberEditDialog(repo, it, changed) { editing = null } }
     selected?.let { TreasureDialog(repo, it.id, changed) { selected = null } }
-    profileGroup?.let { g ->
+    profileGroup?.let { pg ->
+        val g = observedDomainState.groups.firstOrNull { it.id == pg.id } ?: pg
         val leader = repo.members.firstOrNull { it.id == g.leaderMemberId }
         val leaderAvatar = repo.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
         val leaderFrame = repo.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath

@@ -54,9 +54,9 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
         PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در پالایشگاه")
         WorkshopSummary(repo, if (section == 4) 0 else section)
         if(section==0||section==4){
-        if(section==0) OutlinedButton({ openSection(4) }, Modifier.fillMaxWidth()) { Text("مأموریت‌های مخفی (${repo.missions.count { it.hidden }})") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { FilterChip(section == 0, { if (section != 0) openSection(0) }, label = { Text("عادی (${repo.missions.count { !it.hidden }})") }); FilterChip(section == 4, { if (section != 4) openSection(4) }, label = { Text("مخفی (${repo.missions.count { it.hidden }})") }) }
         OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text(if(section==4)"+ مأموریت مخفی" else "+ مأموریت")}
-        repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
+        repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.hidden) Neon.Violet else Neon.Cyan){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m}){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
         }
         if(section==1){
         Text("جوایز / فروشگاه",style=MaterialTheme.typography.titleLarge)
@@ -148,8 +148,8 @@ private fun WorkshopSummary(repo: AppRepository, section: Int) {
             when (section) {
                 0 -> {
                     WorkshopStat("مأموریت‌ها", "${repo.missions.size}", Neon.Cyan, Modifier.weight(1f))
-                    WorkshopStat("فعال", "${repo.missions.count { it.active }}", Neon.Green, Modifier.weight(1f))
-                    WorkshopStat("غیرفعال", "${repo.missions.count { !it.active }}", Neon.Coral, Modifier.weight(1f))
+                    WorkshopStat("عادی", "${repo.missions.count { !it.hidden }}", Neon.Green, Modifier.weight(1f))
+                    WorkshopStat("مخفی", "${repo.missions.count { it.hidden }}", Neon.Violet, Modifier.weight(1f))
                 }
                 1 -> {
                     WorkshopStat("آیتم‌ها", "${repo.shop.size}", Neon.Gold, Modifier.weight(1f))
@@ -200,7 +200,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
     var dia by remember { mutableStateOf((item?.diamondReward ?: 0).toString()) }
     var group by remember { mutableStateOf(item?.type == MissionType.GROUP) }
     var hidden by remember { mutableStateOf(item?.hidden ?: hiddenDefault) }
-    var active by remember { mutableStateOf(item?.active ?: true) }
+    val active = true
     var startAt by remember { mutableStateOf(item?.startAt) }
     var endAt by remember { mutableStateOf(item?.endAt) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -228,7 +228,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
                 OutlinedTextField(desc,{desc=it},label={Text("توضیحات")})
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(group,{group=it}); Text("مأموریت گروهی") }
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(hidden,{hidden=it}); Text("مأموریت مخفی (هر عضو فقط یک‌بار دریافت می‌کند)") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active,{active=it}); Text("مأموریت فعال است") }
+
                 OutlinedTextField(xp,{xp=it.filter(Char::isDigit)},label={Text("پاداش XP")},singleLine=true)
                 OutlinedTextField(pts,{pts=it.filter(Char::isDigit)},label={Text("پاداش امتیاز")},singleLine=true)
                 OutlinedTextField(dia,{dia=it.filter(Char::isDigit)},label={Text("پاداش الماس")},singleLine=true)
