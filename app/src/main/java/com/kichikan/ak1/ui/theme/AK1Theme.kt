@@ -117,7 +117,6 @@ object Neon {
     val CardBase get() = active.surface.copy(alpha = 0.96f)
     val CardTint get() = active.surfaceHigh.copy(alpha = 0.88f)
     val Border get() = active.outline
-    val palette get() = active
 }
 
 private fun colorSchemeFor(p: ThemePalette): ColorScheme = darkColorScheme(
