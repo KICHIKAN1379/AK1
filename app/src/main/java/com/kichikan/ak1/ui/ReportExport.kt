@@ -28,8 +28,8 @@ import java.util.zip.ZipOutputStream
 object ReportExport {
     private const val PREFS = "ak1_settings"
 
-    /** The numbers of one report; [memberId] limits them to one member, null means the whole ring. */
-    fun result(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): RingReport.Result {
+    /** The numbers of one report; [memberId] limits them to one member (named in the labels), null means the whole ring. */
+    fun result(context: Context, repo: AppRepository, selection: RingReport.Selection, memberId: String? = null): RingReport.Result {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val itemsPerMember = GrowthStore.knowledge(prefs).size + GrowthStore.skills(prefs).size + GrowthStore.characters(prefs).size
         val zone = ZoneId.systemDefault()
@@ -38,27 +38,22 @@ object ReportExport {
             GrowthStore.unlocked(prefs, m.id).values.map { day -> LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant().toEpochMilli() }
         }
         val history = repo.history.filter { memberId == null || it.memberId == memberId }
-        return RingReport.compute(kind, year, month, members, history, growthMillis, itemsPerMember)
+        val subject = memberId?.let { id -> repo.members.firstOrNull { it.id == id }?.name }
+        return RingReport.compute(selection, members, history, growthMillis, itemsPerMember, subject)
     }
 
-    fun build(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): Pair<ByteArray, ByteArray> {
-        val result = result(context, repo, kind, year, month, memberId)
-        val cur = RingReport.range(kind, year, month)
+    /** JPEG report image; for a member it carries that member's name, for the ring the ring name and photo. */
+    fun jpeg(context: Context, repo: AppRepository, selection: RingReport.Selection, memberId: String? = null): ByteArray {
+        val report = result(context, repo, selection, memberId)
+        val ranges = RingReport.ranges(selection)
         val prizes = repo.history
-            .filter { (memberId == null || it.memberId == memberId) && it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= cur.start && it.createdAtEpochMillis < cur.end }
+            .filter { event ->
+                (memberId == null || event.memberId == memberId) && event.type == HistoryType.REWARD_RECEIVED &&
+                    ranges.any { event.createdAtEpochMillis >= it.start && event.createdAtEpochMillis < it.end }
+            }
             .map { it.title }
-        val jpeg = renderJpeg(result, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
-        return jpeg to buildZip(context, repo, jpeg)
-    }
-
-    /** Build only the report image. Do not create a second in-memory ZIP for JPEG exports. */
-    fun jpeg(context: Context, repo: AppRepository, kind: RingReport.Kind, year: Int, month: Int, memberId: String? = null): ByteArray {
-        val report = result(context, repo, kind, year, month, memberId)
-        val range = RingReport.range(kind, year, month)
-        val prizes = repo.history
-            .filter { (memberId == null || it.memberId == memberId) && it.type == HistoryType.REWARD_RECEIVED && it.createdAtEpochMillis >= range.start && it.createdAtEpochMillis < range.end }
-            .map { it.title }
-        return renderJpeg(report, ringPhoto(context), repo.ring?.ringName ?: "حلقه", prizes)
+        val member = memberId?.let { id -> repo.members.firstOrNull { it.id == id } }
+        return renderJpeg(report, if (member == null) ringPhoto(context) else null, member?.name ?: repo.ring?.ringName ?: "حلقه", prizes, member != null)
     }
 
     private const val PROFILE_IMAGE_MARKER = "__AK1_ZIP_PROFILE_IMAGE__"
@@ -92,36 +87,12 @@ object ReportExport {
         return copied
     }
 
-    /** Stream the complete ring backup to the selected document instead of buffering a huge ZIP in RAM. */
-    fun writeFullRingZip(context: Context, repo: AppRepository, jpeg: ByteArray, output: OutputStream) {
-        ZipOutputStream(output).use { zip ->
-            fun putBytes(name: String, bytes: ByteArray) {
-                zip.putNextEntry(ZipEntry(name))
-                zip.write(bytes)
-                zip.closeEntry()
-            }
-            fun putFile(name: String, file: File) {
-                zip.putNextEntry(ZipEntry(name))
-                file.inputStream().use { it.copyTo(zip) }
-                zip.closeEntry()
-            }
-            putBytes("report.jpg", jpeg)
-            putBytes("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
-            putDirectory(zip, File(context.filesDir, "puzzle"), "puzzle")
-            putDirectory(zip, File(context.filesDir, "custom_assets"), "custom_assets")
-            putDirectory(zip, File(context.filesDir, "background"), "background")
-            val copiedRingImages = putRingImages(context, ::putBytes)
-            putBytes("settings.json", settingsJson(context, copiedRingImages).toByteArray(Charsets.UTF_8))
-            zip.finish()
-        }
-    }
-
     private fun ringPhoto(context: Context): Bitmap? = runCatching {
         val uri = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("ring_profile_image", null) ?: return null
         context.contentResolver.openInputStream(Uri.parse(uri))?.use { BitmapFactory.decodeStream(it) }
     }.getOrNull()
 
-    private fun renderJpeg(result: RingReport.Result, ring: Bitmap?, ringName: String, prizes: List<String>): ByteArray {
+    private fun renderJpeg(result: RingReport.Result, ring: Bitmap?, ringName: String, prizes: List<String>, forMember: Boolean): ByteArray {
         val w = 1600
         val h = 2200
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
@@ -156,9 +127,9 @@ object ReportExport {
             val y = 500f + (i / 2) * 210f
             c.drawRoundRect(x, y, x + 700f, y + 180f, 36f, 36f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x22FFFFFF })
             text(m.label, x + 350f, y + 60f, 34f, soft)
-            val value = if (m.isPercent) "%.1f٪".format(m.value) else "%.1f".format(m.value)
+            val value = if (m.isPercent) "%.1f٪".format(m.value) else if (m.isWhole) "%.0f".format(m.value) else "%.1f".format(m.value)
             text(value, x + 350f, y + 130f, 56f, cyan, bold = true)
-            val change = if (m.previous == 0.0) "—" else "%+.0f٪ نسبت به دوره‌ی قبل".format((m.value - m.previous) / m.previous * 100)
+            val change = if (m.previous == 0.0 || m.label == "سطح کتاب‌خوانی") "—" else "%+.0f٪ نسبت به دوره‌ی قبل".format((m.value - m.previous) / m.previous * 100)
             text(change, x + 350f, y + 166f, 26f, soft)
         }
 
@@ -167,7 +138,7 @@ object ReportExport {
         val right = w - 120f
         val top = 1400f
         val bottom = 1780f
-        text("روند دوره (سهم هر بازه از کل)", w / 2f, 1360f, 40f, gold, bold = true)
+        text(if (forMember) "روند دوره (سهم هر بازه از XP عضو)" else "روند دوره (سهم هر بازه از کل)", w / 2f, 1360f, 40f, gold, bold = true)
         val series = result.series
         if (series.isNotEmpty()) {
             val total = series.sumOf { it.second }
@@ -199,7 +170,7 @@ object ReportExport {
         text("جوایز دریافتی این دوره", 120f, 1900f, 40f, gold, bold = true, align = Paint.Align.LEFT)
         if (prizes.isEmpty()) text("جایزه‌ای در این دوره ثبت نشده است.", 120f, 1960f, 30f, soft, align = Paint.Align.LEFT)
         prizes.take(4).forEachIndexed { i, p -> text("• $p", 120f, 1960f + i * 50f, 30f, Color_WHITE, align = Paint.Align.LEFT) }
-        text("ساخته‌شده در AK1 • ${JalaliCalendar.format(JalaliCalendar.fromGregorian(LocalDate.now()))}", w / 2f, h - 60f, 26f, soft)
+        text((if (forMember) "" else "همه عددها میانگین هر عضو یا درصد اعضا هستند؛ مستقل از تعداد اعضای حلقه • ") + "ساخته‌شده در AK1 • ${JalaliCalendar.format(JalaliCalendar.fromGregorian(LocalDate.now()))}", w / 2f, h - 60f, 26f, soft)
 
         val out = ByteArrayOutputStream()
         bmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
@@ -208,23 +179,6 @@ object ReportExport {
     }
 
     private const val Color_WHITE = 0xFFFFFFFF.toInt()
-
-    private fun buildZip(context: Context, repo: AppRepository, jpeg: ByteArray): ByteArray {
-        val bos = ByteArrayOutputStream()
-        ZipOutputStream(bos).use { zip ->
-            fun put(name: String, bytes: ByteArray) {
-                zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
-            }
-            put("report.jpg", jpeg)
-            put("backup.json", repo.exportBackup().toByteArray(Charsets.UTF_8))
-            putDirectory(zip, File(context.filesDir, "puzzle"), "puzzle")
-            putDirectory(zip, File(context.filesDir, "custom_assets"), "custom_assets")
-            putDirectory(zip, File(context.filesDir, "background"), "background")
-            val copiedRingImages = putRingImages(context, ::put)
-            put("settings.json", settingsJson(context, copiedRingImages).toByteArray(Charsets.UTF_8))
-        }
-        return bos.toByteArray()
-    }
 
     private fun settingsJson(context: Context, copiedRingImages: Set<String> = emptySet()): String {
         val arr = JSONArray()

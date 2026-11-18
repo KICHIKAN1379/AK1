@@ -192,13 +192,14 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
             }
         } else if (page == 1) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Button({ addGroup = true }) { Text("+ گروه") } }
-            if (repo.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.")
+            if (observedDomainState.groups.isEmpty()) Text("هنوز گروهی ساخته نشده است.")
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(repo.groups, key = { it.id }) { g ->
-                    val leader = repo.members.firstOrNull { it.id == g.leaderMemberId }
-                    val leaderAvatar = repo.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
-                    val leaderFrame = repo.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath
-                    val crestPath = repo.shop.firstOrNull { it.id == g.crestItemId }?.imagePath
+                items(observedDomainState.groups, key = { it.id }) { g ->
+                    val live = observedDomainState
+                    val leader = live.members.firstOrNull { it.id == g.leaderMemberId }
+                    val leaderAvatar = live.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
+                    val leaderFrame = live.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath
+                    val crestPath = live.shop.firstOrNull { it.id == g.crestItemId }?.imagePath
                     val crestBitmap = remember(crestPath) { crestPath?.let { AvatarRender.decodeSampled(it, 192)?.asImageBitmap() } }
                     val profileBitmap = remember(g.profileImagePath) { g.profileImagePath?.let { AvatarRender.decodeSampled(it, 192)?.asImageBitmap() } }
                     Card(
@@ -294,10 +295,11 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
     reportMemberId?.let { id -> com.kichikan.ak1.ui.RingReportDialog(repo, id) { reportMemberId = null } }
     if (addGroup) GroupDialog(repo, null, changed) { addGroup = false }
     groupEditing?.let { GroupDialog(repo, it, changed) { groupEditing = null } }
-    scoreGroup?.let { GroupScoreDialog(repo, it, changed) { scoreGroup = null } }
+    scoreGroup?.let { sg -> GroupScoreDialog(repo, observedDomainState.groups.firstOrNull { it.id == sg.id } ?: sg, changed) { scoreGroup = null } }
     editing?.let { MemberEditDialog(repo, it, changed) { editing = null } }
     selected?.let { TreasureDialog(repo, it.id, changed) { selected = null } }
-    profileGroup?.let { g ->
+    profileGroup?.let { pg ->
+        val g = observedDomainState.groups.firstOrNull { it.id == pg.id } ?: pg
         val leader = repo.members.firstOrNull { it.id == g.leaderMemberId }
         val leaderAvatar = repo.shop.firstOrNull { it.id == leader?.avatarItemId }?.imagePath
         val leaderFrame = repo.shop.firstOrNull { it.id == leader?.frameItemId }?.imagePath
@@ -699,6 +701,8 @@ private fun MemberProfileDialog(
     val attendancePercent = if (markedAttendance.isEmpty()) 0 else presentCount * 100 / markedAttendance.size
     val sessions = repo.sessions.filter { it.memberId == member.id }.sortedByDescending { it.startsAt }
     val history = repo.history.filter { it.memberId == member.id }.sortedByDescending { it.createdAtEpochMillis }
+    var historyOpen by remember { mutableStateOf(false) }
+    if (historyOpen) MemberHistoryDialog(member.name, history) { historyOpen = false }
     val virtues = remember(member.id) { GrowthStore.characters(prefs) }
     val knowledge = remember(member.id) { GrowthStore.knowledge(prefs) }
     val skills = remember(member.id) { GrowthStore.skills(prefs) }
@@ -841,12 +845,14 @@ private fun MemberProfileDialog(
 
                     Card(Modifier.fillMaxWidth(), accent = Neon.Gold) {
                         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                            Text("رویدادهای اخیر", style = MaterialTheme.typography.titleMedium)
+                            Text("سوابق", style = MaterialTheme.typography.titleMedium)
                             if (history.isEmpty()) {
-                                Text("هنوز رویدادی برای این عضو ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Text("هنوز سابقه‌ای برای این عضو ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodySmall)
                             } else {
-                                history.take(8).forEachIndexed { index, event ->
+                                Text("${history.size} سابقه ثبت شده؛ آخرین‌ها:", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                history.take(3).forEachIndexed { index, event ->
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically) {
@@ -857,17 +863,16 @@ private fun MemberProfileDialog(
                                                     style = MaterialTheme.typography.labelMedium)
                                             }
                                         }
-                                        Text(listOfNotNull(event.reason?.takeIf { it.isNotBlank() },
-                                            JalaliCalendar.formatDateTime(event.createdAtEpochMillis)).joinToString(" • "),
-                                            style = MaterialTheme.typography.labelSmall,
+                                        Text(historyDateLabel(event.createdAtEpochMillis), style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    if (index < minOf(history.size, 8) - 1) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    if (index < minOf(history.size, 3) - 1) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 }
                             }
-                            OutlinedButton(onClick = onReport, modifier = Modifier.fillMaxWidth()) { Text("مشاهده کارنامه کامل") }
+                            OutlinedButton(onClick = { historyOpen = true }, enabled = history.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("مشاهده همه سوابق") }
                         }
                     }
+                    Button(onClick = onReport, modifier = Modifier.fillMaxWidth()) { Text("خروجی کارنامه ${member.name}") }
 
                     if (member.privateNotes.isNotBlank()) {
                         Card(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
@@ -893,5 +898,80 @@ private fun ProfileInfoRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+
+private fun historyDateLabel(epochMillis: Long): String {
+    val zoned = java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault())
+    val j = JalaliCalendar.fromGregorian(zoned.toLocalDate())
+    return "${j.day} ${JalaliCalendar.MONTH_NAMES[j.month - 1]} ${j.year} • " +
+        "${zoned.hour.toString().padStart(2, '0')}:${zoned.minute.toString().padStart(2, '0')}"
+}
+
+/** Full, scrollable history of one member with a Jalali year/month filter. */
+@Composable
+private fun MemberHistoryDialog(name: String, history: List<com.kichikan.ak1.domain.model.HistoryEvent>, close: () -> Unit) {
+    val zone = remember { java.time.ZoneId.systemDefault() }
+    val dated = remember(history) { history.map { it to JalaliCalendar.fromGregorian(java.time.Instant.ofEpochMilli(it.createdAtEpochMillis).atZone(zone).toLocalDate()) } }
+    val years = remember(dated) { dated.map { it.second.year }.distinct().sortedDescending() }
+    var year by remember { mutableStateOf<Int?>(null) }
+    var month by remember { mutableStateOf<Int?>(null) }
+    val months = remember(dated, year) { dated.filter { year == null || it.second.year == year }.map { it.second.month }.distinct().sorted() }
+    val shown = dated.filter { (year == null || it.second.year == year) && (month == null || it.second.month == month) }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = close,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("سوابق $name", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    TextButton(onClick = close) { Text("بستن") }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = year == null, onClick = { year = null; month = null }, label = { Text("همه سال‌ها") })
+                    years.forEach { y -> FilterChip(selected = year == y, onClick = { year = y; month = null }, label = { Text("$y") }) }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = month == null, onClick = { month = null }, label = { Text("همه ماه‌ها") })
+                    months.forEach { m -> FilterChip(selected = month == m, onClick = { month = m }, label = { Text(JalaliCalendar.MONTH_NAMES[m - 1]) }) }
+                }
+                Text("${shown.size} سابقه", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)) {
+                    var lastKey: Pair<Int, Int>? = null
+                    shown.forEach { (event, j) ->
+                        val key = j.year to j.month
+                        if (key != lastKey) {
+                            lastKey = key
+                            item(key = "h-${key.first}-${key.second}") {
+                                Text("${JalaliCalendar.MONTH_NAMES[j.month - 1]} ${j.year}", style = MaterialTheme.typography.titleSmall,
+                                    color = Neon.Gold, modifier = Modifier.padding(top = 6.dp))
+                            }
+                        }
+                        item(key = event.id) {
+                            Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text(event.title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                        event.amount?.let {
+                                            Text(if (it > 0) "+$it" else it.toString(),
+                                                color = if (it >= 0) Neon.Green else MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.labelMedium)
+                                        }
+                                    }
+                                    event.reason?.takeIf { it.isNotBlank() }?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Text(historyDateLabel(event.createdAtEpochMillis), style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

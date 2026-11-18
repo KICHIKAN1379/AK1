@@ -54,9 +54,9 @@ internal fun WorkshopScreen(repo: AppRepository, padding: PaddingValues, changed
         PageHeader(when (section) { 0 -> "مأموریت‌ها"; 4 -> "مأموریت مخفی"; 1 -> "جوایز فروشگاه"; 2 -> "آواتار و قاب"; else -> "تنظیم گردونه" }, back, "ساخت و مدیریت در پالایشگاه")
         WorkshopSummary(repo, if (section == 4) 0 else section)
         if(section==0||section==4){
-        if(section==0) OutlinedButton({ openSection(4) }, Modifier.fillMaxWidth()) { Text("مأموریت‌های مخفی (${repo.missions.count { it.hidden }})") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { FilterChip(section == 0, { if (section != 0) openSection(0) }, label = { Text("عادی (${repo.missions.count { !it.hidden }})") }); FilterChip(section == 4, { if (section != 4) openSection(4) }, label = { Text("مخفی (${repo.missions.count { it.hidden }})") }) }
         OutlinedButton({addMission=true},Modifier.fillMaxWidth()){Text(if(section==4)"+ مأموریت مخفی" else "+ مأموریت")}
-        repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.active) Neon.Cyan else Neon.Coral){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Text(if(m.active)"فعال" else "غیرفعال", color = if (m.active) Neon.Green else Neon.Coral);Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m},enabled=m.active){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
+        repo.missions.filter{ it.hidden == (section==4) }.forEach{m->Card(Modifier.fillMaxWidth(), accent = if (m.hidden) Neon.Violet else Neon.Cyan){Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)){Text((if(m.hidden)"🔒 " else "")+m.title,style=MaterialTheme.typography.titleMedium);Text("XP ${m.xpReward} • امتیاز ${m.pointsReward} • 💎 ${m.diamondReward}");Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){Button({completeMission=m}){Text("ثبت انجام")};TextButton({editMission=m}){Text("ویرایش")};TextButton({repo.deleteMission(m.id);changed()}){Text("حذف")}}}}}
         }
         if(section==1){
         Text("جوایز / فروشگاه",style=MaterialTheme.typography.titleLarge)
@@ -148,8 +148,8 @@ private fun WorkshopSummary(repo: AppRepository, section: Int) {
             when (section) {
                 0 -> {
                     WorkshopStat("مأموریت‌ها", "${repo.missions.size}", Neon.Cyan, Modifier.weight(1f))
-                    WorkshopStat("فعال", "${repo.missions.count { it.active }}", Neon.Green, Modifier.weight(1f))
-                    WorkshopStat("غیرفعال", "${repo.missions.count { !it.active }}", Neon.Coral, Modifier.weight(1f))
+                    WorkshopStat("عادی", "${repo.missions.count { !it.hidden }}", Neon.Green, Modifier.weight(1f))
+                    WorkshopStat("مخفی", "${repo.missions.count { it.hidden }}", Neon.Violet, Modifier.weight(1f))
                 }
                 1 -> {
                     WorkshopStat("آیتم‌ها", "${repo.shop.size}", Neon.Gold, Modifier.weight(1f))
@@ -200,7 +200,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
     var dia by remember { mutableStateOf((item?.diamondReward ?: 0).toString()) }
     var group by remember { mutableStateOf(item?.type == MissionType.GROUP) }
     var hidden by remember { mutableStateOf(item?.hidden ?: hiddenDefault) }
-    var active by remember { mutableStateOf(item?.active ?: true) }
+    val active = true
     var startAt by remember { mutableStateOf(item?.startAt) }
     var endAt by remember { mutableStateOf(item?.endAt) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -228,7 +228,7 @@ private fun WorkshopStat(label: String, value: String, accent: Color, modifier: 
                 OutlinedTextField(desc,{desc=it},label={Text("توضیحات")})
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(group,{group=it}); Text("مأموریت گروهی") }
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(hidden,{hidden=it}); Text("مأموریت مخفی (هر عضو فقط یک‌بار دریافت می‌کند)") }
-                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(active,{active=it}); Text("مأموریت فعال است") }
+
                 OutlinedTextField(xp,{xp=it.filter(Char::isDigit)},label={Text("پاداش XP")},singleLine=true)
                 OutlinedTextField(pts,{pts=it.filter(Char::isDigit)},label={Text("پاداش امتیاز")},singleLine=true)
                 OutlinedTextField(dia,{dia=it.filter(Char::isDigit)},label={Text("پاداش الماس")},singleLine=true)
@@ -436,13 +436,24 @@ private enum class EconomyOp(val label: String, val isLevelTarget: Boolean = fal
 
 @Composable internal fun EconomyDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {
     val observedDomainState = repo.progressState.collectAsState().value
-    var step by remember { mutableIntStateOf(0) }; var op by remember { mutableStateOf<EconomyOp?>(null) }; var memberId by remember { mutableStateOf(repo.members.firstOrNull()?.id?:"") }; var amount by remember { mutableStateOf("") }; var reason by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }; val member=repo.members.firstOrNull{it.id==memberId}
+    var step by remember { mutableIntStateOf(0) }; var op by remember { mutableStateOf<EconomyOp?>(null) }; var memberId by remember { mutableStateOf(repo.members.firstOrNull()?.id?:"") }; var amount by remember { mutableStateOf("") }; var reason by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }; var groupIds by remember { mutableStateOf(setOf<String>()) }; val member=repo.members.firstOrNull{it.id==memberId}
     fun submit(){val m=member?:run{error="عضو انتخاب نشده";return};val n=amount.toIntOrNull()?:run{error="مقدار را وارد کنید";return};if(n<=0){error="مقدار باید بیشتر از صفر باشد";return};if(op==EconomyOp.LEVEL_DOWN&&n>=m.economy.level){error="سطح مقصد باید کمتر از سطح فعلی باشد";return};if(reason.isBlank()){error="دلیل اجباری است";return};try{when(op){EconomyOp.XP_ADD->repo.recordXp(m.id,n,reason,"mentor");EconomyOp.XP_SUB->repo.decreaseXp(m.id,n,reason,"mentor");EconomyOp.POINTS_ADD->repo.recordPoints(m.id,n,reason,"mentor");EconomyOp.POINTS_SUB->repo.recordPoints(m.id,-n,reason,"mentor");EconomyOp.DIAMONDS_ADD->repo.recordDiamonds(m.id,n,reason,"mentor");EconomyOp.DIAMONDS_SUB->repo.recordDiamonds(m.id,-n,reason,"mentor");EconomyOp.LEVEL_DOWN->repo.decreaseLevel(m.id,n,reason,"mentor");null->Unit};changed();close()}catch(ex:IllegalArgumentException){error=ex.message}}
-    AlertDialog(onDismissRequest=close,title={Text(if(step==0)"شناسنامه" else "ثبت ${op?.label}")},text={
+    fun submitGroup(){
+        val n=amount.toIntOrNull()?:run{error="مقدار را وارد کنید";return}
+        if(n<=0){error="مقدار باید بیشتر از صفر باشد";return}
+        if(groupIds.isEmpty()){error="حداقل یک عضو را تیک بزنید";return}
+        if(reason.isBlank()){error="دلیل اجباری است";return}
+        val add=op!=EconomyOp.POINTS_SUB
+        if(!add){ repo.members.filter{it.id in groupIds&&it.economy.spendablePoints<n}.firstOrNull()?.let{error="امتیاز ${it.name} کمتر از مقدار کاهش است";return} }
+        try{ groupIds.forEach{id->repo.recordPoints(id,if(add)n else -n,reason,"mentor")}; changed();close() }catch(ex:IllegalArgumentException){error=ex.message}
+    }
+    AlertDialog(onDismissRequest=close,title={Text(when(step){0->"شناسنامه";2->"ثبت امتیاز";3->"ثبت گروهی امتیاز";else->"ثبت ${op?.label}"})},text={
         Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
-            if(step==0){Text("ابتدا نوع تغییر را انتخاب کنید");listOf(EconomyOp.POINTS_ADD to "امتیاز",EconomyOp.DIAMONDS_ADD to "الماس",EconomyOp.XP_ADD to "XP",EconomyOp.LEVEL_DOWN to "سطح").forEach{pair->Button({op=pair.first;step=1},Modifier.fillMaxWidth()){Text(pair.second)}}}
+            if(step==0){Text("ابتدا نوع تغییر را انتخاب کنید");listOf(EconomyOp.POINTS_ADD to "امتیاز",EconomyOp.DIAMONDS_ADD to "الماس",EconomyOp.XP_ADD to "XP",EconomyOp.LEVEL_DOWN to "سطح").forEach{pair->Button({op=pair.first;step=if(pair.first==EconomyOp.POINTS_ADD)2 else 1},Modifier.fillMaxWidth()){Text(pair.second)}}}
+            else if(step==2){Text("نوع ثبت امتیاز را انتخاب کنید");Button({step=1;error=null},Modifier.fillMaxWidth()){Text("فردی (یک عضو)")};Button({step=3;error=null;op=EconomyOp.POINTS_ADD},Modifier.fillMaxWidth()){Text("گروهی (چند عضو)")}}
+            else if(step==3){Text("اعضای مورد نظر را تیک بزنید (${groupIds.size} از ${repo.members.size})");Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){TextButton({groupIds=repo.members.map{it.id}.toSet()}){Text("انتخاب همه")};TextButton({groupIds=emptySet()}){Text("پاک‌کردن")}};Column(Modifier.heightIn(max=240.dp).verticalScroll(rememberScrollState())){repo.members.forEach{m->Row(verticalAlignment=Alignment.CenterVertically){Checkbox(m.id in groupIds,{c->groupIds=if(c)groupIds+m.id else groupIds-m.id});Text(m.name)}}};Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf(EconomyOp.POINTS_ADD,EconomyOp.POINTS_SUB).forEach{o->FilterChip(op==o,{op=o},label={Text(o.label)})}};OutlinedTextField(amount,{amount=it.filter(Char::isDigit)},label={Text("مقدار برای هر عضو")},singleLine=true);OutlinedTextField(reason,{reason=it},label={Text("دلیل (اجباری)")},singleLine=true);error?.let{Text(it,color=MaterialTheme.colorScheme.error)}}
             else { Text("عضو");Row(Modifier.horizontalScroll(rememberScrollState())){repo.members.forEach{m->FilterChip(memberId==m.id,{memberId=m.id},label={Text(m.name)})}};Text("نوع عملیات");Row(Modifier.horizontalScroll(rememberScrollState())){op?.let{base->val options=when(base){EconomyOp.POINTS_ADD->listOf(EconomyOp.POINTS_ADD,EconomyOp.POINTS_SUB);EconomyOp.DIAMONDS_ADD->listOf(EconomyOp.DIAMONDS_ADD,EconomyOp.DIAMONDS_SUB);EconomyOp.XP_ADD->listOf(EconomyOp.XP_ADD,EconomyOp.XP_SUB);else->listOf(EconomyOp.LEVEL_DOWN)};options.forEach{o->FilterChip(op==o,{op=o},label={Text(o.label)})}}};OutlinedTextField(amount,{amount=it.filter(Char::isDigit)},label={Text(if(op==EconomyOp.LEVEL_DOWN)"سطح مقصد" else "مقدار")},singleLine=true);OutlinedTextField(reason,{reason=it},label={Text("دلیل (اجباری)")},singleLine=true);error?.let{Text(it,color=MaterialTheme.colorScheme.error)}}
-        } },confirmButton={if(step==0)TextButton(close){Text("انصراف")}else Row{TextButton({step=0;error=null}){Text("مرحله قبل")};TextButton({submit()}){Text("تأیید")}}},dismissButton={if(step==1)TextButton(close){Text("لغو")}})
+        } },confirmButton={if(step==0)TextButton(close){Text("انصراف")}else if(step==2)TextButton({step=0;error=null}){Text("مرحله قبل")}else if(step==3)Row{TextButton({step=2;error=null}){Text("مرحله قبل")};TextButton({submitGroup()}){Text("ثبت گروهی امتیاز")}}else Row{TextButton({step=if(op==EconomyOp.POINTS_ADD||op==EconomyOp.POINTS_SUB)2 else 0;error=null}){Text("مرحله قبل")};TextButton({submit()}){Text("تأیید")}}},dismissButton={if(step>=1)TextButton(close){Text("لغو")}})
 }
 
 @Composable private fun WheelConfigDialog(repo: AppRepository, changed: () -> Unit, close: () -> Unit) {

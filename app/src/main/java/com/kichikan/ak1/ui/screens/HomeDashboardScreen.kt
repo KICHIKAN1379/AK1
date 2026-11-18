@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,20 +49,21 @@ import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
 import com.kichikan.ak1.ui.theme.Motion
 import com.kichikan.ak1.ui.theme.Neon
+import androidx.compose.runtime.setValue
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-
-private data class HomeShortcut(val key: String, val title: String, val icon: Int, val target: Tab)
 
 @Composable
 internal fun HomeDashboardScreen(
     repo: AppRepository,
     padding: PaddingValues,
     openMembers: () -> Unit,
+    changed: () -> Unit,
     open: (Tab) -> Unit
 ) {
     val data by repo.homeState.collectAsState()
+    var identityOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ak1_settings", android.content.Context.MODE_PRIVATE) }
     val photoUri = remember { prefs.getString("ring_profile_image", null) }
@@ -75,17 +77,10 @@ internal fun HomeDashboardScreen(
     val today = LocalDate.now()
     val jalali = remember(today) { JalaliCalendar.fromGregorian(today) }
     val quote = remember(today) { DailyQuotes.today(context) }
-    val quickShortcuts = listOf(
-        HomeShortcut("home_assistant", "دستیار مربی", R.drawable.icon_nav_services, Tab.ASSISTANT),
-        HomeShortcut("home_sessions", "جلسات", R.drawable.icon_services_sessions, Tab.SESSIONS),
-        HomeShortcut("home_ranking", "رقابت", R.drawable.icon_services_competition, Tab.RANKING),
-        HomeShortcut("home_workshop", "پالایشگاه", R.drawable.icon_services_workshop, Tab.WORKSHOP)
-    ).filter { shortcut ->
-        prefs.getBoolean(shortcut.key, shortcut.key != "home_sessions")
-    }
+    val quickShortcuts = HomeShortcutCatalog.all.filter { HomeShortcutCatalog.isEnabled(prefs, it) }
 
     Column(
-        Modifier.fillMaxSize().padding(padding).padding(horizontal = 10.dp, vertical = 7.dp),
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         HomeIdentityHero(
@@ -113,7 +108,7 @@ internal fun HomeDashboardScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("دسترسی سریع", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.weight(1f))
-                Text("حداکثر ۴ میانبر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${quickShortcuts.size} میانبر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             quickShortcuts.chunked(2).forEach { rowItems ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -121,16 +116,31 @@ internal fun HomeDashboardScreen(
                         QuickLaunchItem(
                             shortcut.title,
                             shortcut.icon,
-                            if (shortcut.key == "home_assistant") Neon.Magenta else Neon.Cyan,
-                            { open(shortcut.target) },
+                            when (shortcut.section) {
+                                ShortcutSection.GENERAL -> Neon.Magenta
+                                ShortcutSection.PROGRESS -> Neon.Cyan
+                                ShortcutSection.REFINERY -> Neon.Gold
+                            },
+                            {
+                                when {
+                                    shortcut.key == "home_members" -> openMembers()
+                                    shortcut.key == "home_identity" -> identityOpen = true
+                                    shortcut.target != null -> open(shortcut.target)
+                                }
+                            },
                             Modifier.weight(1f)
                         )
                     }
                     repeat(2 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+            if (quickShortcuts.isEmpty()) {
+                Text("هنوز میانبری انتخاب نشده؛ از تنظیمات › میانبرهای خانه فعالش کن.", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
+    if (identityOpen) EconomyDialog(repo, changed) { identityOpen = false }
 }
 
 @Composable
@@ -366,7 +376,7 @@ private fun QuickLaunchItem(title: String, icon: Int, accent: Color, onClick: ()
         color = Color.White.copy(alpha = 0.045f), border = BorderStroke(1.dp, accent.copy(alpha = 0.34f))) {
         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center) {
-            AppIcon(icon, 30.dp)
+            AppIcon(icon, 34.dp)
             Spacer(Modifier.height(4.dp))
             Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
         }
@@ -395,7 +405,8 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
-    val recent = data.history.sortedByDescending { it.createdAtEpochMillis }.take(20)
+    var trailOpen by remember { mutableStateOf(false) }
+    if (trailOpen) ActivityTrailDialog(data.history, memberData.members, close = { trailOpen = false })
 
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
@@ -478,36 +489,14 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
             }
         }
 
-        Text("ردّ فعالیت‌ها و سوابق", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        if (recent.isEmpty()) {
-            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-                Text("هنوز فعالیتی ثبت نشده است.", Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    recent.forEachIndexed { index, event ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(Modifier.size(8.dp).clip(CircleShape)
-                                .background(if (index == 0) Neon.Cyan else Neon.Violet.copy(alpha = 0.72f)))
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(event.title, style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                val date = Instant.ofEpochMilli(event.createdAtEpochMillis).atZone(zone).toLocalDate()
-                                val jalali = JalaliCalendar.fromGregorian(date)
-                                Text("%04d/%02d/%02d".format(jalali.year, jalali.month, jalali.day),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            event.amount?.let { Text(if (it > 0) "+$it" else it.toString(),
-                                color = Neon.Green, fontWeight = FontWeight.Bold) }
-                        }
-                        if (index != recent.lastIndex) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.06f)))
-                    }
-                }
-            }
+        Button(onClick = { trailOpen = true }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            Text("📜  ردّ فعالیت‌ها و سوابق  (${data.history.size})")
         }
+
+        Text("کارنامه حلقه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        AkCard(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+            com.kichikan.ak1.ui.ReportPanel(repo, null, Modifier.fillMaxWidth().padding(14.dp))
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }

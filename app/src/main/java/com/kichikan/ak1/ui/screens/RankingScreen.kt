@@ -9,6 +9,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -106,40 +108,41 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                 .onFailure { Toast.makeText(context, "ذخیره تصویر ناموفق بود: ${it.message}", Toast.LENGTH_LONG).show() }
         }
     }
-    Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeader(title, back, if (groups) "امتیاز مستقل گروه‌ها معیار رتبه است؛ اعضا و نشان هر گروه هم دیده می‌شوند." else "رتبه بر پایه سطح و XP؛ با آواتار، قاب و نشان اختصاصی اعضا.")
+    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { PageHeader(title, back, if (groups) "امتیاز مستقل گروه‌ها معیار رتبه است؛ اعضا و نشان هر گروه هم دیده می‌شوند." else "رتبه بر پایه سطح و XP؛ با آواتار، قاب و نشان اختصاصی اعضا.") }
         if (!groups) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RankingMetric("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
                 RankingMetric("میانگین سطح", "$averageLevel", Neon.Violet, Modifier.weight(1f))
                 RankingMetric("XP کل", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
-            }
-            OutlinedTextField(
+            } }
+            item { OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text("جست‌وجوی نام عضو") }
-            )
+            ) }
             if (repo.groups.isNotEmpty()) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                item { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = groupFilter == null, onClick = { groupFilter = null }, label = { Text("همه گروه‌ها") })
                     repo.groups.forEach { group ->
                         FilterChip(selected = groupFilter == group.id, onClick = { groupFilter = group.id }, label = { Text(group.name) })
                     }
-                }
+                } }
             }
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RankingMetric("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
                 RankingMetric("اعضای فعال", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
                 RankingMetric("XP حلقه", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
-            }
+            } }
         }
-        Button(onClick = { rankingExporter.launch(if (groups) "رتبه‌بندی-گروه‌ها.jpg" else "رتبه‌بندی-اعضا.jpg") }, modifier = Modifier.fillMaxWidth()) { Text("خروجی JPEG رتبه‌بندی") }
+        item { Button(onClick = { rankingExporter.launch(if (groups) "رتبه‌بندی-گروه‌ها.jpg" else "رتبه‌بندی-اعضا.jpg") }, modifier = Modifier.fillMaxWidth()) { Text("خروجی JPEG رتبه‌بندی") } }
         if (!groups) {
             if (rankedMembers.isEmpty()) {
-                Text(if (repo.members.isEmpty()) "هنوز عضوی ثبت نشده است." else "عضوی با این نام یا گروه پیدا نشد.")
+                item { Text(if (repo.members.isEmpty()) "هنوز عضوی ثبت نشده است." else "عضوی با این نام یا گروه پیدا نشد.") }
             } else {
-                PodiumCard(
+                item { PodiumCard(
                     entries = rankedMembers.take(3).mapIndexed { index, m ->
                         PodiumEntry(
                             name = m.name,
@@ -153,11 +156,11 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                             cardPath = memberCardOf(m)
                         )
                     }
-                )
+                ) }
                 val rest = rankedMembers.drop(3)
                 if (rest.isNotEmpty()) {
-                    Text("ادامهٔ جدول", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { Text("ادامهٔ جدول", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    run {
                         itemsIndexed(rest, key = { _, m -> m.id }) { index, m ->
                             val fraction by animateFloatAsState(
                                 targetValue = m.economy.xp.toFloat() / maxMemberXp,
@@ -185,9 +188,9 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
             }
         } else {
             if (rankedGroups.isEmpty()) {
-                Text("هنوز گروهی ساخته نشده است.")
+                item { Text("هنوز گروهی ساخته نشده است.") }
             } else {
-                PodiumCard(
+                item { PodiumCard(
                     entries = rankedGroups.take(3).mapIndexed { index, g ->
                         PodiumEntry(
                             name = g.name,
@@ -200,11 +203,11 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                             cardPath = groupCardOf(g)
                         )
                     }
-                )
+                ) }
                 val rest = rankedGroups.drop(3)
                 if (rest.isNotEmpty()) {
-                    Text("ادامهٔ جدول", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { Text("ادامهٔ جدول", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    run {
                         itemsIndexed(rest, key = { _, g -> g.id }) { index, g ->
                             val fraction by animateFloatAsState(
                                 targetValue = g.economy.spendablePoints.toFloat() / maxGroupPoints,

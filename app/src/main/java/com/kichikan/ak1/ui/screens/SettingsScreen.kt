@@ -169,19 +169,9 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
         }
     }
     val shortcutPrefs = prefs
-    val shortcutLabels = listOf(
-        "home_assistant" to "دستیار مربی",
-        "home_sessions" to "جلسات",
-        "home_ranking" to "رقابت",
-        "home_workshop" to "پالایشگاه",
-        "home_reports" to "گزارش‌ها",
-        "home_missions" to "مأموریت‌ها",
-        "home_quotes" to "جمله‌های روز"
-    )
+    val shortcutLabels = HomeShortcutCatalog.all.map { it.key to it.title }
     val shortcutStates = remember { mutableStateMapOf<String, Boolean>().apply {
-        shortcutLabels.forEach { (key, _) ->
-            put(key, shortcutPrefs.getBoolean(key, key in listOf("home_assistant", "home_sessions", "home_ranking", "home_workshop")))
-        }
+        HomeShortcutCatalog.all.forEach { def -> put(def.key, HomeShortcutCatalog.isEnabled(shortcutPrefs, def)) }
     } }
     val weekdayLabels = listOf(6 to "شنبه", 0 to "یکشنبه", 1 to "دوشنبه", 2 to "سه‌شنبه", 3 to "چهارشنبه", 4 to "پنجشنبه", 5 to "جمعه")
     val activeWeekdays = remember { mutableStateListOf<Int>().apply {
@@ -428,16 +418,18 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             title = { Text("میانبرهای خانه") },
             text = {
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${shortcutStates.values.count { it }} از ۴ میانبر انتخاب شده • حداکثر ۴ میانبر")
-                    Text("هر میانبری که انتخاب شود در خانه نمایش داده می‌شود.")
-                    shortcutLabels.forEach { (key, label) ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = shortcutStates[key] == true, onCheckedChange = { checked ->
-                                val selectedCount = shortcutStates.values.count { it }
-                                if (!checked || selectedCount < 4) shortcutStates[key] = checked
-                            })
-                            Text(label)
+                    Text("${shortcutStates.values.count { it }} میانبر انتخاب شده")
+                    Text("هر میانبری که انتخاب شود در خانه نمایش داده می‌شود؛ همه بخش‌های پیشرفت و پالایشگاه در دسترس‌اند.")
+                    ShortcutSection.entries.forEach { section ->
+                        Text(section.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                        HomeShortcutCatalog.all.filter { it.section == section }.forEach { def ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = shortcutStates[def.key] == true, onCheckedChange = { checked -> shortcutStates[def.key] = checked })
+                                Text(def.title)
+                            }
                         }
+                    }
+                    run {
                     }
                 }
             },
@@ -453,8 +445,8 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
             },
             dismissButton = {
                 TextButton(onClick = {
-                    shortcutLabels.forEach { (key, _) ->
-                        shortcutStates[key] = shortcutPrefs.getBoolean(key, key in listOf("home_sessions", "home_ranking"))
+                    HomeShortcutCatalog.all.forEach { def ->
+                        shortcutStates[def.key] = HomeShortcutCatalog.isEnabled(shortcutPrefs, def)
                     }
                     shortcutsOpen = false
                 }) { Text("انصراف") }

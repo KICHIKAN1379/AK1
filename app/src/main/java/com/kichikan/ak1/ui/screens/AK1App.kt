@@ -58,7 +58,7 @@ internal fun AK1App(repo: AppRepository) {
             label = "ak1-screen"
         ) { targetTab ->
             when (targetTab) {
-                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }) { tab = it }
+                    Tab.HOME -> HomeDashboardScreen(repo, padding, { tab = Tab.MEMBERS }, { changed() }) { tab = it }
                     Tab.ASSISTANT -> AssistantScreen(repo, padding)
                     Tab.WEEKLY_PULSE -> WeeklyPulseDetailScreen(repo, padding) { tab = Tab.HOME }
                     Tab.GROWTH_SETTINGS -> GrowthMapSettingsScreen(padding) { tab = Tab.WORKSHOP }
@@ -216,7 +216,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                                 Tab.STORE -> R.drawable.icon_services_store
                                 else -> R.drawable.icon_nav_settings
                             },
-                            size = 26.dp,
+                            size = 31.dp,
                             modifier = Modifier.graphicsLayer {
                                 scaleX = iconScale
                                 scaleY = iconScale

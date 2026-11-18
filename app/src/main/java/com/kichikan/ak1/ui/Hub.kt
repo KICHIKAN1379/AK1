@@ -2,7 +2,10 @@ package com.kichikan.ak1.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -85,11 +88,16 @@ fun HubScreen(
                         shape = RoundedCornerShape(24.dp),
                         accent = entry.accent
                     ) {
-                        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                            entry.icon()
-                            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Text(entry.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                                Text(entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(entry.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(entry.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                // The illustration sits in the free corner beside the text (about 62dp, standard size).
+                                Box(Modifier.size(62.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.graphicsLayer { scaleX = 1.2f; scaleY = 1.2f }) { entry.icon() }
+                                }
                             }
                             Text("ورود به بخش  ←", style = MaterialTheme.typography.labelMedium, color = entry.accent)
                         }

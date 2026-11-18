@@ -33,12 +33,8 @@ object DailyDateNotification {
     private const val REQUEST_CODE = 6101
     private const val ACTION_UPDATE = "com.kichikan.ak1.UPDATE_DAILY_DATE"
 
-    /** Today's day-of-month artwork (falls back to the launcher icon if it is missing). */
-    fun daySmallIcon(context: Context): Int {
-        val day = JalaliCalendar.fromGregorian(LocalDate.now(ZoneId.systemDefault())).day
-        val res = context.resources.getIdentifier("ic_day_$day", "drawable", context.packageName)
-        return if (res != 0) res else R.mipmap.ic_launcher
-    }
+    /** The notification's small icon is intentionally empty: only the app artwork (large icon) is shown. */
+    fun daySmallIcon(@Suppress("UNUSED_PARAMETER") context: Context): Int = R.drawable.ic_notif_blank
 
     /** The app artwork shown as the main (large) notification icon. */
     fun appArt(context: Context): Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.ic_launcher_art)
