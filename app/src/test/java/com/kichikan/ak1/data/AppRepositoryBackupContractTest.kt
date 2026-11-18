@@ -51,7 +51,7 @@ class AppRepositoryBackupContractTest {
         original.recordXp(second.id, 50, "ثبت آزمون")
 
         val backup = original.exportBackup()
-        assertTrue(backup.contains(""schemaVersion":10"))
+        assertTrue(backup.contains("\"schemaVersion\":10"))
 
         val restored = AppRepository(context)
         restored.importBackup(backup)
