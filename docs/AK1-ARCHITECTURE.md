@@ -208,6 +208,8 @@ Exports must be versioned for future migrations.
 
 - `RepositoryCollectionTest` covers the read-only query surface, detached snapshots, command ordering, and failure atomicity.
 - `MemberRepositoryPortContractTest` covers member creation, archive/restore ordering, persistence calls, and the absence of a mutable-list port surface.
+- `RepositoryPortsSurfaceTest` verifies every collection-valued repository port returns the read-only `RepositoryCollection` adapter.
+- `ReportExportZipIntegrationTest` verifies full-ring ZIP export/import restores ordered member/history data and custom assets through the application restore path.
 - `AppRepositoryBackupContractTest` covers empty backups, ordered round trips, legacy schema-9 compatibility, and rollback after invalid imports.
 - `AppStatePublisherTest` continues to cover immutable snapshots and isolation of unrelated domains.
 
