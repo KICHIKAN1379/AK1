@@ -159,14 +159,14 @@ private fun WelcomeChip(text: String, accent: Color, icon: ImageVector, modifier
 private fun WelcomeLogo() {
     Box(Modifier.size(132.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            val gold = androidx.compose.ui.graphics.Color(0xFFF5C84B)
+            val gold = Neon.Gold
             drawCircle(
-                Brush.radialGradient(listOf(androidx.compose.ui.graphics.Color(0xFF2B3F8F), androidx.compose.ui.graphics.Color(0xFF0C1438))),
+                Brush.radialGradient(listOf(Neon.Indigo, Neon.Navy)),
                 radius = size.minDimension * 0.40f
             )
             drawCircle(gold, radius = size.minDimension * 0.40f, style = Stroke(width = 5.dp.toPx()))
             drawCircle(gold.copy(alpha = 0.35f), radius = size.minDimension * 0.48f, style = Stroke(width = 1.5.dp.toPx()))
         }
-        Text("K1", style = MaterialTheme.typography.displaySmall, color = androidx.compose.ui.graphics.Color(0xFFF5C84B))
+        Text("K1", style = MaterialTheme.typography.displaySmall, color = Neon.Gold)
     }
 }
