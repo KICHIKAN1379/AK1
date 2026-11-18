@@ -310,8 +310,11 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                             onClick = { ThemeState.set(context, mode) }, label = { Text(mode.label) })
                     }
                 }
-                Text("تم انتخابی بلافاصله اعمال و ذخیره می‌شود.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "هر تم، رنگ پس‌زمینه، کارت‌ها، کادرها، دکمه‌ها، آیکون‌ها و منوها را هماهنگ تغییر می‌دهد. پوشش تیره‌ی پس‌زمینه برای حفظ خوانایی نوشته‌ها فعال است.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedButton(onClick = { backgroundPicker.launch(arrayOf("image/*")) },
                     modifier = Modifier.fillMaxWidth()) { Text("تغییر پس‌زمینه‌ی برنامه") }
                 OutlinedButton(onClick = {
