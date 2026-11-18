@@ -216,7 +216,7 @@ private fun AK1BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                                 Tab.STORE -> R.drawable.icon_services_store
                                 else -> R.drawable.icon_nav_settings
                             },
-                            size = 26.dp,
+                            size = 31.dp,
                             modifier = Modifier.graphicsLayer {
                                 scaleX = iconScale
                                 scaleY = iconScale

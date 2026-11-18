@@ -56,7 +56,7 @@ internal fun SettingsHubScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 rowItems.forEach { item ->
                     Surface(
-                        modifier = Modifier.weight(1f).height(112.dp).clip(RoundedCornerShape(20.dp))
+                        modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(20.dp))
                             .clickable(onClick = item.action),
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -65,7 +65,7 @@ internal fun SettingsHubScreen(
                         Column(Modifier.fillMaxSize().padding(9.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center) {
-                            AppIcon(item.icon, 34.dp)
+                            AppIcon(item.icon, 42.dp)
                             Spacer(Modifier.height(7.dp))
                             Text(item.title, style = MaterialTheme.typography.labelMedium,
                                 maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)

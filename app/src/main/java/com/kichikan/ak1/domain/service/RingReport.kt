@@ -17,7 +17,7 @@ object RingReport {
     data class Range(val start: Long, val end: Long)
 
     /** [isPercent] metrics are percentages; the others are averages per member. */
-    data class Metric(val label: String, val value: Double, val previous: Double, val isPercent: Boolean)
+    data class Metric(val label: String, val value: Double, val previous: Double, val isPercent: Boolean, val isWhole: Boolean = false)
 
     data class Result(
         val title: String,
@@ -110,15 +110,19 @@ object RingReport {
         fun participation(rs: List<Range>): Double =
             history.filter { inRanges(it.createdAtEpochMillis, rs) }.map { it.memberId }.toSet().size / nOf(rs) * 100
         fun growth(rs: List<Range>): Double = growthUnlockMillis.count { inRanges(it, rs) } / (nOf(rs) * items) * 100
+        fun booksIn(rs: List<Range>): Double =
+            members.sumOf { m -> m.readingBooks.count { inRanges(it.completedAtEpochMillis, rs) } }.toDouble()
+        val readingLevel = members.maxOfOrNull { com.kichikan.ak1.domain.model.ReadingRules.progressFor(it.readingBooks).level }?.toDouble() ?: 1.0
         val rewardTypes = arrayOf(HistoryType.REWARD_RECEIVED, HistoryType.WHEEL_REWARD, HistoryType.BIRTHDAY_REWARD)
 
         val metrics = if (forMember) listOf(
-            Metric("مأموریت انجام‌شده", count(cur, HistoryType.MISSION_COMPLETED), count(prev, HistoryType.MISSION_COMPLETED), false),
-            Metric("XP", xp(cur), xp(prev), false),
-            Metric("امتیاز", sum(cur, HistoryType.POINTS_EARNED), sum(prev, HistoryType.POINTS_EARNED), false),
-            Metric("الماس", sum(cur, HistoryType.DIAMONDS_EARNED), sum(prev, HistoryType.DIAMONDS_EARNED), false),
-            Metric("جوایز دریافتی", count(cur, *rewardTypes), count(prev, *rewardTypes), false),
-            Metric("تعداد سوابق ثبت‌شده", count(cur, *HistoryType.entries.toTypedArray()), count(prev, *HistoryType.entries.toTypedArray()), false),
+            Metric("مأموریت انجام‌شده", count(cur, HistoryType.MISSION_COMPLETED), count(prev, HistoryType.MISSION_COMPLETED),false, true),
+            Metric("XP", xp(cur), xp(prev),false, true),
+            Metric("امتیاز", sum(cur, HistoryType.POINTS_EARNED), sum(prev, HistoryType.POINTS_EARNED),false, true),
+            Metric("الماس", sum(cur, HistoryType.DIAMONDS_EARNED), sum(prev, HistoryType.DIAMONDS_EARNED),false, true),
+            Metric("جوایز دریافتی", count(cur, *rewardTypes), count(prev, *rewardTypes),false, true),
+            Metric("کتاب‌خوانی (کتاب)", booksIn(cur), booksIn(prev), false, true),
+            Metric("سطح کتاب‌خوانی", readingLevel, 0.0, false, true),
             Metric("درصد پیشرفت نقشه‌ی کمال", growth(cur), growth(prev), true)
         ) else listOf(
             Metric("مأموریت برای هر عضو", count(cur, HistoryType.MISSION_COMPLETED) / nOf(cur), count(prev, HistoryType.MISSION_COMPLETED) / nOf(prev), false),

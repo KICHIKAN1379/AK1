@@ -42,6 +42,9 @@ class RingReportTest {
         assertTrue(r.title.startsWith("کارنامه علی"))
         assertTrue(r.metrics.none { it.label.contains("برای هر عضو") })
         assertEquals(10.0, r.metrics.first { it.label == "XP" }.value, 1e-9)
+        assertTrue(r.metrics.none { it.label.contains("سوابق") })
+        assertTrue(r.metrics.any { it.label == "کتاب‌خوانی (کتاب)" })
+        assertTrue(r.metrics.any { it.label == "سطح کتاب‌خوانی" })
     }
 
     @Test

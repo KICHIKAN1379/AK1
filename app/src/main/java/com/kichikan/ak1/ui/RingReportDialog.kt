@@ -88,7 +88,7 @@ fun ReportPanel(repo: AppRepository, memberId: String? = null, modifier: Modifie
                 Text(metric.label, style = MaterialTheme.typography.bodyMedium)
                 val now = if (metric.isPercent) "%.0f٪".format(metric.value) else "%.0f".format(metric.value)
                 val before = if (metric.isPercent) "%.0f٪".format(metric.previous) else "%.0f".format(metric.previous)
-                Text("$now  (قبل: $before)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (metric.label == "سطح کتاب‌خوانی") now else "$now  (قبل: $before)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Button(onClick = {

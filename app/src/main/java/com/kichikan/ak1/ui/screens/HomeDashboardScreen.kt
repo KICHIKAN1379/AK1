@@ -375,7 +375,7 @@ private fun QuickLaunchItem(title: String, icon: Int, accent: Color, onClick: ()
         color = Color.White.copy(alpha = 0.045f), border = BorderStroke(1.dp, accent.copy(alpha = 0.34f))) {
         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center) {
-            AppIcon(icon, 30.dp)
+            AppIcon(icon, 34.dp)
             Spacer(Modifier.height(4.dp))
             Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
         }
@@ -404,7 +404,8 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
     val totalXp = data.members.sumOf { it.economy.xp }
     val totalPoints = data.members.sumOf { it.economy.spendablePoints }
     val totalDiamonds = data.members.sumOf { it.economy.diamonds }
-    val recent = data.history.sortedByDescending { it.createdAtEpochMillis }.take(20)
+    var trailOpen by remember { mutableStateOf(false) }
+    if (trailOpen) ActivityTrailDialog(data.history, memberData.members, close = { trailOpen = false })
 
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
@@ -487,36 +488,8 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
             }
         }
 
-        Text("ردّ فعالیت‌ها و سوابق", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        if (recent.isEmpty()) {
-            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-                Text("هنوز فعالیتی ثبت نشده است.", Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    recent.forEachIndexed { index, event ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(Modifier.size(8.dp).clip(CircleShape)
-                                .background(if (index == 0) Neon.Cyan else Neon.Violet.copy(alpha = 0.72f)))
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(event.title, style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                val date = Instant.ofEpochMilli(event.createdAtEpochMillis).atZone(zone).toLocalDate()
-                                val jalali = JalaliCalendar.fromGregorian(date)
-                                Text("%04d/%02d/%02d".format(jalali.year, jalali.month, jalali.day),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            event.amount?.let { Text(if (it > 0) "+$it" else it.toString(),
-                                color = Neon.Green, fontWeight = FontWeight.Bold) }
-                        }
-                        if (index != recent.lastIndex) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.06f)))
-                    }
-                }
-            }
+        Button(onClick = { trailOpen = true }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            Text("📜  ردّ فعالیت‌ها و سوابق  (${data.history.size})")
         }
 
         Text("کارنامه حلقه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

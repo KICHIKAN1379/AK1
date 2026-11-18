@@ -127,9 +127,9 @@ object ReportExport {
             val y = 500f + (i / 2) * 210f
             c.drawRoundRect(x, y, x + 700f, y + 180f, 36f, 36f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x22FFFFFF })
             text(m.label, x + 350f, y + 60f, 34f, soft)
-            val value = if (m.isPercent) "%.1f٪".format(m.value) else "%.1f".format(m.value)
+            val value = if (m.isPercent) "%.1f٪".format(m.value) else if (m.isWhole) "%.0f".format(m.value) else "%.1f".format(m.value)
             text(value, x + 350f, y + 130f, 56f, cyan, bold = true)
-            val change = if (m.previous == 0.0) "—" else "%+.0f٪ نسبت به دوره‌ی قبل".format((m.value - m.previous) / m.previous * 100)
+            val change = if (m.previous == 0.0 || m.label == "سطح کتاب‌خوانی") "—" else "%+.0f٪ نسبت به دوره‌ی قبل".format((m.value - m.previous) / m.previous * 100)
             text(change, x + 350f, y + 166f, 26f, soft)
         }
 

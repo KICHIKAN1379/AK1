@@ -184,23 +184,22 @@ internal fun HomeScreen(repo: AppRepository, padding: PaddingValues, openMembers
                             shape = RoundedCornerShape(22.dp),
                             accent = shortcutAccent(key)
                         ) {
-                            Column(
+                            Row(
                                 Modifier.fillMaxSize().padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                                 when (key) {
-                                    "home_workshop" -> AppIcon(R.drawable.icon_services_workshop, 62.dp)
-                                    "home_sessions" -> AppIcon(R.drawable.icon_services_sessions, 62.dp)
-                                    "home_ranking" -> AppIcon(R.drawable.icon_services_competition, 62.dp)
-                                    "home_store" -> AppIcon(R.drawable.icon_services_store, 62.dp)
-                                    "home_identity" -> AppIcon(R.drawable.icon_home_identity, 62.dp)
-                                    "home_members" -> AppIcon(R.drawable.icon_home_member_management, 62.dp)
-                                    "home_assistant" -> AppIcon(R.drawable.icon_home_assistant, 62.dp)
-                                    else -> AppIcon(R.drawable.icon_services_wheel, 62.dp)
+                                    "home_workshop" -> AppIcon(R.drawable.icon_services_workshop, 64.dp)
+                                    "home_sessions" -> AppIcon(R.drawable.icon_services_sessions, 64.dp)
+                                    "home_ranking" -> AppIcon(R.drawable.icon_services_competition, 64.dp)
+                                    "home_store" -> AppIcon(R.drawable.icon_services_store, 64.dp)
+                                    "home_identity" -> AppIcon(R.drawable.icon_home_identity, 64.dp)
+                                    "home_members" -> AppIcon(R.drawable.icon_home_member_management, 64.dp)
+                                    "home_assistant" -> AppIcon(R.drawable.icon_home_assistant, 64.dp)
+                                    else -> AppIcon(R.drawable.icon_services_wheel, 64.dp)
                                 }
-                                Spacer(Modifier.height(8.dp))
-                                Text(label, style = MaterialTheme.typography.titleSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             }
                         }
                     }
