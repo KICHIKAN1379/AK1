@@ -156,6 +156,7 @@ fun Card(
                 scaleX = pressScale
                 scaleY = pressScale
             }
+            .background(matteFill(), shape)
             .background(glassFill(accent), shape),
         shape = shape,
         colors = colors,
