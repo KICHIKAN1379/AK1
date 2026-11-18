@@ -110,6 +110,7 @@ internal fun HomeDashboardScreen(
                 )
             }
         }
+        HomeMissionFeatureCard(activeMissions) { open(Tab.MISSION_ACHIEVEMENTS) }
         WeeklyPulseCard(repo) { open(Tab.WEEKLY_PULSE) }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -198,6 +199,28 @@ private fun HomeIdentityHero(
                 Text("$month $year", color = Neon.Ice, fontSize = 9.sp)
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun HomeMissionFeatureCard(activeMissions: Int, onClick: () -> Unit) {
+    AkCard(onClick = onClick, modifier = Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            GlassIcon(GlassKind.XP, size = 44.dp, tint = Neon.Gold)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("مأموریت‌ها و دستاوردها", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "$activeMissions مأموریت فعال • مشاهده مسیر پیشرفت",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text("‹", color = Neon.Cyan, style = MaterialTheme.typography.headlineMedium)
         }
     }
 }
