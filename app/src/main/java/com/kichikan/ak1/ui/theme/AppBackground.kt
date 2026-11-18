@@ -29,13 +29,12 @@ object AppBackground {
     fun image(context: Context, mode: ThemeMode): ImageBitmap? {
         val custom = File(File(context.filesDir, DIR), FILE)
         val customBitmap = if (custom.exists()) BitmapFactory.decodeFile(custom.path) else null
-        val resource = when (mode) {
-            ThemeMode.FOREST -> R.drawable.theme_forest
-            ThemeMode.MYSTIC -> R.drawable.theme_mystic
-            ThemeMode.FROST -> R.drawable.theme_frost
-            ThemeMode.ROYAL -> R.drawable.theme_royal
-        }
-        val bitmap = customBitmap ?: BitmapFactory.decodeResource(context.resources, resource)
+        // Until the four source crops are bundled as separate resources, use the
+        // existing high-resolution stage artwork and let the selected palette tint it.
+        val bitmap = customBitmap ?: BitmapFactory.decodeResource(
+            context.resources,
+            R.drawable.app_background
+        )
         return bitmap?.asImageBitmap()
     }
 
