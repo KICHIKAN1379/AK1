@@ -27,7 +27,8 @@ internal class AppRepository(context: Context) :
     CatalogRepositoryPort,
     WheelRepositoryPort,
     AssistantRepositoryPort,
-    CatalogBootstrapperPort {
+    CatalogBootstrapperPort,
+    AppInitializationPort {
     private fun newId(prefix: String): String = "$prefix-${java.util.UUID.randomUUID()}"
     override val appContext = context.applicationContext
     private val persistence = AppPersistence(appContext)
@@ -47,20 +48,20 @@ internal class AppRepository(context: Context) :
         get() = state.ring
         internal set(value) { state.ring = value }
 
-    override val members: MutableList<Member> get() = state.members
-    override val history: MutableList<HistoryEvent> get() = state.history
-    override val shop: MutableList<ShopItem> get() = state.shop
-    override val missions: MutableList<Mission> get() = state.missions
-    override val missionCompletions: MutableList<MissionCompletion> get() = state.missionCompletions
-    override val missionRequests: MutableList<MissionRequest> get() = state.missionRequests
-    override val missionNotices: MutableList<MissionNotice> get() = state.missionNotices
-    override val sessions: MutableList<Session> get() = state.sessions
-    override val attendance: MutableList<Attendance> get() = state.attendance
-    override val assets: MutableList<CustomAsset> get() = state.assets
-    override val groups: MutableList<Group> get() = state.groups
-    override val archived: MutableList<ArchivedMember> get() = state.archived
-    override val assistantAlerts: MutableList<AssistantAlert> get() = state.assistantAlerts
-    override val assistantFollowUps: MutableList<AssistantFollowUp> get() = state.assistantFollowUps
+    override val members: RepositoryCollection<Member> get() = RepositoryCollection(state.members)
+    override val history: RepositoryCollection<HistoryEvent> get() = RepositoryCollection(state.history)
+    override val shop: RepositoryCollection<ShopItem> get() = RepositoryCollection(state.shop)
+    override val missions: RepositoryCollection<Mission> get() = RepositoryCollection(state.missions)
+    override val missionCompletions: RepositoryCollection<MissionCompletion> get() = RepositoryCollection(state.missionCompletions)
+    override val missionRequests: RepositoryCollection<MissionRequest> get() = RepositoryCollection(state.missionRequests)
+    override val missionNotices: RepositoryCollection<MissionNotice> get() = RepositoryCollection(state.missionNotices)
+    override val sessions: RepositoryCollection<Session> get() = RepositoryCollection(state.sessions)
+    override val attendance: RepositoryCollection<Attendance> get() = RepositoryCollection(state.attendance)
+    override val assets: RepositoryCollection<CustomAsset> get() = RepositoryCollection(state.assets)
+    override val groups: RepositoryCollection<Group> get() = RepositoryCollection(state.groups)
+    override val archived: RepositoryCollection<ArchivedMember> get() = RepositoryCollection(state.archived)
+    override val assistantAlerts: RepositoryCollection<AssistantAlert> get() = RepositoryCollection(state.assistantAlerts)
+    override val assistantFollowUps: RepositoryCollection<AssistantFollowUp> get() = RepositoryCollection(state.assistantFollowUps)
     override fun setRingState(value: RingAccount?) { ring = value }
     override fun setWheelState(value: WheelConfig) { wheel = value }
 
@@ -79,59 +80,26 @@ internal class AppRepository(context: Context) :
     private val catalogDomain by lazy(LazyThreadSafetyMode.NONE) { CatalogRepository(this) }
 
     init {
-        persistence.load()?.let { state ->
-            ring = state.ring
-            members += state.members
-            history += HistoryEvents.dedupeNewest(state.history)
-            shop += state.shop
-            wheel = state.wheel
-            missions += state.missions
-            missionCompletions += state.missionCompletions
-            missionRequests += state.missionRequests
-            missionNotices += state.missionNotices
-            sessions += state.sessions
-            attendance += state.attendance
-            assets += state.assets
-            groups += state.groups
-            archived += state.archived
-            assistantAlerts += state.assistantAlerts
-            assistantFollowUps += state.assistantFollowUps
+        persistence.load()?.let { loaded ->
+            ring = loaded.ring
+            members += loaded.members
+            history += HistoryEvents.dedupeNewest(loaded.history)
+            shop += loaded.shop
+            wheel = loaded.wheel
+            missions += loaded.missions
+            missionCompletions += loaded.missionCompletions
+            missionRequests += loaded.missionRequests
+            missionNotices += loaded.missionNotices
+            sessions += loaded.sessions
+            attendance += loaded.attendance
+            assets += loaded.assets
+            groups += loaded.groups
+            archived += loaded.archived
+            assistantAlerts += loaded.assistantAlerts
+            assistantFollowUps += loaded.assistantFollowUps
         }
-        val catalogPrefs = appContext.getSharedPreferences("ak1_settings", Context.MODE_PRIVATE)
-        if (!catalogPrefs.getBoolean("starter_catalog_created", false)) {
-            seedStarterCatalog(regenerate = false)
-            catalogPrefs.edit().putBoolean("starter_catalog_created", true).putInt("starter_art_version", AssetArt.ART_VERSION).apply()
-        } else if (catalogPrefs.getInt("starter_art_version", 0) < AssetArt.ART_VERSION) {
-            seedStarterCatalog(regenerate = true)
-            regenerateLevelAvatars()
-            catalogPrefs.edit().putInt("starter_art_version", AssetArt.ART_VERSION).apply()
-        }
-        // PNGs dropped into assets/art/profiles become giftable avatars/frames (see ProfilePack).
-        runCatching { syncProfilePack() }
-        runCatching { seedDefaultHiddenMissions() }
-        // Rank avatars/frames remain manual choices; level badges are earned automatically and selected in the treasure.
-        runCatching { RankArt.ensure(appContext) }
-        runCatching { syncRankPack() }
-        runCatching { bootstrapper.syncLevelBadgeOwnership() }
-        runCatching { syncGroupPack() }
-        runCatching { upgradeStarterLooks() }
-        runCatching { migrateNoFreeLooks() }
-        // Deliberately no automatic avatar/frame grants here: level only unlocks a manual claim.
-        persist()
-        // The 09:00 alarm used to be the only caller, so a birthday that fell on a day the phone
-        // was off was never rewarded. processBirthdayRewards() is idempotent per Jalali year,
-        // which makes this catch-up safe to run on every start.
-        runCatching { processBirthdayRewards() }
-        runCatching { evaluateAssistantAlerts() }
     }
 
-    private fun seedStarterCatalog(regenerate: Boolean) = bootstrapper.seedStarterCatalog(regenerate)
-    private fun syncProfilePack() = bootstrapper.syncProfilePack()
-    private fun syncRankPack() = bootstrapper.syncRankPack()
-    private fun syncGroupPack() = bootstrapper.syncGroupPack()
-    private fun regenerateLevelAvatars() = bootstrapper.regenerateLevelAvatars()
-    private fun upgradeStarterLooks() = bootstrapper.upgradeStarterLooks()
-    private fun migrateNoFreeLooks() = bootstrapper.migrateNoFreeLooks()
     fun setGroupLook(groupId: String, crestItemId: String?, cardItemId: String?) =
         bootstrapper.setGroupLook(groupId, crestItemId, cardItemId)
 
@@ -139,7 +107,7 @@ internal class AppRepository(context: Context) :
     fun updateRingProfile(name: String, username: String): RingAccount = memberDomain.updateRingProfile(name, username)
     fun addMember(name: String, birthDate: String? = null, responsibility: String = ""): Member =
         memberDomain.addMember(name, birthDate, responsibility)
-    fun processBirthdayRewards(now: Long = System.currentTimeMillis()): Int = memberDomain.processBirthdayRewards(now)
+    override fun processBirthdayRewards(now: Long): Int = memberDomain.processBirthdayRewards(now)
     fun addGroup(name: String): Group = memberDomain.addGroup(name)
     fun updateGroup(group: Group) = memberDomain.updateGroup(group)
     fun deleteGroup(groupId: String) = memberDomain.deleteGroup(groupId)
@@ -184,7 +152,7 @@ internal class AppRepository(context: Context) :
     fun addMission(mission: Mission) = missionDomain.addMission(mission)
     fun hiddenReceivedIds(missionId: String): Set<String> = missionDomain.hiddenReceivedIds(missionId)
     fun hiddenReceivedAt(memberId: String, missionId: String): Long? = missionDomain.hiddenReceivedAt(memberId, missionId)
-    private fun seedDefaultHiddenMissions() = missionDomain.seedDefaultHiddenMissions()
+    override fun seedDefaultHiddenMissions() = missionDomain.seedDefaultHiddenMissions()
     fun completeMission(mission: Mission, memberIds: List<String>, reason: String? = null): MissionCompletion =
         missionDomain.completeMission(mission, memberIds, reason)
     fun requestMission(memberId: String, missionId: String, message: String = ""): MissionRequest =
@@ -227,7 +195,7 @@ internal class AppRepository(context: Context) :
     fun upsertAssistantAlert(alert: AssistantAlert) = assistantDomain.upsertAlert(alert)
     fun markAssistantAlertDone(id: String, completedAtEpochMillis: Long = System.currentTimeMillis()) =
         assistantDomain.markAlertDone(id, completedAtEpochMillis)
-    fun evaluateAssistantAlerts(now: Long = System.currentTimeMillis()) = assistantDomain.evaluate(now)
+    override fun evaluateAssistantAlerts(now: Long) = assistantDomain.evaluate(now)
 
     override fun persist() {
         normaliseHistoryIds()

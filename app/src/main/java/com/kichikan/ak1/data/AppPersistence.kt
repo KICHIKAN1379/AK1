@@ -9,7 +9,7 @@ import com.kichikan.ak1.domain.assistant.*
  *
  * This adapter deliberately delegates the existing schema and migration behavior to
  * [LocalStore]. Keeping serialization behind this type lets domain repositories depend
- * on a stable persistence contract without changing the version-9 backup format.
+ * on a stable persistence contract without changing the schema-version-10 backup format.
  */
 internal class AppPersistence(context: Context) {
     private val store = LocalStore(context.applicationContext)

@@ -174,32 +174,43 @@ Online:
 Exports must be versioned for future migrations.
 
 
-## 11. Repository boundaries — 2026-11-16
+## 11. Repository boundaries — 2026-11-18
 
-The offline data layer now uses an incremental ports-and-adapters boundary:
+### Ownership and ports
 
-- `AppRepository` remains the compatibility facade used by existing screens and application flows.
-- `RepositoryState` owns the in-memory ring collections; domain repositories do not own duplicate copies.
-- `AppPersistence` remains the serialization boundary and delegates to `LocalStore`, preserving the existing backup schema and migration behavior.
-- `AppStatePublisher` publishes screen-oriented state snapshots after persistence; Compose state collection is scoped to the page that needs it rather than the root navigation composable where possible.
-- Member, economy, mission, session, catalog, wheel, assistant, and catalog-bootstrap operations depend on focused internal port interfaces rather than the concrete `AppRepository` class.
-- Cross-domain mutations are exposed as explicit economy commands on the ports that need them; repositories no longer call methods on the concrete facade.
+- `RepositoryState` is the in-memory source of truth. Its mutable lists remain private to the data-layer implementation and state publisher.
+- `AppRepository` is a compatibility facade: it loads persisted state, exposes the existing application commands, persists mutations, and publishes screen-oriented snapshots. It no longer performs first-run catalog orchestration in its constructor.
+- Domain repositories depend on focused internal ports for the collections and cross-domain commands they require; the ports no longer expose `MutableList`.
+- Port collections use `RepositoryCollection<T>`: a `List` query surface with snapshot iterators and copy-on-write command operations. A command edits a detached copy and commits only after the command completes successfully. No caller receives the backing mutable list or a mutable iterator.
+- Collection commands are atomic per collection. A business operation spanning several collections still follows the existing domain-repository sequence and persistence boundary; this refactor does not claim a new cross-collection transaction manager.
 
-### Compatibility and invariants
+### Startup and catalog synchronization
 
-This migration intentionally preserves:
+- `AK1Application` is the process composition root. It creates the single `AppRepository` and invokes `AppInitializer` before any Activity or Compose UI is created.
+- `AppRepository` loads the existing local state first. `AppInitializer` then coordinates starter catalog seeding, profile/rank/group pack synchronization, level-badge ownership backfill, starter-look migration, hidden-mission seeding, persistence, birthday catch-up, and assistant alert evaluation.
+- The original startup order and existing idempotency markers remain in use: SharedPreferences version/seed flags, stable history IDs, Jalali-year birthday records, and the alert engine's reconciliation behavior.
+- Optional synchronization steps retain their existing `runCatching` boundaries. Required first-run seeding and the final persistence call still surface failures rather than silently claiming initialization succeeded.
 
-- Existing facade method names and call signatures used by UI code.
-- Existing domain repository behavior and persistence timing.
-- The current local JSON/backup format and migration rules.
-- Existing member monitoring, birthday, mission, economy, and reward rules.
-- Existing navigation and approved UX decisions.
+### Compose state subscriptions
 
-The mutable collection surface is retained temporarily for compatibility. New code should use repository operations rather than mutating collections directly. A later migration can replace these collection ports with read-only query snapshots and command methods after call sites have been inventoried and covered by tests.
+- `AppStatePublisher` publishes immutable domain snapshots after persistence. Equal snapshots are suppressed by `StateFlow`, so an unrelated domain write does not emit a changed value for an unaffected domain.
+- `AK1App` does not collect member state at the navigation root. `GrowthMemberContent` collects `membersState` only while the growth destination is composed; other destinations collect the state they display.
+- `AppStatePublisherTest` verifies snapshot isolation and that mission-only changes do not replace unrelated member/session snapshots.
 
-### Next hardening steps
+### Persistence and backup compatibility
 
-1. Move startup catalog synchronization and first-run orchestration out of the `AppRepository` constructor into an explicit initializer.
-2. Replace mutable collection access with read-only query snapshots and transactional commands.
-3. Define persistence failure handling and serialization ownership for multi-domain mutations.
-4. Add repository contract tests and exercise the complete offline import/export path.
+- `AppPersistence` remains the serialization boundary and delegates to `LocalStore`.
+- The current stored JSON schema is version 10. `LocalStore` continues to accept schema versions 1 through 10 and retains the legacy monitoring-baseline migration.
+- Export preserves collection order. Import validates the candidate backup before replacing the saved payload; if parsing fails, the previous saved backup is restored. `AppRepository.importBackup` reloads the accepted state and republishes snapshots.
+- This work does not change schema keys, migrations, asset restoration rules, member records, missions, economy calculations, or UX behavior.
+
+### Contract and integration verification
+
+- `RepositoryCollectionTest` covers the read-only query surface, detached snapshots, command ordering, and failure atomicity.
+- `MemberRepositoryPortContractTest` covers member creation, archive/restore ordering, persistence calls, and the absence of a mutable-list port surface.
+- `AppRepositoryBackupContractTest` covers empty backups, ordered round trips, legacy schema-9 compatibility, and rollback after invalid imports.
+- `AppStatePublisherTest` continues to cover immutable snapshots and isolation of unrelated domains.
+
+### Remaining boundary
+
+The refactor narrows collection access and moves startup orchestration out of the repository/UI path without changing the persistence schema. Cross-domain operations still rely on the established repository call sequence and whole-state `persist()`; introducing durable multi-collection transactions or incremental persistence is outside this change's scope.

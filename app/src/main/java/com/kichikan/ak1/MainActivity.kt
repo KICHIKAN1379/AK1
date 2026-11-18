@@ -15,11 +15,9 @@ import com.kichikan.ak1.notification.DailyDateNotification
 import com.kichikan.ak1.ui.screens.AK1App
 
 class MainActivity : ComponentActivity() {
-    /**
-     * One repository for the whole process. The Activity owns it (instead of a composable) so the
-     * automatic `MRT` archive can read the latest state from [onStop].
-     */
-    private val repo: AppRepository by lazy { AppRepository(applicationContext) }
+    /** One application-scoped repository also used by the automatic MRT archive. */
+    private val repo: AppRepository
+        get() = (application as AK1Application).repository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

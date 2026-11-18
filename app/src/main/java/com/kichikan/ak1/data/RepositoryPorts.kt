@@ -10,6 +10,9 @@ import com.kichikan.ak1.domain.model.*
  *
  * Each repository receives only the state and cross-domain operations it currently needs.
  * These ports are internal migration seams, not public app APIs.
+ *
+ * Collections expose a List-only query surface. Mutations go through RepositoryCollection
+ * copy-on-write commands; the backing MutableList is never returned to a consumer.
  */
 internal interface EconomyMutationPort {
     fun recordXp(memberId: String, amount: Int, reason: String, actor: String? = null): Member
@@ -21,56 +24,56 @@ internal interface EconomyMutationPort {
 internal interface MemberRepositoryPort : EconomyMutationPort {
     val ring: RingAccount?
     fun setRingState(value: RingAccount?)
-    val members: MutableList<Member>
-    val history: MutableList<HistoryEvent>
-    val archived: MutableList<ArchivedMember>
-    val assistantAlerts: MutableList<AssistantAlert>
-    val assistantFollowUps: MutableList<AssistantFollowUp>
-    val attendance: MutableList<Attendance>
-    val sessions: MutableList<Session>
-    val missionCompletions: MutableList<MissionCompletion>
-    val groups: MutableList<Group>
+    val members: RepositoryCollection<Member>
+    val history: RepositoryCollection<HistoryEvent>
+    val archived: RepositoryCollection<ArchivedMember>
+    val assistantAlerts: RepositoryCollection<AssistantAlert>
+    val assistantFollowUps: RepositoryCollection<AssistantFollowUp>
+    val attendance: RepositoryCollection<Attendance>
+    val sessions: RepositoryCollection<Session>
+    val missionCompletions: RepositoryCollection<MissionCompletion>
+    val groups: RepositoryCollection<Group>
     fun persist()
 }
 
 internal interface EconomyRepositoryPort {
-    val members: MutableList<Member>
-    val history: MutableList<HistoryEvent>
-    val shop: MutableList<ShopItem>
+    val members: RepositoryCollection<Member>
+    val history: RepositoryCollection<HistoryEvent>
+    val shop: RepositoryCollection<ShopItem>
     fun updateMember(member: Member)
 }
 
 internal interface MissionRepositoryPort : EconomyMutationPort {
     val appContext: Context
-    val members: MutableList<Member>
-    val history: MutableList<HistoryEvent>
-    val missions: MutableList<Mission>
-    val missionCompletions: MutableList<MissionCompletion>
-    val missionNotices: MutableList<MissionNotice>
-    val missionRequests: MutableList<MissionRequest>
+    val members: RepositoryCollection<Member>
+    val history: RepositoryCollection<HistoryEvent>
+    val missions: RepositoryCollection<Mission>
+    val missionCompletions: RepositoryCollection<MissionCompletion>
+    val missionNotices: RepositoryCollection<MissionNotice>
+    val missionRequests: RepositoryCollection<MissionRequest>
     fun persist()
 }
 
 internal interface SessionRepositoryPort {
-    val members: MutableList<Member>
-    val sessions: MutableList<Session>
-    val attendance: MutableList<Attendance>
-    val history: MutableList<HistoryEvent>
+    val members: RepositoryCollection<Member>
+    val sessions: RepositoryCollection<Session>
+    val attendance: RepositoryCollection<Attendance>
+    val history: RepositoryCollection<HistoryEvent>
     fun persist()
 }
 
 internal interface CatalogRepositoryPort : EconomyMutationPort {
-    val assets: MutableList<CustomAsset>
-    val history: MutableList<HistoryEvent>
-    val members: MutableList<Member>
-    val shop: MutableList<ShopItem>
+    val assets: RepositoryCollection<CustomAsset>
+    val history: RepositoryCollection<HistoryEvent>
+    val members: RepositoryCollection<Member>
+    val shop: RepositoryCollection<ShopItem>
     fun persist()
 }
 
 internal interface WheelRepositoryPort : EconomyMutationPort {
-    val history: MutableList<HistoryEvent>
-    val members: MutableList<Member>
-    val shop: MutableList<ShopItem>
+    val history: RepositoryCollection<HistoryEvent>
+    val members: RepositoryCollection<Member>
+    val shop: RepositoryCollection<ShopItem>
     val wheel: WheelConfig
     fun setWheelState(value: WheelConfig)
     fun persist()
@@ -78,22 +81,30 @@ internal interface WheelRepositoryPort : EconomyMutationPort {
 
 internal interface AssistantRepositoryPort {
     val appContext: Context
-    val archived: MutableList<ArchivedMember>
-    val assistantAlerts: MutableList<AssistantAlert>
-    val assistantFollowUps: MutableList<AssistantFollowUp>
-    val history: MutableList<HistoryEvent>
-    val members: MutableList<Member>
-    val missionCompletions: MutableList<MissionCompletion>
-    val missionRequests: MutableList<MissionRequest>
-    val sessions: MutableList<Session>
+    val archived: RepositoryCollection<ArchivedMember>
+    val assistantAlerts: RepositoryCollection<AssistantAlert>
+    val assistantFollowUps: RepositoryCollection<AssistantFollowUp>
+    val history: RepositoryCollection<HistoryEvent>
+    val members: RepositoryCollection<Member>
+    val missionCompletions: RepositoryCollection<MissionCompletion>
+    val missionRequests: RepositoryCollection<MissionRequest>
+    val sessions: RepositoryCollection<Session>
     fun persist()
 }
 
 internal interface CatalogBootstrapperPort {
     val appContext: Context
-    val groups: MutableList<Group>
-    val history: MutableList<HistoryEvent>
-    val members: MutableList<Member>
-    val shop: MutableList<ShopItem>
+    val groups: RepositoryCollection<Group>
+    val history: RepositoryCollection<HistoryEvent>
+    val members: RepositoryCollection<Member>
+    val shop: RepositoryCollection<ShopItem>
     fun persist()
+}
+
+/** Startup work kept outside the repository constructor and Compose lifecycle. */
+internal interface AppInitializationPort {
+    fun seedDefaultHiddenMissions()
+    fun persist()
+    fun processBirthdayRewards(now: Long = System.currentTimeMillis()): Int
+    fun evaluateAssistantAlerts(now: Long = System.currentTimeMillis())
 }
