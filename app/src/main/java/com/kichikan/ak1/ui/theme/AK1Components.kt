@@ -69,7 +69,7 @@ fun Button(
         val fill = if (enabled) LocalButtonBrush.current else Brush.linearGradient(listOf(Color(0x1FFFFFFF), Color(0x1FFFFFFF)))
         Box(
             Modifier
-                .background(if (enabled) MatteFill else Color.Transparent, shape)
+                .background(if (enabled) Neon.CardBase else Color.Transparent, shape)
                 .then(if (enabled) Modifier.background(fill, shape).alpha(0.94f) else Modifier.background(fill, shape))
                 .then(
                     if (enabled) Modifier.background(
