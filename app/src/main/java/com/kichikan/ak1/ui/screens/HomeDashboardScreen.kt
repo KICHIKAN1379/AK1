@@ -151,11 +151,14 @@ private fun HomeIdentityHero(
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
         if (banner != null) {
             Image(bitmap = banner, contentDescription = null, modifier = Modifier.matchParentSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.24f)
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.22f)
+            Box(Modifier.matchParentSize().background(
+                Brush.horizontalGradient(
+                    listOf(Neon.Navy.copy(alpha = 0.88f), Neon.Indigo.copy(alpha = 0.72f), Neon.Navy.copy(alpha = 0.90f))
+                )
+            ))
         } else {
-            Box(Modifier.matchParentSize().background(Brush.linearGradient(listOf(
-                Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C)
-            ))))
+            Box(Modifier.matchParentSize().background(Neon.HeroBrush))
         }
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
