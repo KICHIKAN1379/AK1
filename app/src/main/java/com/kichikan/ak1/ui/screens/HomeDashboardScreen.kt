@@ -91,6 +91,13 @@ internal fun HomeDashboardScreen(
             photo = ringPhoto,
             banner = ringBanner
         )
+        val activeMissions = data.missions.count { it.active && !it.hidden }
+        val totalXp = data.members.sumOf { it.economy.xp }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            HomeStatCard("اعضا", data.members.size.toString(), Neon.Green, Modifier.weight(1f))
+            HomeStatCard("مأموریت فعال", activeMissions.toString(), Neon.Gold, Modifier.weight(1f))
+            HomeStatCard("XP حلقه", totalXp.toString(), Neon.Cyan, Modifier.weight(1f))
+        }
         if (!quote.isNullOrBlank()) {
             AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
                 Text(
@@ -191,6 +198,26 @@ private fun HomeIdentityHero(
                 Text("$month $year", color = Neon.Ice, fontSize = 9.sp)
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun HomeStatCard(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
+    AkCard(modifier = modifier.heightIn(min = 82.dp), accent = tint) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(value, color = tint, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+            Text(
+                label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
