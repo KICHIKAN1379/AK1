@@ -9,7 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.kichikan.ak1.data.AppRepository
+import com.kichikan.ak1.AK1Application
 import com.kichikan.ak1.domain.calendar.BirthdayRules
 import java.time.LocalDate
 import java.time.ZoneId
@@ -64,7 +64,7 @@ class BirthdayReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val appContext = context.applicationContext
         BirthdayReminderScheduler.ensureChannel(appContext)
-        val repo = AppRepository(appContext)
+        val repo = (appContext as AK1Application).repository
         if (repo.ring == null) {
             BirthdayReminderScheduler.schedule(appContext)
             return
