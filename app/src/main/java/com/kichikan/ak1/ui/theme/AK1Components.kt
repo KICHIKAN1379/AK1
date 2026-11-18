@@ -89,7 +89,7 @@ fun Button(
 }
 
 /** Frosted layer: a dark, mostly opaque veil so the background behind cards and buttons reads softly. */
-private val MatteFill: Color = Color(0xEB0A0622)
+private fun matteFill(): Color = Neon.CardBase
 
 private fun glassFill(accent: Color?) = Brush.linearGradient(
     listOf(
@@ -122,7 +122,7 @@ fun Card(
     content: @Composable ColumnScope.() -> Unit
 ) {
     androidx.compose.material3.Card(
-        modifier = modifier.background(MatteFill, shape).background(glassFill(accent), shape),
+        modifier = modifier.background(matteFill(), shape).background(glassFill(accent), shape),
         shape = shape,
         colors = colors,
         elevation = elevation,
