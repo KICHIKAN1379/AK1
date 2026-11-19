@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kichikan.ak1.R
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.data.DailyQuotes
@@ -153,7 +154,11 @@ private fun HomeIdentityHero(
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.22f)
             Box(Modifier.matchParentSize().background(
                 Brush.horizontalGradient(
-                    listOf(Neon.Navy.copy(alpha = 0.88f), Neon.Indigo.copy(alpha = 0.72f), Neon.Navy.copy(alpha = 0.90f))
+                    listOf(
+                        Neon.Navy.copy(alpha = 0.88f),
+                        Neon.Indigo.copy(alpha = 0.72f),
+                        Neon.Navy.copy(alpha = 0.90f)
+                    )
                 )
             ))
         } else {
@@ -195,16 +200,18 @@ private fun HomeIdentityHero(
 }
 
 @Composable
-private fun HomeMissionFeatureCard(activeMissions: Int, onClick: () -> Unit) {
-    AkCard(onClick = onClick, modifier = Modifier.fillMaxWidth(), accent = Neon.Cyan) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            GlassIcon(GlassKind.XP, size = 44.dp, tint = Neon.Gold)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("مأموریت‌ها@Composable
+private fun HeroMetricPill(label: String, value: String, tint: Color) {
+    Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.07f),
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.30f))) {
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(value, color = tint, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(label, color = Neon.Ice.copy(alpha = 0.78f), fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
 private fun TodayMissionBoard(
     sessionCount: Int, attendanceCount: Int, missionCount: Int,
     openSessions: () -> Unit, openWorkshop: () -> Unit
