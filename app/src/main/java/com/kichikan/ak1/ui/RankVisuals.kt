@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.domain.service.RankArt
 import com.kichikan.ak1.domain.service.RankSystem
 import com.kichikan.ak1.domain.service.RankTier
+import com.kichikan.ak1.ui.theme.Neon
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -107,11 +108,7 @@ fun ArtCardSurface(
     Box(
         modifier
             .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(Color(0xFF111721), Color(0xFF070A0F))
-                )
-            )
+            .background(Neon.HeroBrush)
             .border(1.dp, accent.copy(alpha = 0.30f), shape)
     ) {
         image?.let { card ->
