@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kichikan.ak1.R
 import com.kichikan.ak1.data.AppRepository
 import com.kichikan.ak1.data.DailyQuotes
@@ -91,13 +90,6 @@ internal fun HomeDashboardScreen(
             photo = ringPhoto,
             banner = ringBanner
         )
-        val activeMissions = data.missions.count { it.active && !it.hidden }
-        val totalXp = data.members.sumOf { it.economy.xp }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            HomeStatCard("اعضا", data.members.size.toString(), Neon.Green, Modifier.weight(1f))
-            HomeStatCard("مأموریت فعال", activeMissions.toString(), Neon.Gold, Modifier.weight(1f))
-            HomeStatCard("XP حلقه", totalXp.toString(), Neon.Cyan, Modifier.weight(1f))
-        }
         if (!quote.isNullOrBlank()) {
             AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
                 Text(
@@ -110,7 +102,6 @@ internal fun HomeDashboardScreen(
                 )
             }
         }
-        HomeMissionFeatureCard(activeMissions) { open(Tab.MISSION_ACHIEVEMENTS) }
         WeeklyPulseCard(repo) { open(Tab.WEEKLY_PULSE) }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -213,51 +204,7 @@ private fun HomeMissionFeatureCard(activeMissions: Int, onClick: () -> Unit) {
         ) {
             GlassIcon(GlassKind.XP, size = 44.dp, tint = Neon.Gold)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("مأموریت‌ها و دستاوردها", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "$activeMissions مأموریت فعال • مشاهده مسیر پیشرفت",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Text("‹", color = Neon.Cyan, style = MaterialTheme.typography.headlineMedium)
-        }
-    }
-}
-
-@Composable
-private fun HomeStatCard(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
-    AkCard(modifier = modifier.heightIn(min = 82.dp), accent = tint) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(value, color = tint, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
-            Text(
-                label,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeroMetricPill(label: String, value: String, tint: Color) {
-    Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.07f),
-        border = BorderStroke(1.dp, tint.copy(alpha = 0.30f))) {
-        Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(value, color = tint, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            Text(label, color = Neon.Ice.copy(alpha = 0.78f), fontSize = 10.sp)
-        }
-    }
-}
-
-@Composable
+                Text("مأموریت‌ها@Composable
 private fun TodayMissionBoard(
     sessionCount: Int, attendanceCount: Int, missionCount: Int,
     openSessions: () -> Unit, openWorkshop: () -> Unit
