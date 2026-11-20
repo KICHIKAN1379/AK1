@@ -100,7 +100,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
             Text("${current.name} • سطح ${current.economy.level}", style = MaterialTheme.typography.bodyMedium)
             if (showCategoryTabs) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Card(Modifier.weight(1f), accent = Neon.Gold) {
+                    Card(Modifier.weight(1f), accent = EconomyColors.SpendablePoints) {
                         Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelSmall)
                             Text(current.economy.spendablePoints.toString(), color = EconomyColors.SpendablePoints,
