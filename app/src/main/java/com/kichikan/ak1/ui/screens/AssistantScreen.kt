@@ -85,8 +85,7 @@ internal fun AssistantScreen(repo: AppRepository, padding: PaddingValues) {
 @Composable
 private fun AssistantHero(title: String, subtitle: String, count: Int, members: Int) {
  AkCard(Modifier.fillMaxWidth(), accent = Neon.Magenta) {
-  Box(Modifier.fillMaxWidth().background(Brush.linearGradient(
-   listOf(Color(0xFF20104B), Color(0xFF102D4E), Color(0xFF11142F))))) {
+  Box(Modifier.fillMaxWidth().background(Neon.HeroBrush)) {
    Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .76f))

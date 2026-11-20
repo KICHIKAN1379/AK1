@@ -270,7 +270,7 @@ private fun GrowthItemRow(name: String, unlockedDay: Long?, accent: UiColor, onT
         Modifier.fillMaxWidth(),
         accent = if (unlockedDay != null) accent else null,
         // Locked rows used the bright default glass edge (grey, glaring); use a dark, low-contrast edge instead.
-        border = if (unlockedDay != null) null else BorderStroke(1.dp, UiColor(0xFF26325E))
+        border = if (unlockedDay != null) null else BorderStroke(1.dp, Neon.Border.copy(alpha = 0.70f))
     ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),

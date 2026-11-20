@@ -27,6 +27,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -69,7 +70,7 @@ fun Button(
         val fill = if (enabled) LocalButtonBrush.current else Brush.linearGradient(listOf(Color(0x1FFFFFFF), Color(0x1FFFFFFF)))
         Box(
             Modifier
-                .background(if (enabled) MatteFill else Color.Transparent, shape)
+                .background(if (enabled) Neon.CardBase else Color.Transparent, shape)
                 .then(if (enabled) Modifier.background(fill, shape).alpha(0.94f) else Modifier.background(fill, shape))
                 .then(
                     if (enabled) Modifier.background(
@@ -89,7 +90,7 @@ fun Button(
 }
 
 /** Frosted layer: a dark, mostly opaque veil so the background behind cards and buttons reads softly. */
-private val MatteFill: Color = Color(0xEB0A0622)
+private fun matteFill(): Color = Neon.CardBase
 
 private fun glassFill(accent: Color?) = Brush.linearGradient(
     listOf(
@@ -122,7 +123,7 @@ fun Card(
     content: @Composable ColumnScope.() -> Unit
 ) {
     androidx.compose.material3.Card(
-        modifier = modifier.background(MatteFill, shape).background(glassFill(accent), shape),
+        modifier = modifier.clip(shape).background(matteFill(), shape).background(glassFill(accent), shape),
         shape = shape,
         colors = colors,
         elevation = elevation,
@@ -156,6 +157,8 @@ fun Card(
                 scaleX = pressScale
                 scaleY = pressScale
             }
+            .clip(shape)
+            .background(matteFill(), shape)
             .background(glassFill(accent), shape),
         shape = shape,
         colors = colors,

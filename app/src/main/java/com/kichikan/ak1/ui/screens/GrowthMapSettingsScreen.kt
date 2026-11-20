@@ -165,8 +165,8 @@ private fun GrowthSettingsSection(
                 val active = GrowthStore.isActive(prefs, category, item)
                 // Dark navy panel with a faint edge: the old light-grey surface was too bright against the dark theme.
                 Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(15.dp),
-                    color = androidx.compose.ui.graphics.Color(0xFF0F1633),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFF26325E))) {
+                    color = Neon.Deep,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Neon.Border)) {
                     Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

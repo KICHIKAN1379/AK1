@@ -44,6 +44,7 @@ import com.kichikan.ak1.domain.model.ShopItem
 import com.kichikan.ak1.domain.model.ShopItemType
 import com.kichikan.ak1.domain.service.ShopService
 import com.kichikan.ak1.ui.theme.Card
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.LocalAk1Background
 import com.kichikan.ak1.ui.theme.Neon
 
@@ -112,16 +113,31 @@ fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, c
         Surface(Modifier.fillMaxSize(), color = Color.Transparent) {
             Column(Modifier.fillMaxSize().background(LocalAk1Background.current).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 TextButton(onClick = { finish() }) { Text("→ بازگشت") }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    RankedAvatar(avatarPath, framePath, member.economy.level, 104.dp, member.name)
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("گنجینه ${member.name}", style = MaterialTheme.typography.headlineSmall)
-                            RankBadge(badgePath, 22.dp)
+                Card(Modifier.fillMaxWidth(), accent = Neon.Cyan) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            RankedAvatar(avatarPath, framePath, member.economy.level, 92.dp, member.name)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("گنجینه ${member.name}", style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                                    RankBadge(badgePath, 22.dp)
+                                }
+                                RankTierChip(member.economy.level)
+                            }
                         }
-                        RankTierChip(member.economy.level)
-                        Text("سطح ${member.economy.level} • XP ${member.economy.xp}", style = MaterialTheme.typography.bodyMedium)
-                        Text("امتیاز ${member.economy.spendablePoints} • 💎 ${member.economy.diamonds}", style = MaterialTheme.typography.bodyMedium, color = Neon.Gold)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                TreasureMetric("XP", member.economy.xp.toString(), EconomyColors.Xp, Modifier.weight(1f))
+                                TreasureMetric("امتیاز قابل‌خرج", member.economy.spendablePoints.toString(), EconomyColors.SpendablePoints, Modifier.weight(1f))
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                TreasureMetric("الماس", member.economy.diamonds.toString(), EconomyColors.Diamonds, Modifier.weight(1f))
+                                TreasureMetric("سطح", member.economy.level.toString(), EconomyColors.Level, Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -276,6 +292,25 @@ fun TreasureDialog(repo: AppRepository, memberId: String, changed: () -> Unit, c
                     }
                 }
             }
+        }
+
+    }
+}
+
+@Composable
+private fun TreasureMetric(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = accent.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium, color = accent)
         }
     }
 }

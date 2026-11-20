@@ -8,13 +8,17 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -43,6 +47,51 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Icon + label used inside the wide settings buttons. */
+@Composable
+private fun ThemePreviewCard(
+    mode: ThemeMode,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val swatches = when (mode) {
+        ThemeMode.NEON -> listOf(Color(0xFF153B2B), Color(0xFF68E2B2), Color(0xFFF1CC75))
+        ThemeMode.ARCADE -> listOf(Color(0xFF39205F), Color(0xFFB69AFF), Color(0xFFEA86D8))
+        ThemeMode.MIDNIGHT -> listOf(Color(0xFF153B5C), Color(0xFF75DFFF), Color(0xFF9D9EFF))
+        ThemeMode.AMOLED -> listOf(Color(0xFF51401D), Color(0xFFECC96F), Color(0xFF62C7B3))
+    }
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(68.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            if (selected) 1.7.dp else 1.dp,
+            if (selected) Neon.Cyan else MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(mode.label, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (selected) "تم فعال" else "انتخاب تم",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                swatches.forEach { color ->
+                    Box(Modifier.size(12.dp).clip(CircleShape).background(color))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ActionLabel(icon: Int, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -303,15 +352,24 @@ internal fun SettingsScreen(repo: AppRepository, padding: PaddingValues, changed
                     }) { Text("بازگشت به موزیک پیش‌فرض") }
                 }
                 Text("ظاهر برنامه", style = MaterialTheme.typography.titleMedium)
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ThemeMode.entries.forEach { mode ->
-                        FilterChip(selected = ThemeState.mode == mode,
-                            onClick = { ThemeState.set(context, mode) }, label = { Text(mode.label) })
+                ThemeMode.entries.chunked(2).forEach { rowModes ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        rowModes.forEach { mode ->
+                            ThemePreviewCard(
+                                mode = mode,
+                                selected = ThemeState.mode == mode,
+                                onClick = { ThemeState.set(context, mode) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowModes.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
-                Text("تم انتخابی بلافاصله اعمال و ذخیره می‌شود.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "هر تم، رنگ پس‌زمینه، کارت‌ها، کادرها، دکمه‌ها، آیکون‌ها و منوها را هماهنگ تغییر می‌دهد. پوشش تیره‌ی پس‌زمینه برای حفظ خوانایی نوشته‌ها فعال است.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedButton(onClick = { backgroundPicker.launch(arrayOf("image/*")) },
                     modifier = Modifier.fillMaxWidth()) { Text("تغییر پس‌زمینه‌ی برنامه") }
                 OutlinedButton(onClick = {

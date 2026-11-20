@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.ui.Exports
@@ -82,11 +83,15 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("مدیریت اعضا و گروه‌ها", style = MaterialTheme.typography.titleLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniStat("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
-                    MiniStat("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
-                    MiniStat("مسئولیت‌ها", "${repo.members.count { it.responsibility.isNotBlank() }}", Neon.Green, Modifier.weight(1f))
-                    MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", Neon.Gold, Modifier.weight(1f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStat("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
+                        MiniStat("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStat("مسئولیت‌ها", "${repo.members.count { it.responsibility.isNotBlank() }}", Neon.Green, Modifier.weight(1f))
+                        MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -177,13 +182,18 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                                     RankTierChip(m.economy.level)
                                 }
                                 LevelProgress(xp = m.economy.xp, level = m.economy.level)
-                                Text(
-                                    "XP ${m.economy.xp}  •  امتیاز ${m.economy.spendablePoints}  •  💎 ${m.economy.diamonds}" +
-                                        (repo.groups.firstOrNull { it.id == m.groupId }?.name?.let { "  •  $it" } ?: ""),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("XP ${m.economy.xp}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.Xp, maxLines = 1)
+                                    Text("امتیاز ${m.economy.spendablePoints}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.SpendablePoints, maxLines = 1)
+                                    Text("💎 ${m.economy.diamonds}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.Diamonds, maxLines = 1)
+                                }
+                                repo.groups.firstOrNull { it.id == m.groupId }?.name?.let { groupName ->
+                                    Text(groupName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                }
                             }
                             Text("‹", style = MaterialTheme.typography.titleLarge, color = Neon.Cyan)
                         }
@@ -348,9 +358,9 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                         Text(g.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniStat("امتیاز", "${g.economy.spendablePoints}", Neon.Gold, Modifier.weight(1f))
-                        MiniStat("الماس", "${g.economy.diamonds}", Neon.Cyan, Modifier.weight(1f))
-                        MiniStat("کل XP", "${groupMembers.sumOf { it.economy.xp }}", Neon.Green, Modifier.weight(1f))
+                        MiniStat("امتیاز", "${g.economy.spendablePoints}", EconomyColors.SpendablePoints, Modifier.weight(1f))
+                        MiniStat("الماس", "${g.economy.diamonds}", EconomyColors.Diamonds, Modifier.weight(1f))
+                        MiniStat("کل XP", "${groupMembers.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
                     }
                     Text("اعضای گروه", style = MaterialTheme.typography.titleSmall)
                     if (groupMembers.isEmpty()) Text("هنوز عضوی در این گروه نیست.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -752,11 +762,15 @@ private fun MemberProfileDialog(
                                 }
                             }
                             LevelProgress(xp = member.economy.xp, level = member.economy.level)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                MiniStat("سطح", member.economy.level.toString(), Neon.Cyan, Modifier.weight(1f))
-                                MiniStat("XP", member.economy.xp.toString(), Neon.Violet, Modifier.weight(1f))
-                                MiniStat("امتیاز", member.economy.spendablePoints.toString(), Neon.Gold, Modifier.weight(1f))
-                                MiniStat("الماس", member.economy.diamonds.toString(), Neon.Green, Modifier.weight(1f))
+                            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    MiniStat("سطح", member.economy.level.toString(), EconomyColors.Level, Modifier.weight(1f))
+                                    MiniStat("XP", member.economy.xp.toString(), EconomyColors.Xp, Modifier.weight(1f))
+                                }
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    MiniStat("امتیاز", member.economy.spendablePoints.toString(), EconomyColors.SpendablePoints, Modifier.weight(1f))
+                                    MiniStat("الماس", member.economy.diamonds.toString(), EconomyColors.Diamonds, Modifier.weight(1f))
+                                }
                             }
                         }
                     }

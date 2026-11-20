@@ -48,6 +48,7 @@ import com.kichikan.ak1.ui.theme.Card as AkCard
 import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
 import com.kichikan.ak1.ui.theme.Motion
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 import androidx.compose.runtime.setValue
 import java.time.Instant
@@ -151,11 +152,18 @@ private fun HomeIdentityHero(
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
         if (banner != null) {
             Image(bitmap = banner, contentDescription = null, modifier = Modifier.matchParentSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.24f)
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop, alpha = 0.22f)
+            Box(Modifier.matchParentSize().background(
+                Brush.horizontalGradient(
+                    listOf(
+                        Neon.Navy.copy(alpha = 0.88f),
+                        Neon.Indigo.copy(alpha = 0.72f),
+                        Neon.Navy.copy(alpha = 0.90f)
+                    )
+                )
+            ))
         } else {
-            Box(Modifier.matchParentSize().background(Brush.linearGradient(listOf(
-                Color(0xFF102E59), Color(0xFF241052), Color(0xFF101A3C)
-            ))))
+            Box(Modifier.matchParentSize().background(Neon.HeroBrush))
         }
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -424,9 +432,9 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HeroMetricPill("اعضا", data.members.size.toString(), Neon.Violet)
-            HeroMetricPill("XP", totalXp.toString(), Neon.Cyan)
-            HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
-            HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Sky)
+            HeroMetricPill("XP", totalXp.toString(), EconomyColors.Xp)
+            HeroMetricPill("امتیاز", totalPoints.toString(), EconomyColors.SpendablePoints)
+            HeroMetricPill("الماس", totalDiamonds.toString(), EconomyColors.Diamonds)
         }
 
         AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
