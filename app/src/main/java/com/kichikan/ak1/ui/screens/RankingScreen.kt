@@ -173,7 +173,7 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
                                 title = m.name,
                                 caption = "سطح ${m.economy.level} • XP ${m.economy.xp}",
                                 fraction = fraction,
-                                accent = Neon.Cyan,
+                                accent = EconomyColors.Xp,
                                 avatar = avatarOf(m),
                                 frame = frameOf(m),
                                 letter = m.name,
