@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.domain.model.LevelRules
 import com.kichikan.ak1.ui.theme.Motion
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 
 /**
@@ -60,7 +61,7 @@ fun LevelProgress(
                     .fillMaxWidth(fill)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(50))
-                    .background(Brush.horizontalGradient(listOf(Neon.Cyan, Neon.Sky, Neon.Violet)))
+                    .background(Brush.horizontalGradient(listOf(EconomyColors.Xp.copy(alpha = 0.78f), EconomyColors.Xp)))
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -72,7 +73,7 @@ fun LevelProgress(
             Text(
                 if (remaining == 0) "آمادهٔ سطح بعد" else "تا سطح بعد $remaining XP",
                 style = MaterialTheme.typography.labelSmall,
-                color = Neon.Cyan
+                color = EconomyColors.Level
             )
         }
     }
