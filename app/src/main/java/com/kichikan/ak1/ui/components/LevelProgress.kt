@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.domain.model.LevelRules
 import com.kichikan.ak1.ui.theme.Motion
 import com.kichikan.ak1.ui.theme.EconomyColors
-import com.kichikan.ak1.ui.theme.Neon
 
 /**
  * XP bar for one member.
