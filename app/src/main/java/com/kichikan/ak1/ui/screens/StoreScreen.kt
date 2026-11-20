@@ -107,7 +107,7 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                                 style = MaterialTheme.typography.titleLarge)
                         }
                     }
-                    Card(Modifier.weight(1f), accent = Neon.Cyan) {
+                    Card(Modifier.weight(1f), accent = EconomyColors.Diamonds) {
                         Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("الماس", style = MaterialTheme.typography.labelSmall)
                             Text(current.economy.diamonds.toString(), color = EconomyColors.Diamonds,
