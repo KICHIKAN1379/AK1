@@ -83,9 +83,9 @@ private fun ThemePreviewCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 swatches.forEach { color ->
-                    Box(Modifier.size(11.dp).clip(CircleShape).background(color))
+                    Box(Modifier.size(12.dp).clip(CircleShape).background(color))
                 }
             }
         }
