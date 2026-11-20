@@ -762,11 +762,15 @@ private fun MemberProfileDialog(
                                 }
                             }
                             LevelProgress(xp = member.economy.xp, level = member.economy.level)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                MiniStat("سطح", member.economy.level.toString(), EconomyColors.Level, Modifier.weight(1f))
-                                MiniStat("XP", member.economy.xp.toString(), EconomyColors.Xp, Modifier.weight(1f))
-                                MiniStat("امتیاز", member.economy.spendablePoints.toString(), EconomyColors.SpendablePoints, Modifier.weight(1f))
-                                MiniStat("الماس", member.economy.diamonds.toString(), EconomyColors.Diamonds, Modifier.weight(1f))
+                            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    MiniStat("سطح", member.economy.level.toString(), EconomyColors.Level, Modifier.weight(1f))
+                                    MiniStat("XP", member.economy.xp.toString(), EconomyColors.Xp, Modifier.weight(1f))
+                                }
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    MiniStat("امتیاز", member.economy.spendablePoints.toString(), EconomyColors.SpendablePoints, Modifier.weight(1f))
+                                    MiniStat("الماس", member.economy.diamonds.toString(), EconomyColors.Diamonds, Modifier.weight(1f))
+                                }
                             }
                         }
                     }
