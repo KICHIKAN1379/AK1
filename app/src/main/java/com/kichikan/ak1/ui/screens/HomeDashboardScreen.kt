@@ -48,6 +48,7 @@ import com.kichikan.ak1.ui.theme.Card as AkCard
 import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
 import com.kichikan.ak1.ui.theme.Motion
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 import androidx.compose.runtime.setValue
 import java.time.Instant
@@ -431,9 +432,9 @@ internal fun WeeklyPulseDetailScreen(repo: AppRepository, padding: PaddingValues
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HeroMetricPill("اعضا", data.members.size.toString(), Neon.Violet)
-            HeroMetricPill("XP", totalXp.toString(), Neon.Cyan)
-            HeroMetricPill("امتیاز", totalPoints.toString(), Neon.Gold)
-            HeroMetricPill("الماس", totalDiamonds.toString(), Neon.Sky)
+            HeroMetricPill("XP", totalXp.toString(), EconomyColors.Xp)
+            HeroMetricPill("امتیاز", totalPoints.toString(), EconomyColors.SpendablePoints)
+            HeroMetricPill("الماس", totalDiamonds.toString(), EconomyColors.Diamonds)
         }
 
         AkCard(Modifier.fillMaxWidth(), accent = Neon.Violet) {
