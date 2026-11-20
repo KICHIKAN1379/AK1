@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.ui.Exports
@@ -86,7 +87,7 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                     MiniStat("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
                     MiniStat("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
                     MiniStat("مسئولیت‌ها", "${repo.members.count { it.responsibility.isNotBlank() }}", Neon.Green, Modifier.weight(1f))
-                    MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", Neon.Gold, Modifier.weight(1f))
+                    MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
                 }
             }
         }
@@ -348,9 +349,9 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                         Text(g.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniStat("امتیاز", "${g.economy.spendablePoints}", Neon.Gold, Modifier.weight(1f))
-                        MiniStat("الماس", "${g.economy.diamonds}", Neon.Cyan, Modifier.weight(1f))
-                        MiniStat("کل XP", "${groupMembers.sumOf { it.economy.xp }}", Neon.Green, Modifier.weight(1f))
+                        MiniStat("امتیاز", "${g.economy.spendablePoints}", EconomyColors.SpendablePoints, Modifier.weight(1f))
+                        MiniStat("الماس", "${g.economy.diamonds}", EconomyColors.Diamonds, Modifier.weight(1f))
+                        MiniStat("کل XP", "${groupMembers.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
                     }
                     Text("اعضای گروه", style = MaterialTheme.typography.titleSmall)
                     if (groupMembers.isEmpty()) Text("هنوز عضوی در این گروه نیست.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -753,10 +754,10 @@ private fun MemberProfileDialog(
                             }
                             LevelProgress(xp = member.economy.xp, level = member.economy.level)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                MiniStat("سطح", member.economy.level.toString(), Neon.Cyan, Modifier.weight(1f))
-                                MiniStat("XP", member.economy.xp.toString(), Neon.Violet, Modifier.weight(1f))
-                                MiniStat("امتیاز", member.economy.spendablePoints.toString(), Neon.Gold, Modifier.weight(1f))
-                                MiniStat("الماس", member.economy.diamonds.toString(), Neon.Green, Modifier.weight(1f))
+                                MiniStat("سطح", member.economy.level.toString(), EconomyColors.Level, Modifier.weight(1f))
+                                MiniStat("XP", member.economy.xp.toString(), EconomyColors.Xp, Modifier.weight(1f))
+                                MiniStat("امتیاز", member.economy.spendablePoints.toString(), EconomyColors.SpendablePoints, Modifier.weight(1f))
+                                MiniStat("الماس", member.economy.diamonds.toString(), EconomyColors.Diamonds, Modifier.weight(1f))
                             }
                         }
                     }
