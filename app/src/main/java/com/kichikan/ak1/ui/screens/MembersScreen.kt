@@ -83,11 +83,15 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("مدیریت اعضا و گروه‌ها", style = MaterialTheme.typography.titleLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniStat("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
-                    MiniStat("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
-                    MiniStat("مسئولیت‌ها", "${repo.members.count { it.responsibility.isNotBlank() }}", Neon.Green, Modifier.weight(1f))
-                    MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStat("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
+                        MiniStat("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStat("مسئولیت‌ها", "${repo.members.count { it.responsibility.isNotBlank() }}", Neon.Green, Modifier.weight(1f))
+                        MiniStat("کل XP", "${repo.members.sumOf { it.economy.xp }}", EconomyColors.Xp, Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -178,13 +182,18 @@ internal fun MembersScreen(repo: AppRepository, padding: PaddingValues, changed:
                                     RankTierChip(m.economy.level)
                                 }
                                 LevelProgress(xp = m.economy.xp, level = m.economy.level)
-                                Text(
-                                    "XP ${m.economy.xp}  •  امتیاز ${m.economy.spendablePoints}  •  💎 ${m.economy.diamonds}" +
-                                        (repo.groups.firstOrNull { it.id == m.groupId }?.name?.let { "  •  $it" } ?: ""),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("XP ${m.economy.xp}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.Xp, maxLines = 1)
+                                    Text("امتیاز ${m.economy.spendablePoints}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.SpendablePoints, maxLines = 1)
+                                    Text("💎 ${m.economy.diamonds}", style = MaterialTheme.typography.labelSmall, color = EconomyColors.Diamonds, maxLines = 1)
+                                }
+                                repo.groups.firstOrNull { it.id == m.groupId }?.name?.let { groupName ->
+                                    Text(groupName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                }
                             }
                             Text("‹", style = MaterialTheme.typography.titleLarge, color = Neon.Cyan)
                         }
