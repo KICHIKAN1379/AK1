@@ -132,6 +132,14 @@ private fun colorSchemeFor(p: ThemePalette): ColorScheme = darkColorScheme(
     surfaceContainerHighest=p.surfaceHighest
 )
 
+/** Stable semantic colors for economy values; theme changes must not change what each value means. */
+object EconomyColors {
+    val Xp = Color(0xFFA855F7)
+    val SpendablePoints = Color(0xFFF59E0B)
+    val Diamonds = Color(0xFF00E5FF)
+    val Level = Color(0xFF3B82F6)
+}
+
 val LocalAk1Background = staticCompositionLocalOf { Neon.BackgroundBrush }
 val LocalButtonBrush = staticCompositionLocalOf { Neon.ButtonBrush }
 
