@@ -27,6 +27,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -122,7 +123,7 @@ fun Card(
     content: @Composable ColumnScope.() -> Unit
 ) {
     androidx.compose.material3.Card(
-        modifier = modifier.background(matteFill(), shape).background(glassFill(accent), shape),
+        modifier = modifier.clip(shape).background(matteFill(), shape).background(glassFill(accent), shape),
         shape = shape,
         colors = colors,
         elevation = elevation,
@@ -156,6 +157,7 @@ fun Card(
                 scaleX = pressScale
                 scaleY = pressScale
             }
+            .clip(shape)
             .background(matteFill(), shape)
             .background(glassFill(accent), shape),
         shape = shape,
