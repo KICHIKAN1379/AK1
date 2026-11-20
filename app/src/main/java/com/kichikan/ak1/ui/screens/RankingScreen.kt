@@ -41,6 +41,7 @@ import com.kichikan.ak1.ui.ArtCardSurface
 import com.kichikan.ak1.ui.RankBadge
 import com.kichikan.ak1.ui.RankTierChip
 import com.kichikan.ak1.ui.RankedAvatar
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 
 private data class PodiumEntry(
@@ -114,8 +115,8 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
         if (!groups) {
             item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RankingMetric("اعضا", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
-                RankingMetric("میانگین سطح", "$averageLevel", Neon.Violet, Modifier.weight(1f))
-                RankingMetric("XP کل", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
+                RankingMetric("میانگین سطح", "$averageLevel", EconomyColors.Level, Modifier.weight(1f))
+                RankingMetric("XP کل", totalXp.toString(), EconomyColors.Xp, Modifier.weight(1f))
             } }
             item { OutlinedTextField(
                 value = query, onValueChange = { query = it },
@@ -134,7 +135,7 @@ internal fun RankingScreen(repo: AppRepository, padding: PaddingValues, groups: 
             item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RankingMetric("گروه‌ها", "${repo.groups.size}", Neon.Violet, Modifier.weight(1f))
                 RankingMetric("اعضای فعال", "${repo.members.size}", Neon.Cyan, Modifier.weight(1f))
-                RankingMetric("XP حلقه", totalXp.toString(), Neon.Gold, Modifier.weight(1f))
+                RankingMetric("XP حلقه", totalXp.toString(), EconomyColors.Xp, Modifier.weight(1f))
             } }
         }
         item { Button(onClick = { rankingExporter.launch(if (groups) "رتبه‌بندی-گروه‌ها.jpg" else "رتبه‌بندی-اعضا.jpg") }, modifier = Modifier.fillMaxWidth()) { Text("خروجی JPEG رتبه‌بندی") } }
