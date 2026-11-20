@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.ui.theme.AppIcon
 import com.kichikan.ak1.ui.theme.Button
 import com.kichikan.ak1.ui.theme.Card
+import com.kichikan.ak1.ui.theme.EconomyColors
 import com.kichikan.ak1.ui.theme.Neon
 import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.ui.Exports
@@ -102,14 +103,14 @@ internal fun StoreScreen(repo: AppRepository, padding: PaddingValues, filter: Sh
                     Card(Modifier.weight(1f), accent = Neon.Gold) {
                         Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("امتیاز قابل‌خرج", style = MaterialTheme.typography.labelSmall)
-                            Text(current.economy.spendablePoints.toString(), color = Neon.Gold,
+                            Text(current.economy.spendablePoints.toString(), color = EconomyColors.SpendablePoints,
                                 style = MaterialTheme.typography.titleLarge)
                         }
                     }
                     Card(Modifier.weight(1f), accent = Neon.Cyan) {
                         Column(Modifier.fillMaxWidth().padding(11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("الماس", style = MaterialTheme.typography.labelSmall)
-                            Text(current.economy.diamonds.toString(), color = Neon.Cyan,
+                            Text(current.economy.diamonds.toString(), color = EconomyColors.Diamonds,
                                 style = MaterialTheme.typography.titleLarge)
                         }
                     }
