@@ -209,19 +209,8 @@ fun AK1Theme(content: @Composable () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                // A strong, theme-tinted scrim keeps text and controls readable over
-                // bright artwork, even on screens with dense cards and data tables.
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(
-                            listOf(
-                                palette.backgroundTop.copy(alpha = 0.78f),
-                                palette.backgroundMid.copy(alpha = 0.82f),
-                                palette.backgroundBottom.copy(alpha = 0.88f)
-                            )
-                        )
-                    )
-                )
+                // Keep the artwork's original colors. Readability is handled by
+                // the themed surfaces and cards, not a full-screen color overlay.
             }
             CompositionLocalProvider(
                 LocalContentColor provides scheme.onBackground,
