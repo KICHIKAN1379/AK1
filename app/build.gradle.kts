@@ -22,7 +22,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 24
-        versionName = "1.22.0"
+        versionName = "1.30.0"
     }
     signingConfigs {
         if (useAk1Key) {

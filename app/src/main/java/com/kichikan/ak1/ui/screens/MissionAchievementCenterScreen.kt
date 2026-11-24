@@ -41,7 +41,7 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         }
         Card(shape = RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = Color.Transparent), border = BorderStroke(1.dp, Neon.Cyan.copy(alpha = .34f))) {
             Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF102B50), Color(0xFF211344), Color(0xFF111B35)))).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("مأموریت‌ها و دستاوردها", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                Text("مأموریت‌ها", color = Color.White, style = MaterialTheme.typography.headlineSmall)
                 Text("مسیر پیشرفت اعضا؛ از مأموریت‌های فعال تا نشان‌های افتخار", color = Neon.Ice)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Metric("مأموریت فعال", missions.size.toString(), Neon.Cyan, Modifier.weight(1f))
@@ -52,9 +52,8 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected == 0, { selected = 0 }, label = { Text("مأموریت‌ها") })
-            FilterChip(selected == 1, { selected = 1 }, label = { Text("دستاوردها") })
-            FilterChip(selected == 2, { selected = 2 }, label = { Text("پازل گروهی") })
-            FilterChip(selected == 3, { selected = 3 }, label = { Text("گزارش") })
+            FilterChip(selected == 1, { selected = 1 }, label = { Text("پازل گروهی") })
+            FilterChip(selected == 2, { selected = 2 }, label = { Text("گزارش") })
         }
         if (selected == 0) {
             Text("عملیات در جریان", style = MaterialTheme.typography.titleLarge)
@@ -80,32 +79,6 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
                 }
             }
         } else if (selected == 1) {
-            Text("نشان‌های مسیر رشد", style = MaterialTheme.typography.titleLarge)
-            Text("دستاوردها بر اساس داده‌های واقعی اعضا و نردبان رتبه AK1 محاسبه می‌شوند.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            val achievements = listOf(
-                AchievementRow("آغاز مسیر", "رسیدن به سطح ۱", repo.members.count { it.economy.level >= 1 }, Neon.Cyan),
-                AchievementRow("جنگجوی پرتلاش", "رسیدن به سطح ۵", repo.members.count { it.economy.level >= 5 }, Neon.Green),
-                AchievementRow("قهرمان حلقه", "رسیدن به سطح ۷", repo.members.count { it.economy.level >= 7 }, Neon.Gold),
-                AchievementRow("اسطوره", "رسیدن به سطح ۱۴", repo.members.count { it.economy.level >= 14 }, Neon.Violet),
-                AchievementRow("پیشگام مأموریت", "ثبت حداقل یک مأموریت", repo.members.count { member -> repo.history.any { it.memberId == member.id && it.type == HistoryType.MISSION_COMPLETED } }, Neon.Magenta)
-            )
-            achievements.forEach { (title, description, count, tint) ->
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), border = BorderStroke(1.dp, tint.copy(alpha = .30f))) {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(Modifier.size(46.dp).background(tint.copy(alpha = .14f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) { Text("✦", color = tint, style = MaterialTheme.typography.headlineSmall) }
-                        Column(Modifier.weight(1f)) {
-                            Text(title, style = MaterialTheme.typography.titleMedium)
-                            Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(count.toString(), color = tint, style = MaterialTheme.typography.titleLarge)
-                            Text("عضو", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            Text("نردبان افتخار", style = MaterialTheme.typography.titleLarge)
-        } else if (selected == 2) {
             GroupPuzzleTab(repo, changed)
         } else {
             Text("جدول عملکرد اعضا", style = MaterialTheme.typography.titleLarge)
@@ -153,8 +126,6 @@ internal fun MissionAchievementCenterScreen(repo: AppRepository, padding: Paddin
         }
     }
 }
-
-private data class AchievementRow(val title: String, val description: String, val count: Int, val tint: Color)
 
 @Composable
 private fun Metric(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {

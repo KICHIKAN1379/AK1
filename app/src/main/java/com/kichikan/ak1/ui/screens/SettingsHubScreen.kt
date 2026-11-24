@@ -22,7 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.kichikan.ak1.R
 import com.kichikan.ak1.ui.theme.AppIcon
-import com.kichikan.ak1.ui.theme.Neon
+import com.kichikan.ak1.ui.theme.CardSurfaceFill
 
 private data class SettingsHubItem(val title: String, val icon: Int, val action: () -> Unit)
 
@@ -59,8 +59,8 @@ internal fun SettingsHubScreen(
                         modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(20.dp))
                             .clickable(onClick = item.action),
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Neon.Cyan.copy(alpha = 0.20f))
+                        color = CardSurfaceFill,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFF3A2B55))
                     ) {
                         Column(Modifier.fillMaxSize().padding(9.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
