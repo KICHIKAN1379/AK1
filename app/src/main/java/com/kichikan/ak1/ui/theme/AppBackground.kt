@@ -15,8 +15,8 @@ import java.io.FileOutputStream
 import kotlin.math.max
 
 /**
- * Resolves the current theme artwork. A mentor-selected custom image remains an
- * optional override; otherwise each complete theme uses its own bundled stage art.
+ * Resolves the shared forest-mountain artwork used by all four themes for now.
+ * A mentor-selected custom image remains an optional override.
  */
 object AppBackground {
     private const val DIR = "background"
@@ -29,8 +29,8 @@ object AppBackground {
     fun image(context: Context, mode: ThemeMode): ImageBitmap? {
         val custom = File(File(context.filesDir, DIR), FILE)
         val customBitmap = if (custom.exists()) BitmapFactory.decodeFile(custom.path) else null
-        // Until the four source crops are bundled as separate resources, use the
-        // existing high-resolution stage artwork and let the selected palette tint it.
+        // The supplied forest-mountain artwork is intentionally shared by FOREST,
+        // MYSTIC, FROST and ROYAL. Its original colors are preserved without a tint.
         val bitmap = customBitmap ?: BitmapFactory.decodeResource(
             context.resources,
             R.drawable.app_background
