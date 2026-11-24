@@ -44,6 +44,7 @@ import com.kichikan.ak1.ui.AvatarRender
 import com.kichikan.ak1.ui.MemberAvatar
 import com.kichikan.ak1.ui.RingReportDialog
 import com.kichikan.ak1.ui.theme.AppIcon
+import com.kichikan.ak1.ui.theme.CardSurfaceFill
 import com.kichikan.ak1.ui.theme.Card as AkCard
 import com.kichikan.ak1.ui.theme.GlassIcon
 import com.kichikan.ak1.ui.theme.GlassKind
@@ -373,7 +374,7 @@ private fun QuickLaunchStrip(onSessions: () -> Unit, onCompetition: () -> Unit, 
 @Composable
 private fun QuickLaunchItem(title: String, icon: Int, accent: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(modifier.height(76.dp).clickable(onClick = onClick), shape = RoundedCornerShape(18.dp),
-        color = Color.White.copy(alpha = 0.045f), border = BorderStroke(1.dp, accent.copy(alpha = 0.34f))) {
+        color = CardSurfaceFill, border = BorderStroke(1.dp, Color(0xFF3A2B55))) {
         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center) {
             AppIcon(icon, 34.dp)
