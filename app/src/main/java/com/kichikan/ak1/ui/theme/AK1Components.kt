@@ -91,42 +91,27 @@ fun Button(
 /** Frosted layer: a dark, mostly opaque veil so the background behind cards and buttons reads softly. */
 private val MatteFill: Color = Color(0xEB0A0622)
 
-private fun glassFill(accent: Color?) = Brush.linearGradient(
-    listOf(
-        (accent ?: Neon.Violet).copy(alpha = if (accent != null) 0.26f else 0.16f),
-        Color.White.copy(alpha = 0.04f),
-        (accent ?: Neon.Cyan).copy(alpha = 0.08f)
-    )
-)
+/** Shared opaque card fill, matching the dark cards in Settings. */
+val CardSurfaceFill: Color = Color(0xF21A102B)
+private val CardSurfaceBorder = BorderStroke(1.dp, Color(0xFF3A2B55))
 
-private fun glassEdge(accent: Color?) = BorderStroke(
-    1.dp,
-    Brush.linearGradient(
-        listOf(
-            (accent ?: Neon.Cyan).copy(alpha = 0.75f),
-            Neon.Violet.copy(alpha = 0.30f),
-            (accent ?: Neon.Magenta).copy(alpha = 0.55f)
-        )
-    )
-)
-
-/** Style 4: layered-glass card (translucent gradient fill, bright glass edge). */
+/** Shared solid dark card used across application screens. */
 @Composable
 fun Card(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(22.dp),
-    colors: CardColors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    colors: CardColors = CardDefaults.cardColors(containerColor = CardSurfaceFill),
     elevation: CardElevation = CardDefaults.cardElevation(),
     border: BorderStroke? = null,
     accent: Color? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     androidx.compose.material3.Card(
-        modifier = modifier.background(MatteFill, shape).background(glassFill(accent), shape),
+        modifier = modifier.background(CardSurfaceFill, shape),
         shape = shape,
         colors = colors,
         elevation = elevation,
-        border = border ?: glassEdge(accent),
+        border = border ?: CardSurfaceBorder,
         content = content
     )
 }
@@ -136,7 +121,7 @@ fun Card(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(22.dp),
-    colors: CardColors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    colors: CardColors = CardDefaults.cardColors(containerColor = CardSurfaceFill),
     elevation: CardElevation = CardDefaults.cardElevation(),
     border: BorderStroke? = null,
     accent: Color? = null,
@@ -156,11 +141,11 @@ fun Card(
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .background(glassFill(accent), shape),
+            .background(CardSurfaceFill, shape),
         shape = shape,
         colors = colors,
         elevation = elevation,
-        border = border ?: glassEdge(accent),
+        border = border ?: CardSurfaceBorder,
         interactionSource = interaction,
         content = content
     )
