@@ -35,7 +35,7 @@ jobs:
       - name: Assemble debug APK and run unit tests
         run: |
           set +e
-          gradle assembleDebug testDebugUnitTest --continue --console=plain 2>&1 | tee build.log
+          gradle assembleDebug assembleRelease testDebugUnitTest --continue --console=plain 2>&1 | tee build.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             # Surface the real errors as an annotation so they are visible without downloading logs.
@@ -52,6 +52,23 @@ jobs:
           kind="default per-run debug key (uninstall the old app before installing)"
           if [ -n "$AK1_KEYSTORE_PATH" ]; then kind="fixed AK1 key (installs over previous builds, keeps data)"; fi
           echo "::notice title=APK signing certificate::SHA-256 $fp - $kind"
+      - name: Name the release APK (only when signed with the fixed key)
+        if: success()
+        run: |
+          VERSION=$(grep -m1 'versionName' app/build.gradle* | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ -n "$AK1_KEYSTORE_PATH" ] && [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            mkdir -p release-out
+            cp app/build/outputs/apk/release/app-release.apk "release-out/ABOTORAB-K1-v${VERSION}.apk"
+            (cd release-out && sha256sum *.apk > SHA256SUMS.txt)
+          fi
+      - name: Upload release APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ABOTORAB-K1-release-apk
+          path: release-out/
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
