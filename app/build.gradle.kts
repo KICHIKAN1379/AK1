@@ -39,6 +39,11 @@ android {
         getByName("debug") {
             if (useAk1Key) signingConfig = signingConfigs.getByName("ak1")
         }
+        // Release build: same fixed key, no R8 shrinking (kept off on purpose until tested on a device).
+        getByName("release") {
+            isMinifyEnabled = false
+            if (useAk1Key) signingConfig = signingConfigs.getByName("ak1")
+        }
     }
     buildFeatures { compose = true }
 }
